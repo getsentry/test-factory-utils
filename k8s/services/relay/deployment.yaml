@@ -63,7 +63,7 @@ spec:
         - {{ dogstatsd_port_forward_initcontainer() }}
         ## FIXME
         # - {{ geoip_initcontainer() }}
-        # FIXME generate config dynamically?
+        # FIXME: generate config dynamically?
         - name: init-relay-credentials
           image: "{{ image }}"
           command:
@@ -96,6 +96,10 @@ spec:
               subPath: credentials.json
               readOnly: true
             - {{ geoip_volumemount() }}
+          env:
+            # Workaround for https://github.com/getsentry/relay/issues/672
+            - name: RELAY_PORT
+              value: "{{ http_port }}"
           resources:
             requests:
               cpu: 1000m

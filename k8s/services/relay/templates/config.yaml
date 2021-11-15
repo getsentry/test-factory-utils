@@ -1,7 +1,6 @@
 ---
 relay:
-  # Local Envoy that proxies to getsentry-web-internal-production service
-  upstream: http://127.0.0.1:10008
+  upstream: http://fake-sentry.default.svc.cluster.local
   host: 0.0.0.0
   port: 3000
 http:
