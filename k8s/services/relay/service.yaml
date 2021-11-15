@@ -8,4 +8,6 @@ spec:
   selector:
     service: relay
   ports:
-  - port: 3000
+  - name: http
+    port: 80
+    targetPort: 3000

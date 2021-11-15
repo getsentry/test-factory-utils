@@ -6,6 +6,7 @@ relay:
 http:
   host_header: sentry.io
 logging:
+  level: debug
   log_failed_payloads: false
   enable_backtraces: false
   format: json
