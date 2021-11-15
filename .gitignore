@@ -1,0 +1,18 @@
+# Rust
+**/*.rs.bk
+target
+
+# Python
+.venv/
+venv/
+.pytest_cache
+*.pyc
+
+# Editors
+/.idea/
+.DS_Store
+.vscode
+
+# NPM utilities for building docs
+/node_modules/
+package-lock.json
