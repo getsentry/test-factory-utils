@@ -1,0 +1,77 @@
+{% set confluent_version = '5.1.4' %}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookafka
+  labels:
+    service: zookafka
+spec:
+  selector:
+    matchLabels:
+      service: zookafka
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        service: zookafka
+    spec:
+      terminationGracePeriodSeconds: 600
+      containers:
+      - image: confluentinc/cp-zookeeper:{{ confluent_version }}
+        name: zookeeper
+        env:
+        - name: ZOOKEEPER_CLIENT_PORT
+          value: '2181'
+        - name: CONFLUENT_SUPPORT_METRICS_ENABLE
+          value: 'false'
+        ports:
+        - containerPort: 2181
+        volumeMounts:
+        - name: zookeeper-disk
+          subPath: data
+          mountPath: /var/lib/zookeeper/data
+        - name: zookeeper-disk
+          subPath: log
+          mountPath: /var/lib/zookeeper/log
+        resources:
+          requests:
+            cpu: 10m
+            memory: 640Mi
+          limits:
+            cpu: 250m
+            memory: 640Mi
+      - image: confluentinc/cp-kafka:{{ confluent_version }}
+        name: kafka
+        env:
+        - name: KAFKA_HEAP_OPTS
+          value: -Xmx9G -Xms9G
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: 127.0.0.1:2181
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: '1'
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://ingest-kafka.default.svc.cluster.local:9092
+        - name: CONFLUENT_SUPPORT_METRICS_ENABLE
+          value: 'false'
+        ports:
+        - containerPort: 9092
+        volumeMounts:
+        - name: kafka-disk
+          subPath: data
+          mountPath: /var/lib/kafka/data
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 10Gi
+          limits:
+            cpu: 2000m
+            memory: 10Gi
+      volumes:
+      - name: zookeeper-disk
+        persistentVolumeClaim:
+          claimName: zookeeper-claim
+      - name: kafka-disk
+        persistentVolumeClaim:
+          claimName: kafka-claim

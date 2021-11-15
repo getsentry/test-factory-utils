@@ -1,0 +1,161 @@
+{% set http_port = 3000 %}
+{% set config_dir = "/etc/relay" %}
+{% set main_threads_per_process = 30 %}
+{% set use_envoy_proxy = True %}
+
+{% set environments = [
+  {
+    "name": "main",
+    "config": {
+      "labels": {},
+    },
+  },
+]
+%}
+
+{% for environment in environments %}
+
+{% set env_name = environment['name'] %}
+{% set env_values = values.environments[env_name]|default({}) %}
+{% set config = environment['config'] %}
+{% set deployment_name = "relay-" + env_name %}
+
+{% set labels = {
+  "service": "relay",
+  "environment": env_name,
+} %}
+{% set _ = labels.update(config['labels']) %}
+{% set labels = labels | tojson %}
+{% set configmap_subpath = "config_" ~ env_name ~ ".yml" %}
+
+# FIXME
+{% set image = "us.gcr.io/sentryio/relay:07786352f563dce248b23f091f6764efe38dc03c" %}
+{% set autoscaler = env_values.autoscaler|default({"enabled": False}) %}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ deployment_name }}
+  labels: {{ labels }}
+spec:
+  {% if not autoscaler.enabled %}
+  replicas: {{ env_values['replicas'] }}
+  {% endif %}
+  selector:
+    matchLabels:
+      service: relay
+      environment: {{ env_name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 0
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels: {{ labels }}
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        configVersion: "{{ md5template("templates/config.yaml") }}"
+    spec:
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        - {{ dogstatsd_port_forward_initcontainer() }}
+        ## FIXME
+        # - {{ geoip_initcontainer() }}
+        # FIXME generate config dynamically?
+        - name: init-relay-credentials
+          image: "{{ image }}"
+          command:
+            - bash
+            - -c
+            - |
+              echo '
+              {
+                "secret_key": "tAF80bZG7Z3iX43Jv3tQgXroFDgyO81o75Xn7cdfmUc",
+                "public_key": "cpOFOeo3cfa12IITjceU6k5c7Bn18Imr7ktB9BLQxxI",
+                "id": "392ccd58-d1d9-45a9-a826-6da9a3454837"
+              }' > {{ config_dir }}/credentials.json
+          volumeMounts:
+            - name: relay-config-dir
+              mountPath: {{ config_dir }}
+      containers:
+        - image: "{{ image }}"
+          name: relay
+          args:
+            - run
+            - --config
+            - {{ config_dir }}
+          volumeMounts:
+            - name: relay-config
+              mountPath: {{ config_dir }}/config.yml
+              subPath: {{ configmap_subpath }}
+              readOnly: true
+            - name: relay-config-dir
+              mountPath: {{ config_dir }}/credentials.json
+              subPath: credentials.json
+              readOnly: true
+            - {{ geoip_volumemount() }}
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2000Mi
+            limits:
+              cpu: {{ main_threads_per_process * 1000 }}m
+              memory: 3000Mi
+          livenessProbe:
+            httpGet:
+              path: /api/relay/healthcheck/live/
+              port: {{ http_port }}
+            initialDelaySeconds: 2
+            successThreshold: 1
+            failureThreshold: 4
+            periodSeconds: 2
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /api/relay/healthcheck/ready/
+              port: {{ http_port }}
+            initialDelaySeconds: 3
+            successThreshold: 1
+            failureThreshold: 2
+            periodSeconds: 1
+            timeoutSeconds: 1
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sleep
+                - "5"
+      volumes:
+        - name: relay-config
+          configMap:
+            name: relay
+        # - name: relay-credentials
+        #   secret:
+        #     secretName: service-relay
+        - name: relay-config-dir
+          emptyDir: {}
+        - {{ geoip_volume() }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+---
+{% if autoscaler.enabled %}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ deployment_name }}
+  labels: {{ labels }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ deployment_name }}
+  minReplicas: {{ autoscaler.min }}
+  maxReplicas: {{ autoscaler.max }}
+  targetCPUUtilizationPercentage: {{ autoscaler.target_cpu }}
+{% endif %}
+---
+{% endfor %}

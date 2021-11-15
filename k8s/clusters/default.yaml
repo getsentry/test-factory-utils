@@ -1,0 +1,5 @@
+context: gke_sentry-st-testing_europe-west3-b_cluster-1
+
+services: 
+  - k8s/services/relay
+  - k8s/services/zookafka

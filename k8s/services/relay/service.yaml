@@ -1,0 +1,23 @@
+# Direct connections to relay process
+apiVersion: v1
+kind: Service
+metadata:
+  name: relay
+spec:
+  clusterIP: None
+  selector:
+    service: relay
+  ports:
+  - port: 3000
+---
+# Envoy process that will proxy to relay (in the same pod)
+apiVersion: v1
+kind: Service
+metadata:
+  name: relay-envoy
+spec:
+  clusterIP: None
+  selector:
+    service: relay
+  ports:
+  - port: 3010

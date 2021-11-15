@@ -1,0 +1,70 @@
+---
+relay:
+  # Local Envoy that proxies to getsentry-web-internal-production service
+  upstream: http://127.0.0.1:10008
+  host: 0.0.0.0
+  port: 3000
+http:
+  host_header: sentry.io
+logging:
+  log_failed_payloads: false
+  enable_backtraces: false
+  format: json
+metrics:
+  statsd: 127.0.0.1:8126
+  prefix: relay
+  hostname_tag: pod_name
+limits:
+  # Limit allocation requests to 1GB. This is potentially a useful
+  # safeguard against ballooning memory usage due to bugs in Relay.
+  _max_alloc_size: 1000000000
+  max_thread_count: 12
+  # The following settings are used to tweak Actix
+  max_connection_rate: 1024
+  max_connections: 25000
+  max_pending_connections: 2048
+  # Max number of project config queries Relay is sending to Sentry in parallel
+  max_concurrent_queries: 10
+cache:
+  # Project configs expire after this number of seconds
+  project_expiry: 30
+  # How often (at most) we fetch project configs from Sentry (in milliseconds)
+  batch_interval: 100
+  # How many projects we query in one request
+  batch_size: 50
+  # How many events we buffer before we start dropping (~internal queue size)
+  envelope_buffer_size: 1000000
+  # How long a project config can still be used after having expired
+  # Essentially: How long we can keep buffering events
+  project_grace_period: 3600
+  # The cache timeout for buffered events before dropping them (in seconds)
+  envelope_expiry: 1800
+outcomes:
+  # This field is added to outcomes to identify where they were produced
+  source: "relay-internal"
+sentry:
+  enabled: false
+  # dsn: https://eedd748231034b99860e6aa58b9ad174@sentry.my.sentry.io/4
+processing:
+  enabled: true
+  explode_session_aggregates: false
+  ## FIXME
+  # geoip_path: "/usr/local/share/GeoIP/GeoIP2-City.mmdb"
+  _internal_projects: [1]
+  kafka_config:
+    - {name: "bootstrap.servers", value: "ingest-kafka.default.svc.cluster.local:9092"}
+    - {name: "compression.type", value: "lz4"}
+    - {name: "message.max.bytes", value: 10000000}   # 10MB, default is 1MB
+    - {name: "queue.buffering.max.ms", value: 1000}  # 1000ms, default is 0.5
+  topics:
+    events: "ingest-events"
+    attachments: "ingest-attachments"
+    transactions: "ingest-transactions"
+    outcomes: "outcomes"
+    sessions: "ingest-sessions"
+    metrics: "ingest-metrics"
+  # redis:
+  #   cluster_nodes:
+  #     - redis://rc-ingest.service.us-central1.consul.:6300
+  #     - redis://rc-ingest.service.us-central1.consul.:6301
+  #     - redis://rc-ingest.service.us-central1.consul.:6302

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # This cannot be named simply "kafka"
+  # If it is, it'll supply environment variables
+  # into the actual kafka container with such names
+  # as "KAFKA_PORT", which make the kafka container
+  # unhappy.
+  name: ingest-kafka
+spec:
+  clusterIP: None
+  selector:
+    service: zookafka
+  ports:
+    - port: 9092
+      name: kafka
+    - port: 2181
+      name: zookeeper

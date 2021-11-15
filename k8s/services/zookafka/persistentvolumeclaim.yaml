@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zookeeper-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+#      storage: { customer.kafka.disk_size }}
+# FIXME
+      storage: 32Gi
