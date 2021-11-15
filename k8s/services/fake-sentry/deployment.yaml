@@ -1,0 +1,74 @@
+{% set web_workers = 8 %}
+
+{% set labels = {
+  "service": "fake-sentry",
+} %}
+
+{% set http_port = 8000 %}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "fake-sentry"
+  labels: {{ labels }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: "fake-sentry"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 0
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels: {{ labels }}
+      annotations:
+        configVersion: "{{ md5template("templates/fake_sentry.config.yml") }}"
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - image: "us.gcr.io/sentryio/fake-sentry:89e38405dacf5225c4261b8be3114e39a51918b3"
+          name: fake-sentry
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2000Mi
+            limits:
+              cpu: {{ web_workers * 1000 }}m
+              memory: 2000Mi
+          env:
+            - name: UWSGI_WORKERS
+              value: "{{ web_workers }}"
+          volumeMounts:
+            - name: fake-sentry-config
+              mountPath: /root/config/fake_sentry.config.yml
+              subPath: fake_sentry.config.yml
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ http_port }}
+            initialDelaySeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ http_port }}
+            initialDelaySeconds: 3
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sleep
+                - "5"
+      volumes:
+        - name: fake-sentry-config
+          configMap:
+            name: fake-sentry
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"

@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "fake-sentry"
+spec:
+  selector:
+    service: "fake-sentry"
+  ports:
+  - port: 80
+    targetPort: 8000
