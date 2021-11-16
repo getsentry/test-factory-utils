@@ -1,0 +1,41 @@
+{% set labels = {
+  "service": "ingest-load-tester",
+  "component": "worker",
+} %}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {{ labels }}
+  name: ingest-load-tester-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {{ labels }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels: {{ labels }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: ingest-load-tester
+        image: "{{ values.image }}"
+        imagePullPolicy: Always
+        args: ["run-worker"]
+        env:
+        - name: MASTER_HOST
+          # Service address
+          value: "ingest-load-tester.default.svc.cluster.local"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1000Mi
+          limits:
+            cpu: 2000m
+            memory: 2000Mi

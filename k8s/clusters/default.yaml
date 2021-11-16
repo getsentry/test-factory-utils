@@ -1,6 +1,7 @@
 context: gke_sentry-st-testing_europe-west3-b_cluster-1
 
-services: 
+services:
   - k8s/services/fake-sentry
+  - k8s/services/ingest-load-tester
   - k8s/services/relay
   - k8s/services/zookafka
