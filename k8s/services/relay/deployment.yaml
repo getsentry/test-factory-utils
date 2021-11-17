@@ -61,8 +61,7 @@ spec:
       terminationGracePeriodSeconds: 30
       initContainers:
         - {{ dogstatsd_port_forward_initcontainer() }}
-        ## FIXME
-        # - {{ geoip_initcontainer() }}
+        - {{ geoip_initcontainer() }}
         # FIXME: generate config dynamically?
         - name: init-relay-credentials
           image: "{{ image }}"

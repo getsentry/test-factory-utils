@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: geoipupdate
+  namespace: sentry-system
+  labels:
+    service: geoipupdate
+spec:
+  selector:
+    matchLabels:
+      service: geoipupdate
+  template:
+    metadata:
+      labels:
+        service: geoipupdate
+      annotations:
+        configVersion: {{ md5file("k8s/services/geoipupdate/configmap.yaml") }}
+    spec:
+      terminationGracePeriodSeconds: 1
+      containers:
+      - image: us.gcr.io/sentryio/geoipupdate:4.0.3
+        name: geoipupdate
+        volumeMounts:
+        - name: geoipupdate-config
+          mountPath: /etc/GeoIP.conf
+          subPath: GeoIP.conf
+          readOnly: true
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 200m  # needs some burst when actually downloading
+            memory: 100Mi
+      volumes:
+      - name: geoipupdate-config
+        configMap:
+          name: geoipupdate
+          items:
+          - key: GeoIP.conf
+            path: GeoIP.conf
+      - name: data
+        hostPath:
+          path: /mnt/stateful_partition/usr/local/share/GeoIP
