@@ -1,0 +1,13 @@
+# Config file for the load tester
+
+use_fake_projects: true
+relay:
+  host: http://relay
+  port: 80
+
+fake_projects:
+  enable_metrics_extraction: false
+projects:
+  # List here all the valid projects with their public keys
+  - id: 1
+    key: "31a5a894b4524f74a9a8d0e27e21ba91"

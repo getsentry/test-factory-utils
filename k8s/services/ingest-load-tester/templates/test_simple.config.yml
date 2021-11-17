@@ -1,0 +1,10 @@
+users:
+  # A task that sends an event from file
+  SimpleLoadTest:
+    weight: 1
+    num_projects: 10
+    wait_time: constant(0.1)
+    tasks:
+      file_event_task_factory:
+        weight: 1
+        filename: test-events/small.json

@@ -7,8 +7,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels: {{ labels }}
   name: ingest-load-tester-master
+  labels: {{ labels }}
 spec:
   replicas: 1
   selector:
@@ -21,6 +21,9 @@ spec:
   template:
     metadata:
       labels: {{ labels }}
+      annotations:
+        configVersion1: "{{ md5template("templates/locust.config.yml") }}"
+        configVersion2: "{{ md5template("templates/test_simple.config.yml") }}"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
@@ -28,6 +31,15 @@ spec:
         image: "{{ values.image }}"
         imagePullPolicy: Always
         args: ["run-master"]
+        volumeMounts:
+          - name: ingest-load-tester-config
+            mountPath: /root/config/locust.config.yml
+            subPath: locust.config.yml
+            readOnly: true
+          - name: ingest-load-tester-config
+            mountPath: /root/config/simple.test.yml
+            subPath: test_simple.config.yml
+            readOnly: true
         resources:
           requests:
             cpu: 500m
@@ -35,3 +47,7 @@ spec:
           limits:
             cpu: 2000m
             memory: 2000Mi
+      volumes:
+        - name: ingest-load-tester-config
+          configMap:
+            name: ingest-load-tester

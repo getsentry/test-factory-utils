@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingest-load-tester
+  labels:
+    service: ingest-load-tester
+data:
+  locust.config.yml: |
+    {% filter indent %}{% include 'templates/locust.config.yml' %}{% endfilter %}
+  test_simple.config.yml: |
+    {% filter indent %}{% include 'templates/test_simple.config.yml' %}{% endfilter %}
