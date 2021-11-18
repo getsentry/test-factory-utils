@@ -7,14 +7,14 @@ Configuration and tooling for the Sentry testbed environment.
 1. [Install `gcloud`](https://cloud.google.com/sdk/docs/install), authenticate (`gcloud auth login`) and pick `sentry-st-testing` project, if asked.
 
 
-1. Prepare a Python virtual environment with Python 3.7+ and activate it.
+1. Prepare a Python virtual environment with Python 3.7+ and activate it. Make sure to have a recent `pip` installed!
 
    For example:
 
    ```
    python3 -m venv .venv
-
    source .venv/bin/activate
+   python3 -m pip install -U pip
    ```
 
 1. Install [`sentry-kube`](https://github.com/getsentry/ops/tree/master/k8s/cli) **into the newly created virtual environment**.
