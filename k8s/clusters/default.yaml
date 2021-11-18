@@ -5,5 +5,6 @@ services:
   - k8s/services/fake-sentry
   - k8s/services/geoipupdate
   - k8s/services/ingest-load-tester
+  - k8s/services/influxdb
   - k8s/services/relay
   - k8s/services/zookafka
