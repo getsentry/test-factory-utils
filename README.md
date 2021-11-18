@@ -4,7 +4,7 @@ Configuration and tooling for the Sentry testbed environment.
 
 ## Setup
 
-1. [Install `gcloud`](https://cloud.google.com/sdk/docs/install)
+1. [Install `gcloud`](https://cloud.google.com/sdk/docs/install), authenticate (`gcloud auth login`) and pick `sentry-st-testing` project, if asked.
 
 
 1. Prepare a Python virtual environment with Python 3.7+ and activate it.
