@@ -59,7 +59,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name:  telegraf
+          name: telegraf
       - name: var-run-utmp-ro
         hostPath:
           path: /var/run/utmp
