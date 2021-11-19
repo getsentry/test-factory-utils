@@ -45,7 +45,7 @@ spec:
           value: sentry
         # The name to set for the system's initial bucket (Required).
         - name: DOCKER_INFLUXDB_INIT_BUCKET
-          value: relay
+          value: statsd
         # # The duration the system's initial bucket should retain data. If not set, the initial bucket will retain data forever.
         # - name: DOCKER_INFLUXDB_INIT_RETENTION
         #   value: "0"

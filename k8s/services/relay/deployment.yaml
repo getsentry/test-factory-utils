@@ -60,7 +60,8 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       initContainers:
-        - {{ dogstatsd_port_forward_initcontainer() }}
+        # Telegraf statsd
+        - {{ port_forward_initcontainer(["8125/udp"]) }}
         - {{ geoip_initcontainer() }}
         # FIXME: generate config dynamically?
         - name: init-relay-credentials

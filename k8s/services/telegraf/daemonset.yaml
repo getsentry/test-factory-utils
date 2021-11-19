@@ -1,0 +1,72 @@
+{% set labels = {
+  "service": "telegraf",
+} %}
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: telegraf
+  namespace: sentry-system
+  labels: {{ labels }}
+spec:
+  selector:
+    matchLabels: {{ labels }}
+  template:
+    metadata:
+      labels: {{ labels }}
+      annotations:
+        configVersion: "{{ md5template("templates/telegraf.conf") }}"
+    spec:
+      # serviceAccountName: { template "telegraf.serviceAccountName" . }}
+      # priorityClassName: high-priority
+      containers:
+      - name: telegraf
+        image: "telegraf:1.20.4-alpine"
+        ports:
+        - containerPort: 8125
+          hostPort: 8125
+          protocol: UDP
+        env:
+        - name: HOSTIP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/telegraf
+        - name: var-run-utmp-ro
+          mountPath: /var/run/utmp
+          readOnly: true
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+        # - name: host-fs-ro
+        #   mountPath: /host-fs
+        #   readOnly: true
+        env:
+        - name: INFLUX_URL
+          value: "http://influxdb.default.svc.cluster.local:8086"
+        # FIXME: move it to a secret
+        - name: INFLUX_TOKEN
+          value: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
+        resources:
+          requests:
+            cpu: 100m
+            memory: 500Mi
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+      volumes:
+      - name: config
+        configMap:
+          name:  telegraf
+      - name: var-run-utmp-ro
+        hostPath:
+          path: /var/run/utmp
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+      # - name: host-fs-ro
+      #   hostPath:
+      #     path: /
+      # hostNetwork: { default .Values.hostNetwork  false }}
