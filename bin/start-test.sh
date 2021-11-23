@@ -1,31 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-### Just a mock for now. First we need to build an image with Python stuff we want to run.
+SCRIPT_ARGS=( "$@" )
+SCRIPT_ARGS_LEN="$#"
 
-IMAGE="busybox:1.32"
+update_relay() {
+  RELAY_IMAGE="us.gcr.io/sentryio/relay:07786352f563dce248b23f091f6764efe38dc03c"
 
-DATE="$(date -u '+%Y-%m-%d-%H-%M-%S')"
-RANDOM_ID="$(</dev/urandom LC_ALL=C tr -dc '0-9' | head -c 4 || true)"
-NAME="load-test-${DATE}-${RANDOM_ID}"
+  echo ">>> Updating Relay's version..."
+  sentry-kube kubectl set image deployment relay-main "relay=${RELAY_IMAGE}"
 
-TEMPLATE=$(cat <<END_HEREDOC
-apiVersion: batch/v1
-kind: Job
+  sleep 1
+
+  echo ">>> Waiting for the rollout to finish..."
+  sentry-kube kubectl rollout status deployment relay-main
+}
+
+
+start_test_job() {
+  IMAGE="busybox:1.32"
+  DATE="$(date -u '+%Y-%m-%d-%H-%M-%S')"
+  RANDOM_ID="$(</dev/urandom LC_ALL=C tr -dc '0-9' | head -c 4 || true)"
+  NAME="load-test-${DATE}-${RANDOM_ID}"
+
+  if [ "${SCRIPT_ARGS_LEN}" -ge 1 ]; then
+    # Form a JSON list from script arguments
+    CONTAINER_ARGS="[$(printf '"%s", ' "${SCRIPT_ARGS[@]}")]"
+  else
+    CONTAINER_ARGS="[]"
+  fi
+
+  TEMPLATE=$(cat <<END_HEREDOC
+---
+apiVersion: v1
+kind: Pod
 metadata:
   name: ${NAME}
   labels:
-    service: run-test
+    service: "start-test"
+    startedby: "${USER}"
 spec:
-  template:
-    spec:
-      containers:
-      - name: test
-        image: ${IMAGE}
-        command: ["sleep", "60"]
-      restartPolicy: Never
-  backoffLimit: 3
+  containers:
+    - name: test
+      image: "${IMAGE}"
+      command: ["echo"]
+      args: ${CONTAINER_ARGS}
+  restartPolicy: Never
 END_HEREDOC
-)
+  )
 
-echo "${TEMPLATE}" | sentry-kube kubectl apply -f -
+  echo ">>> Scheduling a test run..."
+  echo "${TEMPLATE}" | sentry-kube kubectl apply -f -
+}
+
+
+update_relay
+start_test_job
