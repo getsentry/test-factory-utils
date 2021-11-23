@@ -5,7 +5,28 @@ SCRIPT_ARGS=( "$@" )
 SCRIPT_ARGS_LEN="$#"
 
 update_relay() {
-  RELAY_IMAGE="us.gcr.io/sentryio/relay:07786352f563dce248b23f091f6764efe38dc03c"
+  RELAY_VERSION=""
+
+  # Extract relay version from the script arguments
+  while getopts ":v:" opt "${SCRIPT_ARGS[@]}"; do
+    case ${opt} in
+      v)
+        RELAY_VERSION="${OPTARG}"
+        break
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  # FIXME this doesn't handle long options, and also doesn't work if there are args before "-v"
+
+  if [ -z "${RELAY_VERSION}" ]; then
+    echo '>>> Cannot find relay version, exiting!'
+    exit 1
+  fi
+
+  RELAY_IMAGE="us.gcr.io/sentryio/relay:${RELAY_VERSION}"
 
   echo ">>> Updating Relay's version..."
   sentry-kube kubectl set image deployment relay-main "relay=${RELAY_IMAGE}"
