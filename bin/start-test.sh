@@ -5,6 +5,7 @@ SCRIPT_ARGS=( "$@" )
 SCRIPT_ARGS_LEN="$#"
 
 update_relay() {
+  # It's super annoying to do arg parsing in bash, so delegating to a small Python script for now
   RELAY_VERSION="$(python extract-relay-version.py "${SCRIPT_ARGS[@]}" 2>/dev/null)"
 
   if [ -z "${RELAY_VERSION}" ]; then
