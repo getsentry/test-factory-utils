@@ -5,21 +5,7 @@ SCRIPT_ARGS=( "$@" )
 SCRIPT_ARGS_LEN="$#"
 
 update_relay() {
-  RELAY_VERSION=""
-
-  # Extract relay version from the script arguments
-  while getopts ":v:" opt "${SCRIPT_ARGS[@]}"; do
-    case ${opt} in
-      v)
-        RELAY_VERSION="${OPTARG}"
-        break
-        ;;
-      *)
-        ;;
-    esac
-  done
-
-  # FIXME this doesn't handle long options, and also doesn't work if there are args before "-v"
+  RELAY_VERSION="$(python extract-relay-version.py "${SCRIPT_ARGS[@]}" 2>/dev/null)"
 
   if [ -z "${RELAY_VERSION}" ]; then
     echo '>>> Cannot find relay version, exiting!'
@@ -28,13 +14,16 @@ update_relay() {
 
   RELAY_IMAGE="us.gcr.io/sentryio/relay:${RELAY_VERSION}"
 
-  echo ">>> Updating Relay's version..."
-  sentry-kube kubectl set image deployment relay-main "relay=${RELAY_IMAGE}"
+  echo ">>> New Relay version: '${RELAY_VERSION}'. Updating..."
+  sentry-kube kubectl -q set image deployment relay-main "relay=${RELAY_IMAGE}"
 
   sleep 1
 
   echo ">>> Waiting for the rollout to finish..."
-  sentry-kube kubectl rollout status deployment relay-main
+  if ! sentry-kube kubectl -q rollout status deployment --timeout=1m relay-main; then
+    echo ">>> Something went wrong. Check relay deployment."
+    exit 1
+  fi
 }
 
 
@@ -71,9 +60,13 @@ END_HEREDOC
   )
 
   echo ">>> Scheduling a test run..."
-  echo "${TEMPLATE}" | sentry-kube kubectl apply -f -
+  echo "${TEMPLATE}" | sentry-kube kubectl -q apply -f -
 }
 
+if ! command -v sentry-kube &> /dev/null; then
+  echo "sentry-kube not found, exiting."
+  exit 1
+fi
 
 update_relay
 start_test_job
