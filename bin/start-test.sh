@@ -29,7 +29,7 @@ update_relay() {
 
 
 start_test_job() {
-  IMAGE="busybox:1.32"
+  IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:8d7097657f07d0317683ddde608af5ccf70fffca"
   DATE="$(date -u '+%Y-%m-%d-%H-%M-%S')"
   RANDOM_ID="$(</dev/urandom LC_ALL=C tr -dc '0-9' | head -c 4 || true)"
   NAME="load-test-${DATE}-${RANDOM_ID}"
@@ -54,8 +54,12 @@ spec:
   containers:
     - name: test
       image: "${IMAGE}"
-      command: ["echo"]
       args: ${CONTAINER_ARGS}
+      env:
+      - name: SLACK_AUTH_TOKEN
+        value: "xoxb-2757754192454-2766782134324-oK6ewxLGOlElIk4UE9nYTTpY"
+      - name: SLACK_CHANNEL_ID
+        value: "#slack-notif-test"
   restartPolicy: Never
 END_HEREDOC
   )
@@ -69,5 +73,5 @@ if ! command -v sentry-kube &> /dev/null; then
   exit 1
 fi
 
-update_relay
+# update_relay
 start_test_job
