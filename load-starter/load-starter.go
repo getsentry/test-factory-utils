@@ -119,10 +119,10 @@ func stopLocust() error {
 func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int64) error {
 	queryString := url.Values{}
 
-	startTimeStamp := startTime.Format("2006-01-02T03:04:05Z")
+	startTimeStamp := startTime.Format("2006-01-02T15:04:05Z")
 	queryString.Add("lower", startTimeStamp)
 
-	endTimeStamp := endTime.Format("2006-01-02T03:04:05Z")
+	endTimeStamp := endTime.Format("2006-01-02T15:04:05Z")
 	queryString.Add("upper", endTimeStamp)
 
 	reportUrl := fmt.Sprintf("http://%s/orgs/%s/dashboards/%s?%s",
