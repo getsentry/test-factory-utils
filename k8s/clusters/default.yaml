@@ -8,4 +8,5 @@ services:
   - k8s/services/influxdb
   - k8s/services/relay
   - k8s/services/telegraf
+  - k8s/services/workflows
   - k8s/services/zookafka
