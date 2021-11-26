@@ -29,7 +29,7 @@ update_relay() {
 
 
 start_test_job() {
-  IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:8d7097657f07d0317683ddde608af5ccf70fffca"
+  IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:514e11da6a8e2cd137058f89434d0c4f4e6daffd"
   DATE="$(date -u '+%Y-%m-%d-%H-%M-%S')"
   RANDOM_ID="$(</dev/urandom LC_ALL=C tr -dc '0-9' | head -c 4 || true)"
   NAME="load-test-${DATE}-${RANDOM_ID}"
