@@ -18,6 +18,7 @@ const (
 	defaultInfluxDbServer = "localhost:8086"
 	startLocustUrl        = "http://%s/swarm"
 	stopLocustUrl         = "http://%s/stop"
+	testDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
 	slackAuthToken        = "xoxb-2757754192454-2766782134324-oK6ewxLGOlElIk4UE9nYTTpY"
 	slackChannelId        = "#slack-notif-test"
 )
@@ -141,16 +142,15 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 		Text:    reportUrl,
 		// Color Styles the Text, making it possible to have like Warnings etc.
 		Color: "#36a64f",
-
 		Fields: []slack.AttachmentField{
 			{
 				Title: "Test Start",
-				Value: startTime.Local().Format("03:04:05 MST"),
+				Value: startTime.Local().Format(testDateFormat),
 				Short: false,
 			},
 			{
 				Title: "Test End",
-				Value: endTime.Local().Format("03:04:05 MST"),
+				Value: endTime.Local().Format(testDateFormat),
 				Short: false,
 			},
 
