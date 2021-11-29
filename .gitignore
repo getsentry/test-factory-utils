@@ -16,3 +16,9 @@ venv/
 # NPM utilities for building docs
 /node_modules/
 package-lock.json
+
+# Terraform
+terraform*.tfstate*backup
+terraform*.tfstate
+.terraform/
+logfiles/
