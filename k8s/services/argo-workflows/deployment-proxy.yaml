@@ -1,3 +1,8 @@
+# NOTE: this is a hack.
+# The purpose of this deployment is to proxy everything to "argo-server" service located in a different service ("argo").
+# Why: Ingress needs to reference a service that sits in the same namespace ("default" at the moment), so we need a deployment
+# in "default" namespace that will proxy everything to "argo-server".
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
