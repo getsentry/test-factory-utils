@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: argo-workflows
+    component: argo-workflows-proxy
+  name: argo-workflows-proxy
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: argo-workflows
+      component: argo-workflows-proxy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        service: argo-workflows
+        component: argo-workflows-proxy
+    spec:
+      initContainers:
+      - name: init-caddy-config
+        image: "busybox:1.32"
+        command:
+          - sh
+          - -c
+          - |
+            echo '
+            :8080
+
+            reverse_proxy {
+              to https://argo-server.argo.svc.cluster.local:2746
+              transport http {
+                tls
+                tls_insecure_skip_verify
+              }
+            }
+            ' > /etc/caddy/Caddyfile
+        volumeMounts:
+          - name: caddy-config-dir
+            mountPath: /etc/caddy
+      containers:
+      - image: caddy:2.4.6
+        name: caddy
+        command:
+        - caddy
+        - run
+        - '--config'
+        - /etc/caddy/Caddyfile
+        volumeMounts:
+          - name: caddy-config-dir
+            mountPath: /etc/caddy
+      volumes:
+        - name: caddy-config-dir
+          emptyDir: {}

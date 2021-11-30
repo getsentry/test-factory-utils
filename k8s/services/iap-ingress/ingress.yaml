@@ -1,5 +1,6 @@
 {% set services = [
   {'host': 'influxdb.testa.getsentry.net', 'serviceName': 'influxdb'},
+  {'host': 'run.testa.getsentry.net', 'serviceName': 'argo-workflows'},
 ] %}
 
 apiVersion: extensions/v1beta1
