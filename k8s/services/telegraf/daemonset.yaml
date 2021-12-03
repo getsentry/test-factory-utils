@@ -18,7 +18,7 @@ spec:
       annotations:
         configVersion: "{{ md5template("templates/telegraf.conf") }}"
     spec:
-      # serviceAccountName: { template "telegraf.serviceAccountName" . }}
+      serviceAccountName: telegraf
       # priorityClassName: high-priority
       containers:
       - name: telegraf
@@ -27,11 +27,6 @@ spec:
         - containerPort: 8125
           hostPort: 8125
           protocol: UDP
-        env:
-        - name: HOSTIP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
         volumeMounts:
         - name: config
           mountPath: /etc/telegraf
@@ -49,6 +44,10 @@ spec:
         # FIXME: move it to a secret
         - name: INFLUX_TOKEN
           value: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
+        - name: HOSTIP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
         resources:
           requests:
             cpu: 100m

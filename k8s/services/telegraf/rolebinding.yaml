@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: telegraf-stats-viewer
+  labels:
+    service: telegraf
+subjects:
+  - kind: ServiceAccount
+    name: telegraf
+    namespace: sentry-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: influx:telegraf

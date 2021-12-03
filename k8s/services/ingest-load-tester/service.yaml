@@ -15,3 +15,15 @@ spec:
     name: comm
   - port: 5558
     name: comm-plus-1
+---
+{{
+iap_service(
+  service_name='locust',
+  domain='locust.testa.getsentry.net',
+  port=8089,
+  selector={
+    'service': 'ingest-load-tester',
+    'component': 'master',
+  },
+)
+}}

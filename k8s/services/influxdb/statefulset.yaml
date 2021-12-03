@@ -20,19 +20,6 @@ spec:
       annotations:
         configVersion: "{{ md5template("templates/config.yaml") }}"
     spec:
-      # initContainers:
-      #   - name: copy-config
-      #     image: "busybox:1.34.1"
-      #     command:
-      #       - cp
-      #       - /in/config.yaml
-      #       - /out/config.yaml
-      #     volumeMounts:
-      #       - name: config-ro
-      #         mountPath: /in/config.yaml
-      #         subPath: "config.yaml"
-      #       - name: config-dir-rw
-      #         mountPath: /out
       containers:
       - name: influxdb
         image: "influxdb:2.1.1-alpine"

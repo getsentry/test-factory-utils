@@ -1,0 +1,25 @@
+{% set services = [
+  {'host': 'influxdb.testa.getsentry.net', 'serviceName': 'influxdb'},
+  {'host': 'run.testa.getsentry.net', 'serviceName': 'argo-workflows'},
+  {'host': 'locust.testa.getsentry.net', 'serviceName': 'locust'},
+] %}
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: iap-ingress
+  labels:
+    service: iap-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: iap-ingress-address
+    networking.gke.io/managed-certificates: "{% for service in services %}{{ "cert-%s"|format(service.host|replace('.', '-')) }}{% if not loop.last %}, {% endif %}{% endfor %}"
+spec:
+  rules:
+{% for service in services %}
+  - host: {{ service.host }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ service.serviceName }}
+          servicePort: 80
+{% endfor %}

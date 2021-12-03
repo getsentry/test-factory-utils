@@ -1,11 +1,14 @@
 context: gke_sentry-st-testing_europe-west3-b_cluster-1
 
 services:
+  - k8s/services/argo-workflows
   - k8s/services/common
   - k8s/services/fake-sentry
   - k8s/services/geoipupdate
+  - k8s/services/iap-ingress
   - k8s/services/ingest-load-tester
   - k8s/services/influxdb
   - k8s/services/relay
   - k8s/services/telegraf
+  - k8s/services/workflows
   - k8s/services/zookafka
