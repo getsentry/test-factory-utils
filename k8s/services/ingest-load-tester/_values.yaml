@@ -1,1 +1,2 @@
-image: "us.gcr.io/sentryio/ingest-load-tester:71217bd60d6e0372cdd3f3fbfdd642ab66ca7584"
+#image: "us.gcr.io/sentryio/ingest-load-tester:71217bd60d6e0372cdd3f3fbfdd642ab66ca7584"
+image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:dddff9deead5201c395a81337b5dfd095e25bf13"

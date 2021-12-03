@@ -7,7 +7,14 @@ relay:
 
 fake_projects:
   enable_metrics_extraction: false
-projects:
-  # List here all the valid projects with their public keys
-  - id: 1
-    key: "31a5a894b4524f74a9a8d0e27e21ba91"
+metrics:
+  enabled: true
+  influxdb:
+    url: ${INFLUX_URL}"
+    #token: "_GNmGMHTDC4jyD3bJtLwOM8K4h4FJsBY1lpj9tYHTH2VHHzobFukJCaaiXVmGsG5l_bCTBglXl88s7SA2MFUKw=="
+    token: "${INFLUX_TOKEN}"
+    org: "sentry"
+    bucket: "locust"
+  default_tags:
+#    some-tag: some-id
+#    another-tag: hello

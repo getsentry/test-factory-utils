@@ -40,6 +40,12 @@ spec:
             mountPath: /root/config/simple.test.yml
             subPath: test_simple.config.yml
             readOnly: true
+        env:
+          - name: INFLUX_URL
+            value: "http://influxdb.default.svc.cluster.local:8086"
+          # FIXME: move it to a secret
+          - name: INFLUX_TOKEN
+            value: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
         resources:
           requests:
             cpu: 500m
