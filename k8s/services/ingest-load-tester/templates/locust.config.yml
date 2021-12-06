@@ -1,4 +1,4 @@
-# Config file for the load tester
+# Config file for Locust
 
 use_fake_projects: true
 relay:
