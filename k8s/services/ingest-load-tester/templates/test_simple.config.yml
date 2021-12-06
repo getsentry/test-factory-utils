@@ -1,17 +1,8 @@
 users:
   SimpleLoadTest:
-    wait_time: constant(0.1)
-    num_projects: 1
     weight: 1
+    num_projects: 1
     tasks:
-      file_event_task_factory:
-        weight: 0
-        filename: test-events/small.json
-
-      file_envelope_event_task_factory:
-        weight: 0
-        filename: path/to/custom/file.json
-
       session_event_task_factory:
         weight: 1
-        release: 125
+        release: '2.3.4'

@@ -8,10 +8,9 @@ relay:
 fake_projects:
   enable_metrics_extraction: false
 metrics:
-  enabled: true
+  enabled: false
   influxdb:
-    url: ${INFLUX_URL}"
-    #token: "_GNmGMHTDC4jyD3bJtLwOM8K4h4FJsBY1lpj9tYHTH2VHHzobFukJCaaiXVmGsG5l_bCTBglXl88s7SA2MFUKw=="
+    url: "${INFLUX_URL}"
     token: "${INFLUX_TOKEN}"
     org: "sentry"
     bucket: "locust"

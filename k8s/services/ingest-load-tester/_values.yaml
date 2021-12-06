@@ -1,4 +1,4 @@
-image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:dddff9deead5201c395a81337b5dfd095e25bf13"
+image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:2ae7c71207e8ce3355646217139e00a1ca9d23dd"
 influx_url: "http://influxdb.default.svc.cluster.local:8086"
 # FIXME: move it to a secret
 influx_token: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
