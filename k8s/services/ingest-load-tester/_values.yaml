@@ -1,2 +1,4 @@
-#image: "us.gcr.io/sentryio/ingest-load-tester:71217bd60d6e0372cdd3f3fbfdd642ab66ca7584"
 image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:dddff9deead5201c395a81337b5dfd095e25bf13"
+influx_url: "http://influxdb.default.svc.cluster.local:8086"
+# FIXME: move it to a secret
+influx_token: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
