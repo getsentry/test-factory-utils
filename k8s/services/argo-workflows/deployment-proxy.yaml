@@ -37,16 +37,17 @@ data:
         proxy_pass https://argo_server;
       }
 
-      location /api/v1/workflow-events/ {
-        proxy_pass https://argo_server_with_backup;
-        proxy_set_header Host c317-84-115-233-39.ngrok.io;
+      # # FIXME: an attempted fix for an annoying 502, doesn't work yet
+      # location /api/v1/workflow-events/ {
+      #   proxy_pass https://argo_server_with_backup;
+      #   proxy_set_header Host c317-84-115-233-39.ngrok.io;
 
-        proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
-        proxy_next_upstream_tries 2;
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 5s;
-        proxy_read_timeout 5s;
-      }
+      #   proxy_next_upstream error timeout invalid_header http_502 http_503 http_504;
+      #   proxy_next_upstream_tries 2;
+      #   proxy_connect_timeout 5s;
+      #   proxy_send_timeout 5s;
+      #   proxy_read_timeout 5s;
+      # }
     }
 ---
 apiVersion: apps/v1
@@ -74,7 +75,7 @@ spec:
         service: argo-workflows
         component: argo-workflows-proxy
       annotations:
-        configVersion: "{{ md5template('templates/config.yaml') }}"
+        configVersion: "FIXME { md5template('templates/config.yaml') }}"
     spec:
       containers:
       - image: nginx:1.20
