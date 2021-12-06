@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-locust
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+
+  - name: locust-update-configuration
+    inputs:
+      parameters:
+      - name: test_factory_branch
+        value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+      # TODO: is there a way to dedupe this?
+      artifacts:
+        - name: argo-source
+          path: /root/test-factory
+          git:
+            repo: 'git@github.com:getsentry/test-factory'
+            revision: '{% raw %}{{inputs.parameters.test_factory_branch}}{% endraw %}'
+            depth: 1
+            sshPrivateKeySecret:
+              name: ssh-deploy-key-test-factory
+              key: ssh-private-key
+    container:
+      name: sentry-kube
+      # getsentry/ops branch: feat/sentry-kube-no-context
+      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      command:
+      - bash
+      - '-c'
+      - |
+        set -eux
+
+        git status
+        # FIXME: sentry-kube should be updated to handle this
+        # sentry-kube diff-beta ingest-load-tester
+        sentry-kube render ingest-load-tester > _ingest-load-tester.yaml
+        yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{% raw %}{{workflow.uid}}{% endraw %}"' _ingest-load-tester.yaml > _ingest-load-tester.processed.yaml
+        # FIXME: do not hardcode namespaces
+        sentry-kube kubectl apply -n default -f _ingest-load-tester.processed.yaml
+    serviceAccountName: default
+
+  - name: locust-wait-for-rollout
+    container:
+      name: kubectl
+      image: bitnami/kubectl:1.19
+      command:
+      - bash
+      - -c
+      - |
+        kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s
+        kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
+    serviceAccountName: default

@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: run-test
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: run-test
+    container:
+      args:
+      - --duration
+      - '{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
+      - --users
+      - '{% raw %}{{inputs.parameters.test_users}}{% endraw %}'
+      - --organisation
+      - f1c58f1d769114e6
+      - --board
+      - 08830e9216d27000
+      command:
+      - /load-starter
+      env:
+      - name: SLACK_AUTH_TOKEN
+        value: xoxb-2757754192454-2766782134324-oK6ewxLGOlElIk4UE9nYTTpY
+      - name: SLACK_CHANNEL_ID
+        value: '#slack-notif-test'
+      name: load-starter
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:514e11da6a8e2cd137058f89434d0c4f4e6daffd
+      resources: {}
+    inputs:
+      parameters:
+      - name: test_duration
+        value: '{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
+      - name: test_users
+        value: '{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
