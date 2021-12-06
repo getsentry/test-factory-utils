@@ -1,12 +1,13 @@
 ---
-{{
-iap_service(
-  service_name='argo-workflows',
-  domain='run.testa.getsentry.net',
-  port=8080,
-  selector={
-    'service': 'argo-workflows',
-    'component': 'argo-workflows-proxy',
-  },
-)
-}}
+## FIXME: uncomment when `sentry-kube apply` can work with custom resources.
+# {
+# iap_service(
+#   service_name='argo-workflows',
+#   domain='run.testa.getsentry.net',
+#   port=8080,
+#   selector={
+#     'service': 'argo-workflows',
+#     'component': 'argo-workflows-proxy',
+#   },
+# )
+# }}

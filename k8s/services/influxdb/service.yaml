@@ -1,11 +1,12 @@
 ---
-{{
-iap_service(
-  service_name='influxdb',
-  domain='influxdb.testa.getsentry.net',
-  port=8086,
-  selector={
-    'service': 'influxdb',
-  },
-)
-}}
+## FIXME: uncomment when `sentry-kube apply` can work with custom resources.
+# {
+# iap_service(
+#   service_name='influxdb',
+#   domain='influxdb.testa.getsentry.net',
+#   port=8086,
+#   selector={
+#     'service': 'influxdb',
+#   },
+# )
+# }}
