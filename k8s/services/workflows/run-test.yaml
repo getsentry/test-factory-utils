@@ -26,9 +26,12 @@ spec:
       - 'https://influxdb.testa.getsentry.net'
       env:
       - name: SLACK_AUTH_TOKEN
-        value: xoxb-2757754192454-2766782134324-oK6ewxLGOlElIk4UE9nYTTpY
+        valueFrom:
+          secretKeyRef:
+            name: slack-oauth-token
+            key: token
       - name: SLACK_CHANNEL_ID
-        value: '#slack-notif-test'
+        value: '#feed-qa'
       name: load-starter
       image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:880154d227c19210cdd6cc67a13901afccff8b7a
       resources: {}
