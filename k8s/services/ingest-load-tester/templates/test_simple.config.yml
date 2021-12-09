@@ -17,3 +17,19 @@ users:
         errored_weight: 1
         crashed_weight: 1
         abnormal_weight: 1
+  RandomEvents:
+    weight: 1
+    num_projects: 1
+    tasks:
+      random_envelope_event_task_factory:
+        weight: 1
+        # trace parameters are envelope specific
+        trace_user_id: "user"
+        trace_user_segment: [ "vip","paid","free" ]
+        trace_environment: [ "debug","prod" ]
+        release: [ "sampling@1.0", "sampling@2.0" ]
+        # This task generally accepts the same arguments as `random_event_task_factory`.
+        with_level: true
+        num_event_groups: 50
+        num_releases: 10
+        with_javascript_stacktrace: false
