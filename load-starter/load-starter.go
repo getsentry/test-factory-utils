@@ -15,12 +15,10 @@ import (
 
 const (
 	defaultLocustServer   = "ingest-load-tester.default.svc.cluster.local"
-	defaultInfluxDbServer = "localhost:8086"
+	defaultInfluxDbServer = "http://localhost:8086"
 	startLocustUrl        = "http://%s/swarm"
 	stopLocustUrl         = "http://%s/stop"
 	testDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
-	slackAuthToken        = "xoxb-2757754192454-2766782134324-oK6ewxLGOlElIk4UE9nYTTpY"
-	slackChannelId        = "#slack-notif-test"
 )
 
 var duration *time.Duration
@@ -43,8 +41,8 @@ func cliSetup() *cobra.Command {
 	rootCmd.Flags()
 	duration = rootCmd.Flags().DurationP("duration", "d", time.Millisecond*10,
 		"the duration to run the program")
-	locustServerName = rootCmd.Flags().StringP("locust", "l", defaultLocustServer, "locust server DNS")
-	influxServerName = rootCmd.Flags().StringP("influx", "i", defaultInfluxDbServer, "influxDb server DNS")
+	locustServerName = rootCmd.Flags().StringP("locust", "l", defaultLocustServer, "locust server endpoint")
+	influxServerName = rootCmd.Flags().StringP("influx", "i", defaultInfluxDbServer, "influxDB dashboard base URL")
 	rootCmd.Flags().Int64VarP(&numUsers, "users", "u", 5, "number of simulated users")
 	rootCmd.MarkFlagRequired("numUsers")
 	organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
@@ -57,7 +55,7 @@ func cliSetup() *cobra.Command {
 
 func RunLoadStarter() {
 
-	fmt.Printf("\nWill be waiting for %s ....", duration)
+	fmt.Printf("\nWill be waiting for %s ....\n", duration)
 
 	//some buffer time to make sure we capture a little before and after the test
 	buffer := time.Second * 30
@@ -125,7 +123,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 	endTimeStamp := endTime.Format("2006-01-02T15:04:05Z")
 	queryString.Add("upper", endTimeStamp)
 
-	reportUrl := fmt.Sprintf("http://%s/orgs/%s/dashboards/%s?%s",
+	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
 		*influxServerName, *organisationId, *boardId, queryString.Encode(),
 	)
 	fmt.Println("Dashboard is: \n%s", reportUrl)

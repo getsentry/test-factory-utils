@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: relay-load-test
+  name: relay-locust-load-test
   namespace: argo
   labels:
     workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
 spec:
   arguments:
     parameters:
-    - name: relay_version
-      value: 07786352f563dce248b23f091f6764efe38dc03c
+    - name: test_factory_branch
+      value: main
     - name: test_duration
-      value: 30s
+      value: "30s"
     - name: test_users
       value: "10"
   entrypoint: main
@@ -21,20 +21,37 @@ spec:
   - name: main
     dag:
       tasks:
-      - name: relay-update-version
+      # Relay
+      - name: relay-update-configuration
         templateRef:
           name: deploy-relay
-          template: relay-update-version
+          template: relay-update-configuration
         arguments:
           parameters:
           - name: relay_version
-            value: '{% raw %}{{workflow.parameters.relay_version}}{% endraw %}'
+            value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
       - name: relay-wait-for-rollout
         templateRef:
           name: deploy-relay
           template: relay-wait-for-rollout
         arguments: {}
-        depends: relay-update-version
+        depends: relay-update-configuration
+      # Locust
+      - name: locust-update-configuration
+        templateRef:
+          name: deploy-locust
+          template: locust-update-configuration
+        arguments:
+          parameters:
+          - name: relay_version
+            value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+      - name: locust-wait-for-rollout
+        templateRef:
+          name: deploy-locust
+          template: locust-wait-for-rollout
+        arguments: {}
+        depends: locust-update-configuration
+      # Test!
       - name: run-test
         templateRef:
           name: run-test
@@ -45,7 +62,7 @@ spec:
             value: '{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
           - name: test_users
             value: '{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
-        depends: relay-wait-for-rollout
+        depends: "relay-wait-for-rollout && locust-wait-for-rollout"
     inputs: {}
     metadata: {}
     outputs: {}

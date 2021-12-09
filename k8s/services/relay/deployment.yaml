@@ -28,9 +28,8 @@
 {% set labels = labels | tojson %}
 {% set configmap_subpath = "config_" ~ env_name ~ ".yml" %}
 
-# FIXME
-{% set image = "us.gcr.io/sentryio/relay:07786352f563dce248b23f091f6764efe38dc03c" %}
 {% set autoscaler = env_values.autoscaler|default({"enabled": False}) %}
+{% set image = env_values.image %}
 ---
 apiVersion: apps/v1
 kind: Deployment

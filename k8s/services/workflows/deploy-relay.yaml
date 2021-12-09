@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-relay
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: relay-update-version
+    inputs:
+      parameters:
+      - name: relay_version
+        value: '{% raw %}{{workflow.parameters.relay_version}}{% endraw %}'
+    resource:
+      action: patch
+      manifest: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: relay-main
+          namespace: default
+        spec:
+          template:
+            metadata:
+              annotations:
+                argoWorkflowId: "{% raw %}{{workflow.uid}}{% endraw %}"
+            spec:
+              containers:
+              - image: us.gcr.io/sentryio/relay:{% raw %}{{inputs.parameters.relay_version}}{% endraw %}
+                name: relay
+
+  - name: relay-update-configuration
+    inputs:
+      parameters:
+      - name: test_factory_branch
+        value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+      artifacts:
+        - name: argo-source
+          path: /root/test-factory
+          git:
+            repo: 'git@github.com:getsentry/test-factory'
+            revision: '{% raw %}{{inputs.parameters.test_factory_branch}}{% endraw %}'
+            depth: 1
+            sshPrivateKeySecret:
+              name: ssh-deploy-key-test-factory
+              key: ssh-private-key
+    container:
+      name: sentry-kube
+      # getsentry/ops branch: feat/sentry-kube-no-context
+      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      command:
+      - bash
+      - '-c'
+      - |
+        set -eux
+
+        git status
+        # FIXME: sentry-kube should be updated to handle this
+        # sentry-kube diff-beta relay
+        sentry-kube render relay > _relay.yaml
+        yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{% raw %}{{workflow.uid}}{% endraw %}"' _relay.yaml > _relay.processed.yaml
+        # FIXME: do not hardcode namespaces
+        sentry-kube kubectl apply -n default -f _relay.processed.yaml
+    serviceAccountName: default
+
+  - name: relay-wait-for-rollout
+    container:
+      command:
+      - kubectl
+      - rollout
+      - status
+      - deployment
+      - --namespace=default
+      - relay-main
+      - --timeout=60s
+      image: bitnami/kubectl:1.19
+      name: kubectl
+    serviceAccountName: default
