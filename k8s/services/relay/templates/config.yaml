@@ -48,9 +48,8 @@ sentry:
 processing:
   enabled: true
   explode_session_aggregates: false
-  ## FIXME
   geoip_path: "/usr/local/share/GeoIP/GeoIP2-City.mmdb"
-  _internal_projects: [1]
+  # _internal_projects: [1]
   kafka_config:
     - {name: "bootstrap.servers", value: "ingest-kafka.default.svc.cluster.local:9092"}
     - {name: "compression.type", value: "lz4"}
