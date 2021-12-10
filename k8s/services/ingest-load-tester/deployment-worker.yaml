@@ -11,13 +11,13 @@ metadata:
   name: ingest-load-tester-worker
   labels: {{ labels }}
 spec:
-  replicas: 2
+  replicas: 8
   selector:
     matchLabels: {{ labels }}
   strategy:
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 50%
+      maxUnavailable: 50%
     type: RollingUpdate
   template:
     metadata:
