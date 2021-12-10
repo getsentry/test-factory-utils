@@ -1,19 +1,25 @@
-{% set component = 'daemonset' %}
+{% set component = 'cluster-agent' %}
 {% set labels = {
   "service": "telegraf",
   "component": component,
 } %}
-# DaemonSet. Runs on every node in the cluster.
+# Cluster-agent Deployment. Only one instance of it should be running in the cluster.
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: telegraf
+  name: telegraf-cluster-agent
   namespace: sentry-system
   labels: {{ labels }}
 spec:
+  replicas: 1
   selector:
     matchLabels: {{ labels }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels: {{ labels }}
@@ -21,25 +27,12 @@ spec:
         configVersion: "{{ md5template("templates/telegraf.conf") }}"
     spec:
       serviceAccountName: telegraf
-      # priorityClassName: high-priority
       containers:
       - name: telegraf
         image: "{{ values.image }}"
-        ports:
-        - containerPort: 8125
-          hostPort: 8125
-          protocol: UDP
         volumeMounts:
         - name: config
           mountPath: /etc/telegraf
-        - name: var-run-utmp-ro
-          mountPath: /var/run/utmp
-          readOnly: true
-        - name: docker-socket
-          mountPath: /var/run/docker.sock
-        # - name: host-fs-ro
-        #   mountPath: /host-fs
-        #   readOnly: true
         env:
         - name: INFLUX_URL
           value: "{{ values.influx_url }}"
@@ -60,14 +53,4 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: telegraf
-      - name: var-run-utmp-ro
-        hostPath:
-          path: /var/run/utmp
-      - name: docker-socket
-        hostPath:
-          path: /var/run/docker.sock
-      # - name: host-fs-ro
-      #   hostPath:
-      #     path: /
-      # hostNetwork: { default .Values.hostNetwork  false }}
+          name: telegraf-cluster-agent
