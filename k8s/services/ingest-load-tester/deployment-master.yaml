@@ -53,6 +53,20 @@ spec:
           limits:
             cpu: 2000m
             memory: 2000Mi
+      - name: metrics-exporter
+        # Using https://github.com/ContainerSolutions/locust_exporter
+        # Metrics will be exposed at localhost:9646/metrics
+        image: containersol/locust_exporter:v0.4.3
+        resources:
+          requests:
+            cpu: 50m
+            memory: 100Mi
+          limits:
+            cpu: 1000m
+            memory: 200Mi
+        env:
+          - name: LOCUST_EXPORTER_URI
+            value: "http://localhost:8089"
       volumes:
         - name: ingest-load-tester-config
           configMap:

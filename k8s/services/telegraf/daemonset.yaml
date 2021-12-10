@@ -40,7 +40,7 @@ spec:
         #   readOnly: true
         env:
         - name: INFLUX_URL
-          value: "http://influxdb.default.svc.cluster.local:8086"
+          value: "http://influxdb.default.svc.cluster.local:80"
         # FIXME: move it to a secret
         - name: INFLUX_TOKEN
           value: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
