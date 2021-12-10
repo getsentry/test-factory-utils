@@ -1,6 +1,6 @@
 environments:
   main:
-    image: "us.gcr.io/sentryio/relay:07786352f563dce248b23f091f6764efe38dc03c"
+    image: "us.gcr.io/sentryio/relay:b036848850f80ea7b7054b720a9569768a31d781"
     replicas: 1
     autoscaler:
       enabled: false
