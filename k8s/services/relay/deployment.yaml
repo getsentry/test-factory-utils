@@ -47,16 +47,24 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 10%
-      maxUnavailable: 0
+      maxSurge: 50%
+      maxUnavailable: 100%
   minReadySeconds: 5
   template:
     metadata:
       labels: {{ labels }}
       annotations:
-        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         configVersion: "{{ md5template("templates/config.yaml") }}"
     spec:
+      nodeSelector:
+        nodepool.sentry.io/name: loads
+      # Dedicated node pools have a taint that we should tolerate
+      tolerations:
+      - key: "nodepool-dedicated"
+        operator: "Equal"
+        value: "loads"
+        effect: "NoSchedule"
       terminationGracePeriodSeconds: 30
       initContainers:
         # Telegraf statsd
