@@ -22,6 +22,10 @@ spec:
     spec:
       serviceAccountName: telegraf
       # priorityClassName: high-priority
+      tolerations:
+      - key: "nodepool-dedicated"
+        operator: "Exists"
+        effect: "NoSchedule"
       containers:
       - name: telegraf
         image: "{{ values.image }}"
@@ -55,7 +59,7 @@ spec:
             cpu: 100m
             memory: 500Mi
           limits:
-            cpu: 1000m
+            cpu: 10000m
             memory: 1000Mi
       volumes:
       - name: config
