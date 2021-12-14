@@ -8,7 +8,7 @@ users:
         weight: 1
         # use w d h m s for weeks days hours minutes seconds e.g. 3w2d4h3s = 3 weeks 2 days 4 hours 3 seconds
         # the higher the range the more buckets will be created (Relay accepts ranges up to 5 days from now)
-        started_range: 1h10m
+        started_range: 4h2m
         num_releases: 10 # number of releases that will appear in the session messages
         num_environments: 10 # number of environments that will appear in the session messages
         num_users: 1000 # number of different users generated
