@@ -64,3 +64,17 @@ resource "google_container_cluster" "cluster_1" {
 #   max_node_count   = 32
 #   node_metadata     = "GKE_METADATA_SERVER"
 # }
+
+# Dedicated pool for loads that we want to measure in isolation
+module "node_pool_loads" {
+  source           = "../../_modules/gke_nodepool"
+  name             = "loads"
+  label            = "loads"
+  cluster          = google_container_cluster.cluster_1.name
+  machine_type     = "n2-standard-8"
+  min_cpu_platform = "Intel Cascade Lake"
+  min_node_count   = 0
+  max_node_count   = 8
+  metadata_mode    = "GKE_METADATA"
+  taint_nodes = true
+}

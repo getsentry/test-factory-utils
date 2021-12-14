@@ -7,7 +7,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -20,4 +20,4 @@ spec:
     requests:
 #      storage: { customer.kafka.disk_size }}
 # FIXME
-      storage: 32Gi
+      storage: 400Gi

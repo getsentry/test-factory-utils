@@ -44,3 +44,7 @@ spec:
       - name: data
         hostPath:
           path: /mnt/stateful_partition/usr/local/share/GeoIP
+      tolerations:
+      - key: "nodepool-dedicated"
+        operator: "Exists"
+        effect: "NoSchedule"
