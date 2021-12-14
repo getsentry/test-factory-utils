@@ -7,3 +7,5 @@ metadata:
 data:
   fake_sentry.config.yml: |
     {% filter indent %}{% include 'templates/fake_sentry.config.yml' %}{% endfilter %}
+  default.json: |
+    {% filter indent %}{% include 'templates/projects/default.json' %}{% endfilter %}
