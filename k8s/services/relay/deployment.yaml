@@ -29,7 +29,7 @@
 {% set configmap_subpath = "config_" ~ env_name ~ ".yml" %}
 
 {% set autoscaler = env_values.autoscaler|default({"enabled": False}) %}
-{% set image = env_values.image %}
+{% set image = env_values.image_name + ':' + env_values.image_tag %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -72,9 +72,9 @@ spec:
         - {{ geoip_initcontainer() }}
         # FIXME: generate config dynamically?
         - name: init-relay-credentials
-          image: "{{ image }}"
+          image: busybox:1.32
           command:
-            - bash
+            - sh
             - -c
             - |
               echo '

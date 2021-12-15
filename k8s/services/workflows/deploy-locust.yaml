@@ -34,9 +34,14 @@ spec:
       - bash
       - '-c'
       - |
+        exec 2>&1
         set -eux
 
         git status
+
+        # Update ingest-load-tester version
+        yq eval -i '.image_tag = "{% raw %}{{workflow.outputs.parameters.ingest_load_tester_sha}}{% endraw %}"' ./k8s/services/ingest-load-tester/_values.yaml
+
         # FIXME: sentry-kube should be updated to handle this
         # sentry-kube diff-beta ingest-load-tester
         sentry-kube render ingest-load-tester > _ingest-load-tester.yaml

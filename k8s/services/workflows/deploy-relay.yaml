@@ -55,13 +55,21 @@ spec:
       - bash
       - '-c'
       - |
+        exec 2>&1
         set -eux
 
         git status
+
+        # Update relay version
+        yq eval -i '.environments.main.image_tag = "{% raw %}{{workflow.outputs.parameters.relay_sha}}{% endraw %}"' ./k8s/services/relay/_values.yaml
+
         # FIXME: sentry-kube should be updated to handle this
         # sentry-kube diff-beta relay
         sentry-kube render relay > _relay.yaml
+
+        # Add an annotation with run ID
         yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{% raw %}{{workflow.uid}}{% endraw %}"' _relay.yaml > _relay.processed.yaml
+
         # FIXME: do not hardcode namespaces
         sentry-kube kubectl apply -n default -f _relay.processed.yaml
     serviceAccountName: default

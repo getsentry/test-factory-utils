@@ -11,7 +11,10 @@ spec:
   templates:
   - name: run-test
     container:
-      args:
+      command:
+      - /load-starter
+      - '--influx'
+      - 'https://influxdb.testa.getsentry.net'
       - --duration
       - '{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
       - --users
@@ -20,10 +23,6 @@ spec:
       - f1c58f1d769114e6
       - --board
       - 08830e9216d27000
-      command:
-      - /load-starter
-      - '--influx'
-      - 'https://influxdb.testa.getsentry.net'
       env:
       - name: SLACK_AUTH_TOKEN
         valueFrom:

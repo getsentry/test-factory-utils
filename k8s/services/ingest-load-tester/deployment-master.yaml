@@ -3,6 +3,7 @@
   "component": "master",
 } %}
 
+{% set image = values.image_name + ":" + values.image_tag %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,7 +29,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: ingest-load-tester
-        image: "{{ values.image }}"
+        image: "{{ image }}"
         imagePullPolicy: Always
         args: ["run-master"]
         volumeMounts:

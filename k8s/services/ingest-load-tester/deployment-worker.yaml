@@ -3,6 +3,7 @@
   "component": "worker",
 } %}
 
+{% set image = values.image_name + ":" + values.image_tag %}
 # TODO: deployment-master and deployment-worker can be probably unified/deduped
 ---
 apiVersion: apps/v1
@@ -29,7 +30,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: ingest-load-tester
-        image: "{{ values.image }}"
+        image: "{{ image }}"
         imagePullPolicy: Always
         args: ["run-worker"]
         volumeMounts:

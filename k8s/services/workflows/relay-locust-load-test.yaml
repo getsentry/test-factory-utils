@@ -9,11 +9,11 @@ spec:
   arguments:
     parameters:
     - name: test_factory_branch
-      value: main
+      value: "main"
     - name: test_duration
-      value: "30s"
+      value: "default"
     - name: test_users
-      value: "10"
+      value: "default"
   entrypoint: main
   podGC:
     strategy: OnWorkflowCompletion
@@ -33,25 +33,72 @@ spec:
     container:
       image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
       command:
-      - sh
+      - bash
       - '-c'
       - |
-        set -eux
+        # To avoid out of order stdout/stderr mess
+        exec 2>&1
+        set -euxo pipefail
 
-        # Resolve test_factory revision
-        git rev-parse HEAD | tee /tmp/test_factory_head
+        ROOT_DIR=$(pwd)
+        MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
 
-        # Resolve relay revision
+        RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
+        INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
 
-        # Resolve ingest-load-tester revision
+        ### Resolve test_factory revision
+        git rev-parse HEAD | tee /tmp/test_factory_sha
+
+        ### Resolve relay revision
+        RELAY_REPO="https://github.com/getsentry/relay/"
+        RELAY_DIR="/tmp/relay"
+        git clone "${RELAY_REPO}" "${RELAY_DIR}"
+        cd "${RELAY_DIR}"
+        git checkout "${RELAY_REV_ORIGINAL}"
+        git rev-parse HEAD | tee /tmp/relay_sha
+
+        ### Resolve ingest-load-tester revision
+        INGEST_LOAD_TESTER_REPO="https://github.com/getsentry/ingest-load-tester/"
+        INGEST_LOAD_TESTER_DIR="/tmp/ingest-load-tester"
+        git clone "${INGEST_LOAD_TESTER_REPO}" "${INGEST_LOAD_TESTER_DIR}"
+        cd "${INGEST_LOAD_TESTER_DIR}"
+        git checkout "${INGEST_LOAD_TESTER_REV_ORIGINAL}"
+        git rev-parse HEAD | tee /tmp/ingest_load_tester_sha
+
+        ### Record Locust settings
+        TEST_DURATION='{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
+        if [[ "${TEST_DURATION}" == "default" ]]; then
+          TEST_DURATION=$(yq e '.test_duration' ${MANIFEST_FILE})
+        fi
+        echo "${TEST_DURATION}" | tee /tmp/test_duration
+        TEST_USERS='{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+        if [[ "${TEST_USERS}" == "default" ]]; then
+          TEST_USERS=$(yq e '.test_users' ${MANIFEST_FILE})
+        fi
+        echo "${TEST_USERS}" | tee /tmp/test_users
 
     outputs:
       parameters:
         - name: test_factory_sha
           valueFrom:
-            path: /tmp/test_factory_head
+            path: /tmp/test_factory_sha
           globalName: test_factory_sha
-
+        - name: relay_sha
+          valueFrom:
+            path: /tmp/relay_sha
+          globalName: relay_sha
+        - name: ingest_load_tester_sha
+          valueFrom:
+            path: /tmp/ingest_load_tester_sha
+          globalName: ingest_load_tester_sha
+        - name: test_duration
+          valueFrom:
+            path: /tmp/test_duration
+          globalName: test_duration
+        - name: test_users
+          valueFrom:
+            path: /tmp/test_users
+          globalName: test_users
   - name: main
     dag:
       tasks:
@@ -88,9 +135,9 @@ spec:
         arguments:
           parameters:
           - name: test_duration
-            value: '{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
+            value: '{% raw %}{{workflow.outputs.parameters.test_duration}}{% endraw %}'
           - name: test_users
-            value: '{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+            value: '{% raw %}{{workflow.outputs.parameters.test_users}}{% endraw %}'
         depends: "relay-wait-for-rollout && locust-wait-for-rollout"
     inputs: {}
     metadata: {}
