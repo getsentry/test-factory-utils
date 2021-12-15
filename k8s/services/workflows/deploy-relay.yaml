@@ -35,14 +35,14 @@ spec:
   - name: relay-update-configuration
     inputs:
       parameters:
-      - name: test_factory_branch
-        value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+      - name: test_factory_sha
+        value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
       artifacts:
         - name: argo-source
           path: /root/test-factory
           git:
             repo: 'git@github.com:getsentry/test-factory'
-            revision: '{% raw %}{{inputs.parameters.test_factory_branch}}{% endraw %}'
+            revision: '{% raw %}{{inputs.parameters.test_factory_sha}}{% endraw %}'
             depth: 1
             sshPrivateKeySecret:
               name: ssh-deploy-key-test-factory

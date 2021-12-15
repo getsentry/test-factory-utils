@@ -18,38 +18,67 @@ spec:
   podGC:
     strategy: OnWorkflowCompletion
   templates:
+  - name: prepare-run
+    inputs:
+      artifacts:
+        - name: argo-source
+          path: /root/test-factory
+          git:
+            repo: 'git@github.com:getsentry/test-factory'
+            revision: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+            depth: 1
+            sshPrivateKeySecret:
+              name: ssh-deploy-key-test-factory
+              key: ssh-private-key
+    container:
+      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      command:
+      - sh
+      - '-c'
+      - |
+        set -eux
+
+        # Resolve test_factory revision
+        git rev-parse HEAD | tee /tmp/test_factory_head
+
+        # Resolve relay revision
+
+        # Resolve ingest-load-tester revision
+
+    outputs:
+      parameters:
+        - name: test_factory_sha
+          valueFrom:
+            path: /tmp/test_factory_head
+          globalName: test_factory_sha
+
   - name: main
     dag:
       tasks:
+      - name: prepare-run
+        template: prepare-run
+
       # Relay
       - name: relay-update-configuration
         templateRef:
           name: deploy-relay
           template: relay-update-configuration
-        arguments:
-          parameters:
-          - name: relay_version
-            value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+        depends: prepare-run
       - name: relay-wait-for-rollout
         templateRef:
           name: deploy-relay
           template: relay-wait-for-rollout
-        arguments: {}
         depends: relay-update-configuration
       # Locust
       - name: locust-update-configuration
         templateRef:
           name: deploy-locust
           template: locust-update-configuration
-        arguments:
-          parameters:
-          - name: relay_version
-            value: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+        depends: prepare-run
       - name: locust-wait-for-rollout
         templateRef:
           name: deploy-locust
           template: locust-wait-for-rollout
-        arguments: {}
         depends: locust-update-configuration
       # Test!
       - name: run-test
