@@ -31,7 +31,6 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-        # - image: "us.gcr.io/sentryio/fake-sentry:89e38405dacf5225c4261b8be3114e39a51918b3"
         - image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:8c6071649abb866ab136022c36563501e08976fa"
           name: fake-sentry
           args: ["run-fake-sentry"]
