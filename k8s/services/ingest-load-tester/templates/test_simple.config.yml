@@ -1,6 +1,5 @@
 users:
   SimpleLoadTest:
-    wait_time: constant(0.01)
     weight: 1
     num_projects: 1
     tasks:
