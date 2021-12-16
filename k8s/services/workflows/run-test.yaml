@@ -32,7 +32,7 @@ spec:
       - name: SLACK_CHANNEL_ID
         value: '#feed-qa'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:880154d227c19210cdd6cc67a13901afccff8b7a
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:a0ec6c61050e5cf0c1ffd187513b20001ac944a4
       resources: {}
     inputs:
       parameters:

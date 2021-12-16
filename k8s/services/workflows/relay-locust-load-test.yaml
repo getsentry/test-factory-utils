@@ -42,6 +42,7 @@ spec:
 
         ROOT_DIR=$(pwd)
         MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
+        cp "${MANIFEST_FILE}" /tmp/run-manifest.yaml
 
         RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
         INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
@@ -76,8 +77,10 @@ spec:
           TEST_USERS=$(yq e '.test_users' ${MANIFEST_FILE})
         fi
         echo "${TEST_USERS}" | tee /tmp/test_users
-
     outputs:
+      artifacts:
+        - name: run-manifest
+          path: /tmp/run-manifest.yaml
       parameters:
         - name: test_factory_sha
           valueFrom:
