@@ -111,29 +111,29 @@ spec:
       # Relay
       - name: relay-update-configuration
         templateRef:
-          name: deploy-relay
+          name: z-deploy-relay
           template: relay-update-configuration
         depends: prepare-run
       - name: relay-wait-for-rollout
         templateRef:
-          name: deploy-relay
+          name: z-deploy-relay
           template: relay-wait-for-rollout
         depends: relay-update-configuration
       # Locust
       - name: locust-update-configuration
         templateRef:
-          name: deploy-locust
+          name: z-deploy-locust
           template: locust-update-configuration
         depends: prepare-run
       - name: locust-wait-for-rollout
         templateRef:
-          name: deploy-locust
+          name: z-deploy-locust
           template: locust-wait-for-rollout
         depends: locust-update-configuration
       # Test!
       - name: run-test
         templateRef:
-          name: run-test
+          name: z-run-test
           template: run-test
         arguments:
           parameters:
