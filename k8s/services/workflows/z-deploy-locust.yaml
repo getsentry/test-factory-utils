@@ -17,7 +17,7 @@ spec:
         value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
       # TODO: is there a way to dedupe this?
       artifacts:
-        - name: argo-source
+        - name: test-factory-checkout
           path: /root/test-factory
           git:
             repo: 'git@github.com:getsentry/test-factory'

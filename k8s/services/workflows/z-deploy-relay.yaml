@@ -38,7 +38,7 @@ spec:
       - name: test_factory_sha
         value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
       artifacts:
-        - name: argo-source
+        - name: test-factory-checkout
           path: /root/test-factory
           git:
             repo: 'git@github.com:getsentry/test-factory'

@@ -1,0 +1,95 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-prepare-run
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: prepare-run
+    inputs:
+      artifacts:
+        - name: test-factory-checkout
+          path: /root/test-factory
+          git:
+            repo: 'git@github.com:getsentry/test-factory'
+            revision: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
+            depth: 1
+            sshPrivateKeySecret:
+              name: ssh-deploy-key-test-factory
+              key: ssh-private-key
+    container:
+      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      command:
+      - bash
+      - '-c'
+      - |
+        # To avoid out of order stdout/stderr mess
+        exec 2>&1
+        set -euxo pipefail
+
+        ROOT_DIR=$(pwd)
+        MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
+        cp "${MANIFEST_FILE}" /tmp/run-manifest.yaml
+
+        RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
+        INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
+
+        ### Resolve test_factory revision
+        git rev-parse HEAD | tee /tmp/test_factory_sha
+
+        ### Resolve relay revision
+        RELAY_REPO="https://github.com/getsentry/relay/"
+        RELAY_DIR="/tmp/relay"
+        git clone "${RELAY_REPO}" "${RELAY_DIR}"
+        cd "${RELAY_DIR}"
+        git checkout "${RELAY_REV_ORIGINAL}"
+        git rev-parse HEAD | tee /tmp/relay_sha
+
+        ### Resolve ingest-load-tester revision
+        INGEST_LOAD_TESTER_REPO="https://github.com/getsentry/ingest-load-tester/"
+        INGEST_LOAD_TESTER_DIR="/tmp/ingest-load-tester"
+        git clone "${INGEST_LOAD_TESTER_REPO}" "${INGEST_LOAD_TESTER_DIR}"
+        cd "${INGEST_LOAD_TESTER_DIR}"
+        git checkout "${INGEST_LOAD_TESTER_REV_ORIGINAL}"
+        git rev-parse HEAD | tee /tmp/ingest_load_tester_sha
+
+        ### Record Locust settings
+        TEST_DURATION='{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
+        if [[ "${TEST_DURATION}" == "default" ]]; then
+          TEST_DURATION=$(yq e '.test_duration' ${MANIFEST_FILE})
+        fi
+        echo "${TEST_DURATION}" | tee /tmp/test_duration
+        TEST_USERS='{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+        if [[ "${TEST_USERS}" == "default" ]]; then
+          TEST_USERS=$(yq e '.test_users' ${MANIFEST_FILE})
+        fi
+        echo "${TEST_USERS}" | tee /tmp/test_users
+    outputs:
+      artifacts:
+        - name: run-manifest
+          path: /tmp/run-manifest.yaml
+      parameters:
+        - name: test_factory_sha
+          valueFrom:
+            path: /tmp/test_factory_sha
+          globalName: test_factory_sha
+        - name: relay_sha
+          valueFrom:
+            path: /tmp/relay_sha
+          globalName: relay_sha
+        - name: ingest_load_tester_sha
+          valueFrom:
+            path: /tmp/ingest_load_tester_sha
+          globalName: ingest_load_tester_sha
+        - name: test_duration
+          valueFrom:
+            path: /tmp/test_duration
+          globalName: test_duration
+        - name: test_users
+          valueFrom:
+            path: /tmp/test_users
+          globalName: test_users
