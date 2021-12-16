@@ -42,8 +42,9 @@ outcomes:
   # This field is added to outcomes to identify where they were produced
   source: "relay-internal"
 sentry:
-  enabled: false
-  # dsn: https://eedd748231034b99860e6aa58b9ad174@sentry.my.sentry.io/4
+  enabled: true
+  # Project: https://sentry.io/organizations/sentry-test/issues/?project=6110596
+  dsn: https://2ed323725e4040f79ced9ebda4c7973e@o19635.ingest.sentry.io/6110596
 processing:
   enabled: true
   explode_session_aggregates: false
