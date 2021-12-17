@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	defaultLocustServer   = "ingest-load-tester.default.svc.cluster.local"
+	defaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
 	defaultInfluxDbServer = "http://localhost:8086"
-	startLocustUrl        = "http://%s/swarm"
-	stopLocustUrl         = "http://%s/stop"
+	startLocustUrl        = "/swarm"
+	stopLocustUrl         = "/stop"
 	testDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
 )
 
@@ -54,21 +54,16 @@ func cliSetup() *cobra.Command {
 }
 
 func RunLoadStarter() {
-
 	fmt.Printf("\nWill be waiting for %s ....\n", duration)
 
-	//some buffer time to make sure we capture a little before and after the test
-	buffer := time.Second * 30
-
-	startTime := time.Now().UTC().Add(-buffer)
-
-	err := startLocust(numUsers, numUsers)
+	startTime := time.Now().UTC()
+	err := startLocust(numUsers, numUsers/4)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	//wait for the test to run
+	// Wait for the test to run
 	time.Sleep(*duration)
 
 	err = stopLocust()
@@ -76,13 +71,13 @@ func RunLoadStarter() {
 		fmt.Println(err)
 		os.Exit(2)
 	}
-	endTime := time.Now().UTC().Add(buffer)
+	endTime := time.Now().UTC()
 	sendSlackNotification(startTime, endTime, numUsers)
 }
 
 // Starts a locust load task by calling the spawn endpoint
 func startLocust(numUsers int64, spawnRate int64) error {
-	startUrl := fmt.Sprintf(startLocustUrl, *locustServerName)
+	startUrl := fmt.Sprintf("%s%s", *locustServerName, startLocustUrl)
 	contentType := "application/x-www-form-urlencoded; charset=UTF-8"
 	requestBody := url.Values{}
 
@@ -103,7 +98,7 @@ func startLocust(numUsers int64, spawnRate int64) error {
 
 // Starts a locust load testing by calling the stop endpoint
 func stopLocust() error {
-	stopUrl := fmt.Sprintf(stopLocustUrl, *locustServerName)
+	stopUrl := fmt.Sprintf("%s%s", *locustServerName, stopLocustUrl)
 
 	response, err := http.Get(stopUrl)
 	if err != nil {
@@ -115,18 +110,23 @@ func stopLocust() error {
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
 func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int64) error {
+	// Some buffer time to make sure we capture a little before and after the test
+	buffer := time.Second * 30
+
 	queryString := url.Values{}
 
-	startTimeStamp := startTime.Format("2006-01-02T15:04:05Z")
+	urlDateFormat := "2006-01-02T15:04:05Z"
+
+	startTimeStamp := startTime.Add(-buffer).Format(urlDateFormat)
 	queryString.Add("lower", startTimeStamp)
 
-	endTimeStamp := endTime.Format("2006-01-02T15:04:05Z")
+	endTimeStamp := endTime.Add(buffer).Format(urlDateFormat)
 	queryString.Add("upper", endTimeStamp)
 
 	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
 		*influxServerName, *organisationId, *boardId, queryString.Encode(),
 	)
-	fmt.Println("Dashboard is: \n%s", reportUrl)
+	fmt.Printf("The dashboard link: %s\n", reportUrl)
 
 	token := os.Getenv("SLACK_AUTH_TOKEN")
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
@@ -142,25 +142,30 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 		Color: "#36a64f",
 		Fields: []slack.AttachmentField{
 			{
-				Title: "Test Start",
+				Title: "Number of users",
+				Value: fmt.Sprintf("%d", numUsers),
+				Short: false,
+			},
+			{
+				Title: "Test duration",
+				Value: fmt.Sprintf("%s", duration),
+				Short: false,
+			},
+			{
+				Title: "Test start",
 				Value: startTime.Local().Format(testDateFormat),
 				Short: false,
 			},
 			{
-				Title: "Test End",
+				Title: "Test end",
 				Value: endTime.Local().Format(testDateFormat),
-				Short: false,
-			},
-
-			{
-				Title: "Number of users",
-				Value: fmt.Sprintf("%d", numUsers),
 				Short: false,
 			},
 		},
 		Actions: []slack.AttachmentAction{slack.AttachmentAction{URL: reportUrl}},
 	}
 
+	fmt.Println("Sending the report to Slack...")
 	_, _, err := client.PostMessage(
 		channelID,
 		slack.MsgOptionAttachments(attachment),
@@ -171,5 +176,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 		fmt.Printf("Failed to send to slack: %s", err)
 		return err
 	}
+
+	fmt.Println("Done!")
 	return nil
 }
