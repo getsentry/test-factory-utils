@@ -31,8 +31,12 @@ spec:
             key: token
       - name: SLACK_CHANNEL_ID
         value: '#feed-qa'
+      - name: WORKFLOW_URL
+        value: 'https://run.testa.getsentry.net/archived-workflows/argo/{% raw %}{{workflow.uid}}{% endraw %}'
+      - name: WORKFLOW_ID
+        value: '{% raw %}{{workflow.uid}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:002c90db4a2aa2376a211571c93dcba6170155b3
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:bdc5a7c71140dbdda8389955261074e20d942b26
       resources: {}
     inputs:
       parameters:
