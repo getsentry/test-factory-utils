@@ -2,7 +2,14 @@
 
 Configuration and tooling for the Sentry testbed environment.
 
+
+## Running tests
+
+End user? [Go here for more info.](https://www.notion.so/sentry/Running-Tests-711f5f7d959d425b871d5fae2f5d3d7d)
+
 ## Setup
+
+(you don't have to do this if you just want to run some tests; see the previous section for more details)
 
 1. [Install `gcloud`](https://cloud.google.com/sdk/docs/install), authenticate (`gcloud auth login`) and pick `sentry-st-testing` project, if asked.
 
