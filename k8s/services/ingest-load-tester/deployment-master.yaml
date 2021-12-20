@@ -28,7 +28,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: ingest-load-tester
+      - name: ingest-load-tester-master
         image: "{{ image }}"
         imagePullPolicy: Always
         args: ["run-master"]
