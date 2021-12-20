@@ -130,6 +130,16 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 
 	token := os.Getenv("SLACK_AUTH_TOKEN")
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
+	workflowUrl := os.Getenv("WORKFLOW_URL")
+	workflowId := os.Getenv("WORKFLOW_ID")
+
+	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
+	if workflowUrl != "" {
+		reportText += fmt.Sprintf("\n<%s|View workflow details (Argo)>", workflowUrl)
+	}
+	if workflowId != "" {
+		reportText += fmt.Sprintf("\nWorkflow ID: %s", workflowId)
+	}
 
 	// Create a new client to slack by giving token
 	// Set debug to true while developing
@@ -137,29 +147,29 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, numUsers int6
 
 	attachment := slack.Attachment{
 		Pretext: "Here's your test report",
-		Text:    reportUrl,
+		Text:    reportText,
 		// Color Styles the Text, making it possible to have like Warnings etc.
 		Color: "#36a64f",
 		Fields: []slack.AttachmentField{
 			{
-				Title: "Number of users",
-				Value: fmt.Sprintf("%d", numUsers),
-				Short: false,
-			},
-			{
-				Title: "Test duration",
-				Value: fmt.Sprintf("%s", duration),
-				Short: false,
-			},
-			{
 				Title: "Test start",
 				Value: startTime.Local().Format(testDateFormat),
-				Short: false,
+				Short: true,
+			},
+			{
+				Title: "Number of users",
+				Value: fmt.Sprintf("%d", numUsers),
+				Short: true,
 			},
 			{
 				Title: "Test end",
 				Value: endTime.Local().Format(testDateFormat),
-				Short: false,
+				Short: true,
+			},
+			{
+				Title: "Test duration",
+				Value: fmt.Sprintf("%s", duration),
+				Short: true,
 			},
 		},
 		Actions: []slack.AttachmentAction{slack.AttachmentAction{URL: reportUrl}},

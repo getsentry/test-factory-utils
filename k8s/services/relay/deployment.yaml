@@ -109,11 +109,11 @@ spec:
               value: "{{ http_port }}"
           resources:
             requests:
-              cpu: 1000m
+              cpu: 2000m
               memory: 2000Mi
             limits:
               cpu: {{ main_threads_per_process * 1000 }}m
-              memory: 3000Mi
+              memory: 4000Mi
           livenessProbe:
             httpGet:
               path: /api/relay/healthcheck/live/

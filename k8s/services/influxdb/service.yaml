@@ -1,6 +1,6 @@
 ---
 # # FIXME: uncomment when `sentry-kube apply` can work with custom resources.
-# {{
+# {
 # iap_service(
 #   service_name='influxdb',
 #   domain='influxdb.testa.getsentry.net',
