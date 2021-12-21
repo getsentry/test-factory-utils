@@ -1,12 +1,22 @@
 import io
 from typing import Sequence
 import os
+import json
 
 from dateutil import parser
 import click
 
 import util
 from influx_stats import get_stats, MetricSummary
+
+INFLUX_TOKEN = "JM4AJhWwUcAFLXv4b3MP_odVqCj07ssqu7Sp2FG_KJO-H0qjxFVlAIJxlmWIlIOxXC3wG1rFA0bZRV59X_tHcQ=="  # local admin token
+INFLUX_TOKEN = "kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw=="  # test server admin token
+
+INFLUX_URL = 'http://localhost:8086/'  # this is local
+INFLUX_URL = 'https://influxdb.testa.getsentry.net/'  # this needs gcloud auth
+INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
+
+
 
 @click.command()
 @click.option('--start', '-s', default=None, help='The start datetime of the test')
@@ -15,7 +25,8 @@ from influx_stats import get_stats, MetricSummary
 @click.option('--url', '-u', default=None, help="Url InfluxDb, if None $INFLUX_URL will be used")
 @click.option('--token', '-t', default=None, help="Access token for InfluxDb, if None $INFLUX_TOKEN will be used")
 @click.option("--org", '-o', default="sentry", help="Organization used in InfluxDb")
-def main(start, end, duration, token, url, org):
+@click.option("--format", '-f', default="text", type=click.Choice(["text", "json"]), help="Select the output req_format")
+def main(start, end, duration, token, url, org, format):
     """Simple program that greets NAME for a total of COUNT times."""
 
     start_time = None
@@ -45,12 +56,12 @@ def main(start, end, duration, token, url, org):
     if token is None:
         token = os.getenv("INFLUX_TOKEN")
         if token is None:
-            raise click.UsageError("Missing auth token either use --token or INFLUX_TOKEN env var")
+            token = INFLUX_TOKEN
 
     if url is None:
         url = os.getenv("INFLUX_URL")
         if url is None:
-            raise click.UsageError("Missing InfluxDb URL eiter use --rul or INFLUX_URL env var")
+            url = INFLUX_URL
 
     # we have a valid start & stop time
     stats = get_stats(
@@ -61,26 +72,52 @@ def main(start, end, duration, token, url, org):
         org=org,
     )
 
-    formatter = TextFormatter(stats)
-    print(formatter.format())
+    formatter = get_formatter(format)
+    print(formatter.format(stats))
+
+
+def get_formatter(req_format: str):
+    if req_format == "text":
+        return TextFormatter()
+    elif req_format == "json":
+        return JsonFormatter()
+    else:
+        return TextFormatter()
 
 
 class TextFormatter:
-    def __init__(self, stats: Sequence[MetricSummary]):
-        self.stats = stats
-
-    def format(self) -> str:
+    def format(self, stats: Sequence[MetricSummary]) -> str:
         output = io.StringIO()
-        for stat in self.stats:
+        for stat in stats:
             print(f"{stat.name}", file=output)
             for metric_value in stat.values:
                 params = ", ".join(metric_value.attributes)
-                s = "{:>16} -> {}".format(params,metric_value.value)
+                s = "{:>16} -> {:.2f}".format(params, metric_value.value)
                 print(s, file=output)
             print("-" * 32, file=output)
         ret_val = output.getvalue()
         output.close()
         return ret_val
+
+
+class JsonFormatter:
+    def format(self, stats: Sequence[MetricSummary]) -> str:
+        result = []
+        for stat in stats:
+            values = []
+            elm = {
+                "name": stat.name,
+                "values": values
+            }
+            for metric_value in stat.values:
+                attributes= [val for val in metric_value.attributes]
+                metric_value = {
+                    "attributes": attributes,
+                    "value": metric_value.value
+                }
+                values.append(metric_value)
+            result.append(elm)
+        return json.dumps(result, indent=2)
 
 
 if __name__ == '__main__':
