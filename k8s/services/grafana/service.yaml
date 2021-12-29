@@ -1,11 +1,25 @@
 ---
+# # FIXME: uncomment when `sentry-kube apply` can work with custom resources.
+# {
+# iap_service(
+#   service_name='grafana',
+#   domain='grafana.testa.getsentry.net',
+#   port=3000,
+#   selector={
+#     'service': 'grafana',
+#     'component': 'server',
+#   },
+# )
+# }}
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana-server
 spec:
   selector:
-    app: grafana
+    service: grafana
+    component: server
   ports:
     - port: 3000
       protocol: TCP

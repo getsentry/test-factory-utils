@@ -1,18 +1,20 @@
+{% set labels = {
+  "service": "grafana",
+  "component": "server",
+} %}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: grafana
   name: grafana
+  labels: {{ labels }}
 spec:
   selector:
-    matchLabels:
-      app: grafana
+    matchLabels: {{ labels }}
   template:
     metadata:
-      labels:
-        app: grafana
+      labels: {{ labels }}
     spec:
       replicas: 1
       securityContext:
