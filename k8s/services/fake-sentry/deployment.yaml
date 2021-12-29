@@ -6,6 +6,7 @@
 
 {% set http_port = 8000 %}
 
+{% set image = values.image_name + ":" + values.image_tag %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,7 +31,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-        - image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-load-tester:8c6071649abb866ab136022c36563501e08976fa"
+        - image: "{{ image }}"
           name: fake-sentry
           args: ["run-fake-sentry"]
           resources:
