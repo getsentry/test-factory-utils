@@ -5,6 +5,7 @@ services:
   - k8s/services/common
   - k8s/services/fake-sentry
   - k8s/services/geoipupdate
+  - k8s/services/grafana
   - k8s/services/iap-ingress
   - k8s/services/ingest-load-tester
   - k8s/services/influxdb
