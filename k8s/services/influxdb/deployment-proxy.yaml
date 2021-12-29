@@ -47,6 +47,11 @@ spec:
               # With the token passed, InfluxDB will not ask for username/password every time.
               proxy_set_header Authorization "Token {{ values.influx_token }}";
             }
+
+            # Ignore the sign-in page since auth should be handled transparently
+            location /signin {
+              return 302 /;
+            }
           }
           ' > /etc/nginx/conf.d/default.conf
         volumeMounts:
