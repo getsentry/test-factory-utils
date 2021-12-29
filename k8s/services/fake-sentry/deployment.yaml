@@ -15,8 +15,7 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      service: "fake-sentry"
+    matchLabels: {{ labels }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
