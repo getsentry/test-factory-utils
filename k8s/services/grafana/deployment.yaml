@@ -13,9 +13,13 @@ spec:
   replicas: 1
   selector:
     matchLabels: {{ labels }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels: {{ labels }}
+      annotations:
+        configVersion: "{{ md5template("templates/grafana.ini") }}"
     spec:
       securityContext:
         fsGroup: 472
@@ -57,7 +61,14 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/grafana
               name: grafana-pv
+            - name: grafana-config
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+              readOnly: true
       volumes:
         - name: grafana-pv
           persistentVolumeClaim:
             claimName: grafana-claim
+        - name: grafana-config
+          configMap:
+            name: grafana
