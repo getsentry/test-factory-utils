@@ -10,13 +10,13 @@ metadata:
   name: grafana
   labels: {{ labels }}
 spec:
+  replicas: 1
   selector:
     matchLabels: {{ labels }}
   template:
     metadata:
       labels: {{ labels }}
     spec:
-      replicas: 1
       securityContext:
         fsGroup: 472
         supplementalGroups:

@@ -1,7 +1,8 @@
 {% set services = [
+  {'host': 'grafana.testa.getsentry.net', 'serviceName': 'grafana'},
   {'host': 'influxdb.testa.getsentry.net', 'serviceName': 'influxdb'},
-  {'host': 'run.testa.getsentry.net', 'serviceName': 'argo-workflows'},
   {'host': 'locust.testa.getsentry.net', 'serviceName': 'locust'},
+  {'host': 'run.testa.getsentry.net', 'serviceName': 'argo-workflows'},
 ] %}
 
 apiVersion: extensions/v1beta1
