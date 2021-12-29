@@ -1,10 +1,11 @@
 ---
 
-# Components
+### Components
+# FIXME(anton): it might be confusing to have these here and also in k8s/services directories
 relay_revision: '6e77315a91ec4ffbe93c68835447d453026ca50f'
-ingest_load_tester_revision: '8c6071649abb866ab136022c36563501e08976fa'
+ingest_load_tester_revision: 'f4efe0d89acfea1ab69a637cc2012b2b20eaf79d'
 
-# Test settings
+### Test settings
 test_profile: static
 test_users: 10
 test_duration: '30s'
