@@ -70,8 +70,9 @@ spec:
         echo "${TEST_USERS}" | tee /tmp/test_users
     outputs:
       artifacts:
-        - name: run-manifest
+        - name: run_manifest
           path: /tmp/run-manifest.yaml
+          globalName: run_manifest
       parameters:
         - name: test_factory_sha
           valueFrom:

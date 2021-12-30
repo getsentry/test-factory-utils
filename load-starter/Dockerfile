@@ -7,12 +7,12 @@ FROM golang:1.17-alpine as build
 
 WORKDIR /app
 
-COPY go.mod go.sum *.go ./
-
+# Download dependencies first for better layer caching
+COPY go.mod go.sum ./
 RUN go mod download
 
+COPY *.go ./
 RUN go build -o /load-starter
-
 
 #
 #  FINAL stage

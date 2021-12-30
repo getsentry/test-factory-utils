@@ -15,14 +15,16 @@ spec:
       - /load-starter
       - '--influx'
       - 'https://influxdb.testa.getsentry.net'
-      - --duration
-      - '{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
-      - --users
-      - '{% raw %}{{inputs.parameters.test_users}}{% endraw %}'
       - --organisation
-      - f1c58f1d769114e6
+      - 'f1c58f1d769114e6'
       - --board
-      - 08830e9216d27000
+      - '08830e9216d27000'
+      - --config
+      - /etc/run-manifest.yaml
+      # - --duration
+      # - '{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
+      # - --users
+      # - '{% raw %}{{inputs.parameters.test_users}}{% endraw %}'
       env:
       - name: SLACK_AUTH_TOKEN
         valueFrom:
@@ -36,7 +38,7 @@ spec:
       - name: WORKFLOW_ID
         value: '{% raw %}{{workflow.uid}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:bdc5a7c71140dbdda8389955261074e20d942b26
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:c35476e75df8fa0f34265f5df7b1e66bc2772836
       resources: {}
     inputs:
       parameters:
@@ -44,3 +46,6 @@ spec:
         value: '{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
       - name: test_users
         value: '{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+      artifacts:
+      - name: run_manifest
+        path: /etc/run-manifest.yaml
