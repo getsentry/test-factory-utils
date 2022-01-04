@@ -6,6 +6,17 @@ relay_revision: '6e77315a91ec4ffbe93c68835447d453026ca50f'
 ingest_load_tester_revision: 'f4efe0d89acfea1ab69a637cc2012b2b20eaf79d'
 
 ### Test settings
-test_profile: static
-test_users: 10
-test_duration: '30s'
+stages:
+- type: gradual
+  startUsers: 10
+  endUsers: 20
+  step: 5
+  stepDuration: '60s'
+- type: static
+  users: 30
+  duration: '30s'
+- type: gradual
+  startUsers: 20
+  endUsers: 10
+  step: -10
+  stepDuration: '60s'

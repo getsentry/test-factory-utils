@@ -9,14 +9,16 @@ import (
 )
 
 const (
-	startLocustUrl = "/swarm"
-	stopLocustUrl  = "/stop"
-	resetLocustUrl = "/stats/reset"
+	StartLocustUrl = "/swarm"
+	StopLocustUrl  = "/stop"
+	ResetLocustUrl = "/stats/reset"
 )
 
 // Starts a locust load task by calling the spawn endpoint
 func startLocust(users int64, spawnRate int64) error {
-	startUrl := fmt.Sprintf("%s%s", *locustServerName, startLocustUrl)
+	fmt.Printf("Preparing to start Locust; users: %d: spawnRate: %d\n", users, spawnRate)
+
+	startUrl := fmt.Sprintf("%s%s", *Params.locustServerName, StartLocustUrl)
 	contentType := "application/x-www-form-urlencoded; charset=UTF-8"
 	requestBody := url.Values{}
 
@@ -24,7 +26,7 @@ func startLocust(users int64, spawnRate int64) error {
 	requestBody.Add("spawn_rate", strconv.FormatInt(spawnRate, 10))
 	body := requestBody.Encode()
 
-	if dryRun {
+	if Params.dryRun {
 		fmt.Printf("[dry-run] Sending start request to %s: %s\n", startUrl, body)
 		return nil
 	}
@@ -43,9 +45,9 @@ func startLocust(users int64, spawnRate int64) error {
 
 // Starts a locust load testing by calling the stop endpoint
 func stopLocust() error {
-	stopUrl := fmt.Sprintf("%s%s", *locustServerName, stopLocustUrl)
+	stopUrl := fmt.Sprintf("%s%s", *Params.locustServerName, StopLocustUrl)
 
-	if dryRun {
+	if Params.dryRun {
 		fmt.Printf("[dry-run] Sending stop request to %s\n", stopUrl)
 		return nil
 	}
@@ -60,7 +62,7 @@ func stopLocust() error {
 
 // Reset locust stats
 func resetLocustStats() error {
-	resetUrl := fmt.Sprintf("%s%s", *locustServerName, resetLocustUrl)
+	resetUrl := fmt.Sprintf("%s%s", *Params.locustServerName, ResetLocustUrl)
 
 	response, err := http.Get(resetUrl)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	STAGE_STATIC_NAME  = "static"
-	STAGE_GRADUAL_NAME = "gradual"
+	StageStaticName  = "static"
+	StageGradualName = "gradual"
 )
 
 //// Stage structs
@@ -51,7 +51,7 @@ type Config struct {
 // StageStatic
 
 func (t StageStatic) getType() string {
-	return STAGE_STATIC_NAME
+	return StageStaticName
 }
 
 func (t StageStatic) validate() error {
@@ -76,8 +76,8 @@ func (t StageStatic) execute() error {
 	}
 
 	// Wait for the test to run
-	if dryRun {
-		fmt.Printf("[dry-run] Waiting for %s\n", t.Duration)
+	if Params.dryRun {
+		fmt.Printf("[dry-run] Skipping wait for %s\n", t.Duration)
 	} else {
 		fmt.Printf("Will be waiting for %s...\n", t.Duration)
 		time.Sleep(t.Duration)
@@ -95,7 +95,7 @@ func (t StageStatic) execute() error {
 // StageGradual
 
 func (t StageGradual) getType() string {
-	return STAGE_GRADUAL_NAME
+	return StageGradualName
 }
 
 func (t StageGradual) validate() error {
@@ -152,8 +152,8 @@ func (t StageGradual) execute() error {
 		}
 
 		// Wait for the step to run
-		if dryRun {
-			fmt.Printf("[dry-run] Waiting for %s\n", t.StepDuration)
+		if Params.dryRun {
+			fmt.Printf("[dry-run] Skipping wait for %s\n", t.StepDuration)
 		} else {
 			fmt.Printf("Will be waiting for %s...\n", t.StepDuration)
 			time.Sleep(t.StepDuration)
@@ -208,7 +208,7 @@ func parseConfig(data []byte) Config {
 		stageType := s.(map[interface{}]interface{})["type"]
 
 		switch stageType {
-		case STAGE_STATIC_NAME:
+		case StageStaticName:
 			{
 				// TODO: can this be deduped or rewritten?
 				stage := StageStatic{}
@@ -221,7 +221,7 @@ func parseConfig(data []byte) Config {
 
 				config.Stages = append(config.Stages, stage)
 			}
-		case STAGE_GRADUAL_NAME:
+		case StageGradualName:
 			{
 				// TODO: can this be deduped or rewritten?
 				stage := StageGradual{}

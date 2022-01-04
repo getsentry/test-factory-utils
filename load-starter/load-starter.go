@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	defaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
-	defaultInfluxDbServer = "http://localhost:8086"
-	slackDateFormat       = "2006-01-02T15:04:05Z"
-	testDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
+	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
+	DefaultInfluxDbServer = "http://localhost:8086"
+	SlackDateFormat       = "2006-01-02T15:04:05Z"
+	TestDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
 )
 
-var (
+// Command line arguments
+type CliParams struct {
 	duration         *time.Duration
 	organisationId   *string
 	boardId          *string
@@ -26,7 +27,9 @@ var (
 	influxServerName *string
 	dryRun           bool
 	configFilePath   *string
-)
+}
+
+var Params CliParams
 
 func main() {
 	var rootCmd = cliSetup()
@@ -36,25 +39,25 @@ func main() {
 func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use: "app",
-		Run: func(cmd *cobra.Command, args []string) { RunLoadStarter() },
+		Run: func(cmd *cobra.Command, args []string) { runLoadStarter() },
 	}
 	rootCmd.Flags()
 
-	duration = rootCmd.Flags().DurationP("duration", "d", time.Millisecond*10000, "the duration to run the program")
+	Params.duration = rootCmd.Flags().DurationP("duration", "d", time.Millisecond*10000, "the duration to run the program")
 
-	locustServerName = rootCmd.Flags().StringP("locust", "l", defaultLocustServer, "Locust server endpoint")
+	Params.locustServerName = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint")
 
-	influxServerName = rootCmd.Flags().StringP("influx", "i", defaultInfluxDbServer, "InfluxDB dashboard base URL")
+	Params.influxServerName = rootCmd.Flags().StringP("influx", "i", DefaultInfluxDbServer, "InfluxDB dashboard base URL")
 
-	rootCmd.Flags().Int64VarP(&numUsers, "users", "u", 5, "number of simulated users")
+	rootCmd.Flags().Int64VarP(&Params.numUsers, "users", "u", 5, "number of simulated users")
 
-	organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
+	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
 
-	boardId = rootCmd.Flags().StringP("board", "b", "", "the InfluxDb board id")
+	Params.boardId = rootCmd.Flags().StringP("board", "b", "", "the InfluxDb board id")
 
-	rootCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "dry-run mode")
+	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
-	configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
+	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
 
 	return rootCmd
 }
@@ -68,21 +71,21 @@ func executeConfig(config Config) {
 	}
 }
 
-func RunLoadStarter() {
-	if dryRun {
+func runLoadStarter() {
+	if Params.dryRun {
 		fmt.Println("Dry-run mode is ON")
 	}
 
 	var config Config
 
 	// Here we decide: do we use the config file or command line args?
-	if *configFilePath == "" {
+	if *Params.configFilePath == "" {
 		// Use the CLI args
-		stages := []TestStage{StageStatic{Users: numUsers, Duration: *duration}}
+		stages := []TestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
 		config = Config{Stages: stages}
 	} else {
 		// Use the config file
-		config = parseConfigFile(*configFilePath)
+		config = parseConfigFile(*Params.configFilePath)
 	}
 
 	fmt.Printf("Configuration: %#v\n", config)
@@ -93,7 +96,7 @@ func RunLoadStarter() {
 	executeConfig(config)
 	endTime := time.Now().UTC()
 
-	fmt.Printf("\nFinished the run, sending the report...\n")
+	fmt.Printf("\n--- Preparing Report---\nFinished the run, preparing the report...\n")
 	sendSlackNotification(startTime, endTime, config)
 }
 
@@ -104,14 +107,14 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 
 	queryString := url.Values{}
 
-	startTimeStamp := startTime.Add(-buffer).Format(slackDateFormat)
+	startTimeStamp := startTime.Add(-buffer).Format(SlackDateFormat)
 	queryString.Add("lower", startTimeStamp)
 
-	endTimeStamp := endTime.Add(buffer).Format(slackDateFormat)
+	endTimeStamp := endTime.Add(buffer).Format(SlackDateFormat)
 	queryString.Add("upper", endTimeStamp)
 
 	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
-		*influxServerName, *organisationId, *boardId, queryString.Encode(),
+		*Params.influxServerName, *Params.organisationId, *Params.boardId, queryString.Encode(),
 	)
 	fmt.Printf("The dashboard link: %s\n", reportUrl)
 
@@ -132,8 +135,9 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	// Set debug to true while developing
 	client := slack.New(token)
 
+	// Only print number of users when the only testing stage is "static"
 	usersString := "varying"
-	if len(config.Stages) == 1 && config.Stages[0].getType() == STAGE_STATIC_NAME {
+	if len(config.Stages) == 1 && config.Stages[0].getType() == StageStaticName {
 		users := config.Stages[0].(StageStatic).Users
 		usersString = fmt.Sprintf("%d", users)
 	}
@@ -147,7 +151,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 		Fields: []slack.AttachmentField{
 			{
 				Title: "Test start",
-				Value: startTime.Local().Format(testDateFormat),
+				Value: startTime.Local().Format(TestDateFormat),
 				Short: true,
 			},
 			{
@@ -157,7 +161,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 			},
 			{
 				Title: "Test end",
-				Value: endTime.Local().Format(testDateFormat),
+				Value: endTime.Local().Format(TestDateFormat),
 				Short: true,
 			},
 			{
@@ -173,7 +177,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 
 	fmt.Println("Sending the report to Slack...")
 
-	if dryRun {
+	if Params.dryRun {
 		fmt.Printf("[dry-run] Message: %#v\n", attachment)
 	} else {
 		_, _, err := client.PostMessage(
@@ -182,11 +186,11 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 		)
 
 		if err != nil {
-			fmt.Printf("Failed to send to slack: %s\n", err)
+			fmt.Printf("Failed to send to Slack: %s\n", err)
 			return err
 		}
 	}
 
-	fmt.Println("Done!")
+	fmt.Println("\nDone!")
 	return nil
 }
