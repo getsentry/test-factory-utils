@@ -14,6 +14,8 @@ spec:
       value: "default"
     - name: test_users
       value: "default"
+    - name: comment
+      value: ""
   entrypoint: main
   podGC:
     strategy: OnWorkflowCompletion
@@ -59,6 +61,8 @@ spec:
             value: '{% raw %}{{workflow.outputs.parameters.test_duration}}{% endraw %}'
           - name: test_users
             value: '{% raw %}{{workflow.outputs.parameters.test_users}}{% endraw %}'
+          - name: test_override
+            value: '{% raw %}{{workflow.outputs.parameters.test_override}}{% endraw %}'
           artifacts:
           - name: run_manifest
             from: '{% raw %}{{workflow.outputs.artifacts.run_manifest}}{% endraw %}'

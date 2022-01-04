@@ -18,6 +18,7 @@ RUN go build -o /load-starter
 #  FINAL stage
 #
 FROM alpine:3.14 as final
+RUN apk --no-cache add bash
 WORKDIR /
 COPY --from=build /load-starter /load-starter
 

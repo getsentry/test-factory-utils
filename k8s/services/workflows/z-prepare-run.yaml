@@ -16,6 +16,7 @@ spec:
           path: /root/test-factory
           git:
             repo: 'git@github.com:getsentry/test-factory'
+            # FIXME: can this workflow.parameters be replaced?
             revision: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
             depth: 1
             sshPrivateKeySecret:
@@ -58,16 +59,28 @@ spec:
         git rev-parse HEAD | tee /tmp/ingest_load_tester_sha
 
         ### Record Locust settings
+        DEFAULT_STUB="default"
+        OVERRIDE_USED="0"
+        DEFAULT_DURATION="1m"
+        DEFAULT_USERS=5
+
         TEST_DURATION='{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
-        if [[ "${TEST_DURATION}" == "default" ]]; then
-          TEST_DURATION=$(yq e '.test_duration' ${MANIFEST_FILE})
+        if [[ "${TEST_DURATION}" == "${DEFAULT_STUB}" ]]; then
+          TEST_DURATION="${DEFAULT_DURATION}"
+        else
+          OVERRIDE_USED="1"
         fi
-        echo "${TEST_DURATION}" | tee /tmp/test_duration
+
         TEST_USERS='{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
-        if [[ "${TEST_USERS}" == "default" ]]; then
-          TEST_USERS=$(yq e '.test_users' ${MANIFEST_FILE})
+        if [[ "${TEST_USERS}" == "${DEFAULT_STUB}" ]]; then
+          TEST_USERS="${DEFAULT_USERS}"
+        else
+          OVERRIDE_USED="1"
         fi
+
+        echo "${TEST_DURATION}" | tee /tmp/test_duration
         echo "${TEST_USERS}" | tee /tmp/test_users
+        echo "${OVERRIDE_USED}" | tee /tmp/test_override
     outputs:
       artifacts:
         - name: run_manifest
@@ -94,3 +107,7 @@ spec:
           valueFrom:
             path: /tmp/test_users
           globalName: test_users
+        - name: test_override
+          valueFrom:
+            path: /tmp/test_override
+          globalName: test_override

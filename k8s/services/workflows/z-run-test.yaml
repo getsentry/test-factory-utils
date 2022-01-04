@@ -12,19 +12,40 @@ spec:
   - name: run-test
     container:
       command:
-      - /load-starter
-      - '--influx'
-      - 'https://influxdb.testa.getsentry.net'
-      - --organisation
-      - 'f1c58f1d769114e6'
-      - --board
-      - '08830e9216d27000'
-      - --config
-      - /etc/run-manifest.yaml
-      # - --duration
-      # - '{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
-      # - --users
-      # - '{% raw %}{{inputs.parameters.test_users}}{% endraw %}'
+      - bash
+      - '-c'
+      - |
+        exec 2>&1
+        set -euo pipefail
+
+        TEST_DURATION="{% raw %}{{inputs.parameters.test_duration}}{% endraw %}"
+        TEST_USERS="{% raw %}{{inputs.parameters.test_users}}{% endraw %}"
+        MANUAL_OVERRIDE="{% raw %}{{inputs.parameters.test_override}}{% endraw %}"
+
+        ARGS=(
+          '--influx'
+          'https://influxdb.testa.getsentry.net'
+          --organisation
+          'f1c58f1d769114e6'
+          --board
+          '08830e9216d27000'
+        )
+
+        if [[ "${MANUAL_OVERRIDE}" == "1" ]]; then
+          ARGS+=(
+            --users
+            "${TEST_USERS}"
+            --duration
+            "${TEST_DURATION}"
+          )
+        else
+          ARGS+=(
+            --config
+            /etc/run-manifest.yaml
+          )
+        fi
+        set -x
+        exec /load-starter ${ARGS[@]}
       env:
       - name: SLACK_AUTH_TOKEN
         valueFrom:
@@ -38,14 +59,13 @@ spec:
       - name: WORKFLOW_ID
         value: '{% raw %}{{workflow.uid}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:734178e6ee9c5f68226cfa456f73f7c3cbb7cded
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:017b146200f89043c71be81b42ee8c450a398478
       resources: {}
     inputs:
       parameters:
       - name: test_duration
-        value: '{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
       - name: test_users
-        value: '{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+      - name: test_override
       artifacts:
       - name: run_manifest
         path: /etc/run-manifest.yaml

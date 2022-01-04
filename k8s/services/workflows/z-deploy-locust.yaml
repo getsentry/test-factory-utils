@@ -35,7 +35,7 @@ spec:
       - '-c'
       - |
         exec 2>&1
-        set -eux
+        set -euxo pipefail
 
         git status
 
