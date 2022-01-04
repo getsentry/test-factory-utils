@@ -38,7 +38,7 @@ spec:
       - name: WORKFLOW_ID
         value: '{% raw %}{{workflow.uid}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:c35476e75df8fa0f34265f5df7b1e66bc2772836
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:734178e6ee9c5f68226cfa456f73f7c3cbb7cded
       resources: {}
     inputs:
       parameters:
