@@ -79,7 +79,7 @@ func (t StageStatic) execute() error {
 	if Params.dryRun {
 		fmt.Printf("[dry-run] Skipping wait for %s\n", t.Duration)
 	} else {
-		fmt.Printf("Will be waiting for %s...\n", t.Duration)
+		fmt.Printf("Waiting for %s...\n", t.Duration)
 		time.Sleep(t.Duration)
 	}
 
@@ -155,7 +155,7 @@ func (t StageGradual) execute() error {
 		if Params.dryRun {
 			fmt.Printf("[dry-run] Skipping wait for %s\n", t.StepDuration)
 		} else {
-			fmt.Printf("Will be waiting for %s...\n", t.StepDuration)
+			fmt.Printf("Waiting for %s...\n", t.StepDuration)
 			time.Sleep(t.StepDuration)
 		}
 

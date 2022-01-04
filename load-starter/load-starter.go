@@ -78,6 +78,8 @@ func runLoadStarter() {
 
 	var config Config
 
+	fmt.Println("Initializing the run...")
+
 	// Here we decide: do we use the config file or command line args?
 	if *Params.configFilePath == "" {
 		// Use the CLI args
@@ -89,8 +91,7 @@ func runLoadStarter() {
 	}
 
 	fmt.Printf("Configuration: %#v\n", config)
-
-	fmt.Println("Initializing the run...")
+	fmt.Printf("Total planned running time: %s\n", config.getTotalDuration())
 
 	startTime := time.Now().UTC()
 	executeConfig(config)
