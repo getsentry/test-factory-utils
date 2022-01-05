@@ -64,6 +64,11 @@ func stopLocust() error {
 func resetLocustStats() error {
 	resetUrl := fmt.Sprintf("%s%s", *Params.locustServerName, ResetLocustUrl)
 
+	if Params.dryRun {
+		fmt.Printf("[dry-run] Sending stats reset request to %s\n", resetUrl)
+		return nil
+	}
+
 	response, err := http.Get(resetUrl)
 	if err != nil {
 		return fmt.Errorf("Failed to reset the stats: %v", err)

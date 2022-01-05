@@ -98,6 +98,10 @@ func (t StageStatic) execute() (StageReport, error) {
 	if err != nil {
 		return stageReport, err
 	}
+	err = resetLocustStats()
+	if err != nil {
+		return stageReport, err
+	}
 
 	stepReport.EndTime = time.Now().UTC()
 	stageReport.StepReports = append(stageReport.StepReports, stepReport)
@@ -176,7 +180,10 @@ func (t StageGradual) execute() (StageReport, error) {
 		stepReport.EndTime = time.Now().UTC()
 		stageReport.StepReports = append(stageReport.StepReports, stepReport)
 
-		// TODO: reset stats?
+		err = resetLocustStats()
+		if err != nil {
+			return stageReport, err
+		}
 	}
 
 	err := stopLocust()
