@@ -52,5 +52,4 @@ spec:
       volumes:
       - name: config
         configMap:
-          # Use the same config as for the DaemonSet
-          name: telegraf
+          name: telegraf-worker

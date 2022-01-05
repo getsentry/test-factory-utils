@@ -22,3 +22,15 @@ metadata:
 data:
   telegraf.conf: |
     {% filter indent %}{% include 'templates/telegraf.conf' %}{% endfilter %}
+---
+{% set component = 'worker' %}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-worker
+  namespace: sentry-system
+  labels:
+    service: telegraf
+data:
+  telegraf.conf: |
+    {% filter indent %}{% include 'templates/telegraf.conf' %}{% endfilter %}
