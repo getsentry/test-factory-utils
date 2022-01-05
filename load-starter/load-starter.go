@@ -8,6 +8,7 @@ import (
 
 	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -27,14 +28,10 @@ type CliParams struct {
 	influxServerName *string
 	dryRun           bool
 	configFilePath   *string
+	reportFilePath   *string
 }
 
 var Params CliParams
-
-func main() {
-	var rootCmd = cliSetup()
-	rootCmd.Execute()
-}
 
 func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
@@ -59,16 +56,44 @@ func cliSetup() *cobra.Command {
 
 	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
 
+	Params.reportFilePath = rootCmd.Flags().StringP("report", "r", "", "If provided: report will be written here")
+
 	return rootCmd
 }
 
-func executeConfig(config Config) {
+func executeConfig(config Config) RunReport {
+	runReport := RunReport{}
+
+	runReport.StartTime = time.Now().UTC()
 	for i, stage := range config.Stages {
 		fmt.Printf("\n--- Stage %d ---\n", i)
 		fmt.Printf("Stage config: %#v\n", stage)
 		fmt.Printf("Planned stage duration: %v\n", stage.getTotalDuration())
-		stage.execute()
+		report, err := stage.execute()
+		check(err)
+		fmt.Printf("Stage report: %#v\n", report)
+		runReport.StageReports = append(runReport.StageReports, report)
 	}
+	runReport.EndTime = time.Now().UTC()
+	return runReport
+}
+
+func writeReportToFile(report RunReport) {
+	if *Params.reportFilePath == "" {
+		fmt.Printf("No report file path provided, not writing the report to file.\n")
+		return
+	}
+
+	reportData, err := yaml.Marshal(report)
+	check(err)
+
+	if Params.dryRun {
+		fmt.Printf("[dry-run] Would write the following report to %s:\n---\n%s---\n", *Params.reportFilePath, reportData)
+	} else {
+		err = os.WriteFile(*Params.reportFilePath, reportData, 0644)
+		check(err)
+	}
+	fmt.Printf("Wrote run report to: %s\n", *Params.reportFilePath)
 }
 
 func runLoadStarter() {
@@ -93,12 +118,11 @@ func runLoadStarter() {
 	fmt.Printf("Configuration: %#v\n", config)
 	fmt.Printf("Total planned running time: %s\n", config.getTotalDuration())
 
-	startTime := time.Now().UTC()
-	executeConfig(config)
-	endTime := time.Now().UTC()
+	runReport := executeConfig(config)
 
-	fmt.Printf("\n--- Preparing Report---\nFinished the run, preparing the report...\n")
-	sendSlackNotification(startTime, endTime, config)
+	fmt.Printf("\n--- Report---\nFinished the run, preparing the report...\n")
+	writeReportToFile(runReport)
+	sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
 }
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
@@ -194,4 +218,9 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 
 	fmt.Println("\nDone!")
 	return nil
+}
+
+func main() {
+	var rootCmd = cliSetup()
+	rootCmd.Execute()
 }
