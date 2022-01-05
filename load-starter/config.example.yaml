@@ -1,0 +1,15 @@
+---
+stages:
+- type: gradual
+  startUsers: 10
+  endUsers: 30
+  step: 5
+  stepDuration: '60s'
+- type: static
+  users: 40
+  duration: '100s'
+- type: gradual
+  startUsers: 30
+  endUsers: 20
+  step: -2
+  stepDuration: '60s'
