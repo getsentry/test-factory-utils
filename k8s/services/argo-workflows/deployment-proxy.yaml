@@ -35,6 +35,13 @@ data:
 
       location / {
         proxy_pass https://argo_server;
+
+        # Inspired by https://stackoverflow.com/questions/13672743/eventsource-server-sent-events-through-nginx
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_set_header Connection '';
+        chunked_transfer_encoding off;
       }
 
       # # FIXME: an attempted fix for an annoying 502, doesn't work yet
@@ -75,7 +82,7 @@ spec:
         service: argo-workflows
         component: argo-workflows-proxy
       annotations:
-        configVersion: "FIXME { md5template('templates/config.yaml') }}"
+        configVersion: "{{ md5file('k8s/services/argo-workflows/deployment-proxy.yaml') }}"
     spec:
       containers:
       - image: nginx:1.20
