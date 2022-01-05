@@ -761,7 +761,7 @@ data:
       connMaxLifetime: 0s
     nodeStatusOffLoad: true
     archive: true
-    archiveTTL: 7d
+    archiveTTL: 180d
     postgresql:
       host: postgres
       port: 5432
