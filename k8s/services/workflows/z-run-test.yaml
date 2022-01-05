@@ -29,6 +29,8 @@ spec:
           'f1c58f1d769114e6'
           --board
           '08830e9216d27000'
+          --report
+          '/tmp/run-report.yaml'
         )
 
         if [[ "${MANUAL_OVERRIDE}" == "1" ]]; then
@@ -69,3 +71,8 @@ spec:
       artifacts:
       - name: run_manifest
         path: /etc/run-manifest.yaml
+    outputs:
+      artifacts:
+      - name: run_report
+        path: /tmp/run-report.yaml
+        globalName: run_report
