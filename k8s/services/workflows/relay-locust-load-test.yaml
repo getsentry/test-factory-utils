@@ -6,6 +6,10 @@ metadata:
   labels:
     workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
 spec:
+  # Disallow to run this workflow in parallel
+  synchronization:
+    mutex:
+      name:  relay-locust-load-test
   arguments:
     parameters:
     - name: test_factory_branch
