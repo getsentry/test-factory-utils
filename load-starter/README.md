@@ -101,3 +101,16 @@ stageReports:
   name: ""
   stageType: static
 ```
+
+## Dry-run Mode
+
+Dry-run mode can be used to see what the tool does with the given configuration, without actually sending any requests or reports.
+
+Example:
+
+```
+./load-starter --dry-run --config config.example.yaml --report report.yaml
+```
+
+
+
