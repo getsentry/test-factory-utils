@@ -22,6 +22,8 @@ spec:
         TEST_USERS="{% raw %}{{inputs.parameters.test_users}}{% endraw %}"
         MANUAL_OVERRIDE="{% raw %}{{inputs.parameters.test_override}}{% endraw %}"
 
+        RUN_REPORT_FILE="/tmp/run-report.yaml"
+
         ARGS=(
           '--influx'
           'https://influxdb.testa.getsentry.net'
@@ -30,7 +32,7 @@ spec:
           --board
           '08830e9216d27000'
           --report
-          '/tmp/run-report.yaml'
+          "${RUN_REPORT_FILE}"
         )
 
         if [[ "${MANUAL_OVERRIDE}" == "1" ]]; then
@@ -47,7 +49,9 @@ spec:
           )
         fi
         set -x
-        exec /load-starter ${ARGS[@]}
+        /load-starter ${ARGS[@]}
+
+        cat "${RUN_REPORT_FILE}"
       env:
       - name: SLACK_AUTH_TOKEN
         valueFrom:
@@ -61,7 +65,7 @@ spec:
       - name: WORKFLOW_ID
         value: '{% raw %}{{workflow.uid}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:b83810393f8d5826e520b0ff5332bc7a59231687
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:913de9aa6546e6221ee16b2ff7399544e7f21501
       resources: {}
     inputs:
       parameters:
