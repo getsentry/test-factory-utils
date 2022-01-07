@@ -81,6 +81,12 @@ spec:
         echo "${TEST_DURATION}" | tee /tmp/test_duration
         echo "${TEST_USERS}" | tee /tmp/test_users
         echo "${OVERRIDE_USED}" | tee /tmp/test_override
+
+        set +x
+        ### Print out some valuable info
+        echo '### Manifest file'
+        cat "${MANIFEST_FILE}"
+        echo '---'
     outputs:
       artifacts:
         - name: run_manifest
