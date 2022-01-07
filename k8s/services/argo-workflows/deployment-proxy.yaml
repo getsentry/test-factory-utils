@@ -86,7 +86,7 @@ spec:
     spec:
       containers:
       - image: nginx:1.20
-        name: nginx
+        name: argo-workflows-proxy-nginx
         volumeMounts:
           - name: nginx-config
             mountPath: /etc/nginx/conf.d/default.conf

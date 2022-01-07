@@ -59,7 +59,7 @@ spec:
             mountPath: /etc/nginx/conf.d/
       containers:
       - image: nginx:1.20
-        name: nginx
+        name: influxdb-proxy-nginx
         volumeMounts:
           - name: nginx-config
             mountPath: /etc/nginx/conf.d/
