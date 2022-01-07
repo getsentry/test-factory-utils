@@ -134,8 +134,34 @@ func (t StageGradual) validate() error {
 	return nil
 }
 
-func (t StageGradual) _getUsersByStep() []int64 {
+func (t StageGradual) _getUsersByStepOld() []int64 {
 	users := []int64{t.StartUsers}
+	if t.Step == 0 {
+		return users
+	}
+
+	lastUsers := t.StartUsers
+
+	for {
+		lastUsers = lastUsers + t.Step
+		if (t.Step > 0 && lastUsers >= t.EndUsers) || (t.Step < 0 && lastUsers <= t.EndUsers) {
+			users = append(users, t.EndUsers)
+			break
+		}
+
+		users = append(users, lastUsers)
+	}
+
+	return users
+}
+
+func (t StageGradual) _getUsersByStep() []int64 {
+
+	numSteps := intAbs((t.EndUsers-t.StartUsers)%t.Step) + 1
+	users := make([]int64, 0, numSteps)
+
+	users = append(users, t.StartUsers)
+
 	if t.Step == 0 {
 		return users
 	}

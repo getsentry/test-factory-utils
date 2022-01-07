@@ -11,3 +11,9 @@ func check(e error) {
 		os.Exit(1)
 	}
 }
+func intAbs(v int64) int64 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
