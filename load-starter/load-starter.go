@@ -124,15 +124,16 @@ func runLoadStarter() {
 
 	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
 	writeReportToFile(runReport)
-	sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
+	err := sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
+	if err != nil {
+		fmt.Printf("Failed to send Slack notification:\n%s", err)
+	}
 }
 
-func buildDashboardLink(startTime time.Time, endTime time.Time, bufferSeconds int64) string {
-	// Some buffer time to make sure we capture a little before and after the test
-	buffer := time.Second * time.Duration(bufferSeconds)
-
+func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Duration) string {
 	queryString := url.Values{}
 
+	// Some buffer time to make sure we capture a little before and after the test
 	startTimeStamp := startTime.Add(-buffer).Format(InfluxDateFormat)
 	queryString.Add("lower", startTimeStamp)
 
@@ -152,7 +153,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	workflowUrl := os.Getenv("WORKFLOW_URL")
 	workflowId := os.Getenv("WORKFLOW_ID")
 
-	reportUrl := buildDashboardLink(startTime, endTime, 30)
+	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
 	fmt.Printf("Dashboard link: %s\n", reportUrl)
 
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
