@@ -10,6 +10,7 @@ const (
 	StageGradualName = "gradual"
 )
 
+// Interfaces
 type TestStage interface {
 	getType() string
 	validate() error
@@ -19,9 +20,10 @@ type TestStage interface {
 
 // Report structs
 type StepReport struct {
-	Users     int64
-	StartTime time.Time `yaml:"startTime"`
-	EndTime   time.Time `yaml:"endTime"`
+	Users        int64
+	StartTime    time.Time `yaml:"startTime"`
+	EndTime      time.Time `yaml:"endTime"`
+	DashboardURL string    `yaml:"dashboardUrl"`
 }
 
 // Report per stage
@@ -36,6 +38,7 @@ type RunReport struct {
 	StageReports []StageReport `yaml:"stageReports"`
 	StartTime    time.Time     `yaml:"startTime"`
 	EndTime      time.Time     `yaml:"endTime"`
+	DashboardURL string        `yaml:"dashboardUrl"`
 }
 
 // Stage structs
@@ -104,6 +107,7 @@ func (t StageStatic) execute() (StageReport, error) {
 	}
 
 	stepReport.EndTime = time.Now().UTC()
+	stepReport.DashboardURL = buildDashboardLink(stepReport.StartTime, stepReport.EndTime, 10)
 	stageReport.StepReports = append(stageReport.StepReports, stepReport)
 	return stageReport, nil
 }
@@ -178,6 +182,7 @@ func (t StageGradual) execute() (StageReport, error) {
 		}
 
 		stepReport.EndTime = time.Now().UTC()
+		stepReport.DashboardURL = buildDashboardLink(stepReport.StartTime, stepReport.EndTime, 10)
 		stageReport.StepReports = append(stageReport.StepReports, stepReport)
 
 		err = resetLocustStats()

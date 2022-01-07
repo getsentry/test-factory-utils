@@ -14,8 +14,8 @@ import (
 const (
 	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
 	DefaultInfluxDbServer = "http://localhost:8086"
-	SlackDateFormat       = "2006-01-02T15:04:05Z"
-	TestDateFormat        = "Mon 02 Jan 06\n15:04:05 MST"
+	InfluxDateFormat      = "2006-01-02T15:04:05Z"
+	SlackDateFormat       = "Mon 02 Jan 06\n15:04:05 MST"
 )
 
 // Command line arguments
@@ -66,7 +66,8 @@ func executeConfig(config Config) RunReport {
 
 	runReport.StartTime = time.Now().UTC()
 	for i, stage := range config.Stages {
-		fmt.Printf("\n--- Stage %d ---\n", i)
+		stageNum := i + 1
+		fmt.Printf("\n--- Stage %d ---\n", stageNum)
 		fmt.Printf("Stage config: %#v\n", stage)
 		fmt.Printf("Planned stage duration: %v\n", stage.getTotalDuration())
 		report, err := stage.execute()
@@ -75,6 +76,7 @@ func executeConfig(config Config) RunReport {
 		runReport.StageReports = append(runReport.StageReports, report)
 	}
 	runReport.EndTime = time.Now().UTC()
+	runReport.DashboardURL = buildDashboardLink(runReport.StartTime, runReport.EndTime, 30)
 	return runReport
 }
 
@@ -125,28 +127,35 @@ func runLoadStarter() {
 	sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
 }
 
-// Constructs a Slack Notification with the URL of the influx db dashboard for the test
-func sendSlackNotification(startTime time.Time, endTime time.Time, config Config) error {
+func buildDashboardLink(startTime time.Time, endTime time.Time, bufferSeconds int64) string {
 	// Some buffer time to make sure we capture a little before and after the test
-	buffer := time.Second * 30
+	buffer := time.Second * time.Duration(bufferSeconds)
 
 	queryString := url.Values{}
 
-	startTimeStamp := startTime.Add(-buffer).Format(SlackDateFormat)
+	startTimeStamp := startTime.Add(-buffer).Format(InfluxDateFormat)
 	queryString.Add("lower", startTimeStamp)
 
-	endTimeStamp := endTime.Add(buffer).Format(SlackDateFormat)
+	endTimeStamp := endTime.Add(buffer).Format(InfluxDateFormat)
 	queryString.Add("upper", endTimeStamp)
+
+	fmt.Printf("%s %s", startTimeStamp, endTimeStamp)
 
 	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
 		*Params.influxServerName, *Params.organisationId, *Params.boardId, queryString.Encode(),
 	)
-	fmt.Printf("The dashboard link: %s\n", reportUrl)
+	return reportUrl
+}
 
+// Constructs a Slack Notification with the URL of the influx db dashboard for the test
+func sendSlackNotification(startTime time.Time, endTime time.Time, config Config) error {
 	token := os.Getenv("SLACK_AUTH_TOKEN")
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 	workflowUrl := os.Getenv("WORKFLOW_URL")
 	workflowId := os.Getenv("WORKFLOW_ID")
+
+	reportUrl := buildDashboardLink(startTime, endTime, 30)
+	fmt.Printf("Dashboard link: %s\n", reportUrl)
 
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
 	if workflowUrl != "" {
@@ -176,7 +185,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 		Fields: []slack.AttachmentField{
 			{
 				Title: "Test start",
-				Value: startTime.Local().Format(TestDateFormat),
+				Value: startTime.Local().Format(SlackDateFormat),
 				Short: true,
 			},
 			{
@@ -186,7 +195,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 			},
 			{
 				Title: "Test end",
-				Value: endTime.Local().Format(TestDateFormat),
+				Value: endTime.Local().Format(SlackDateFormat),
 				Short: true,
 			},
 			{
