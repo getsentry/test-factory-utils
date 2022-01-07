@@ -90,7 +90,7 @@ func writeReportToFile(report RunReport) {
 	check(err)
 
 	if Params.dryRun {
-		fmt.Printf("[dry-run] Would write the following report to %s:\n---\n%s---\n", *Params.reportFilePath, reportData)
+		fmt.Printf("[dry-run] Would write the following report to %s:\n~~~\n%s~~~\n", *Params.reportFilePath, reportData)
 	} else {
 		err = os.WriteFile(*Params.reportFilePath, reportData, 0644)
 		check(err)
@@ -100,12 +100,12 @@ func writeReportToFile(report RunReport) {
 
 func runLoadStarter() {
 	if Params.dryRun {
-		fmt.Println("Dry-run mode is ON")
+		fmt.Println("NOTE: Dry-run mode is ON")
 	}
 
 	var config Config
 
-	fmt.Println("Initializing the run...")
+	fmt.Printf("\n--- Prepare ---\nInitializing the run...\n")
 
 	// Here we decide: do we use the config file or command line args?
 	if *Params.configFilePath == "" {
@@ -122,7 +122,7 @@ func runLoadStarter() {
 
 	runReport := executeConfig(config)
 
-	fmt.Printf("\n--- Report---\nFinished the run, preparing the report...\n")
+	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
 	writeReportToFile(runReport)
 	sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
 }
@@ -138,8 +138,6 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, bufferSeconds in
 
 	endTimeStamp := endTime.Add(buffer).Format(InfluxDateFormat)
 	queryString.Add("upper", endTimeStamp)
-
-	fmt.Printf("%s %s", startTimeStamp, endTimeStamp)
 
 	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
 		*Params.influxServerName, *Params.organisationId, *Params.boardId, queryString.Encode(),
