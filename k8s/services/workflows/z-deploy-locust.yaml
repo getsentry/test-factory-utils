@@ -41,13 +41,19 @@ spec:
 
         # Update ingest-load-tester version
         yq eval -i '.image_tag = "{% raw %}{{workflow.outputs.parameters.ingest_load_tester_sha}}{% endraw %}"' ./k8s/services/ingest-load-tester/_values.yaml
+        yq eval -i '.image_tag = "{% raw %}{{workflow.outputs.parameters.ingest_load_tester_sha}}{% endraw %}"' ./k8s/services/fake-sentry/_values.yaml
 
         # FIXME: sentry-kube should be updated to handle this
         # sentry-kube diff-beta ingest-load-tester
         sentry-kube render ingest-load-tester > _ingest-load-tester.yaml
+        sentry-kube render fake-sentry > _fake-sentry.yaml
+
         yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{% raw %}{{workflow.uid}}{% endraw %}"' _ingest-load-tester.yaml > _ingest-load-tester.processed.yaml
+        yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{% raw %}{{workflow.uid}}{% endraw %}"' _fake-sentry.yaml > _fake-sentry.processed.yaml
+
         # FIXME: do not hardcode namespaces
         sentry-kube kubectl apply -n default -f _ingest-load-tester.processed.yaml
+        sentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml
     serviceAccountName: default
 
   - name: locust-wait-for-rollout
@@ -60,4 +66,5 @@ spec:
       - |
         kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s
         kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
+        kubectl rollout status deployment --namespace=default fake-sentry --timeout=60s
     serviceAccountName: default
