@@ -2,21 +2,18 @@
 
 ### Components
 # FIXME(anton): it might be confusing to have these here and also in k8s/services directories
-relay_revision: '6e77315a91ec4ffbe93c68835447d453026ca50f'
+relay_revision: '4639455273ed8caccf5c11b929ef42d3a7ac6d61'
 ingest_load_tester_revision: '7078c23424394908e27873a9b31aa23d0f8f6733'
 
 ### Test settings
 stages:
-- type: gradual
-  startUsers: 10
-  endUsers: 20
-  step: 5
-  stepDuration: '60s'
 - type: static
-  users: 30
+  name: warmup
+  users: 10
   duration: '30s'
 - type: gradual
+  name: test
   startUsers: 20
-  endUsers: 10
-  step: -10
-  stepDuration: '60s'
+  endUsers: 100
+  step: 40
+  stepDuration: '5m'
