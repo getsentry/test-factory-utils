@@ -64,6 +64,8 @@ spec:
         value: 'https://run.testa.getsentry.net/archived-workflows/argo/{% raw %}{{workflow.uid}}{% endraw %}'
       - name: WORKFLOW_ID
         value: '{% raw %}{{workflow.uid}}{% endraw %}'
+      - name: WORKFLOW_COMMENT
+        value: '{% raw %}{{inputs.parameters.test_comment}}{% endraw %}'
       name: load-starter
       image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:913de9aa6546e6221ee16b2ff7399544e7f21501
       resources: {}
@@ -72,6 +74,8 @@ spec:
       - name: test_duration
       - name: test_users
       - name: test_override
+      - name: test_comment
+        value: '{% raw %}{{workflow.parameters.comment}}{% endraw %}'
       artifacts:
       - name: run_manifest
         path: /etc/run-manifest.yaml

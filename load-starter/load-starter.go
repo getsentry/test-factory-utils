@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -152,6 +153,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 	workflowUrl := os.Getenv("WORKFLOW_URL")
 	workflowId := os.Getenv("WORKFLOW_ID")
+	workflowComment := strings.TrimSpace(os.Getenv("WORKFLOW_COMMENT"))
 
 	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
 	fmt.Printf("Dashboard link: %s\n", reportUrl)
@@ -176,33 +178,43 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	}
 	runDuration := config.getTotalDuration()
 
+	fields := []slack.AttachmentField{
+		{
+			Title: "Test start",
+			Value: startTime.Local().Format(SlackDateFormat),
+			Short: true,
+		},
+		{
+			Title: "Number of users",
+			Value: usersString,
+			Short: true,
+		},
+		{
+			Title: "Test end",
+			Value: endTime.Local().Format(SlackDateFormat),
+			Short: true,
+		},
+		{
+			Title: "Total duration",
+			Value: fmt.Sprintf("%s", runDuration),
+			Short: true,
+		},
+	}
+
+	if workflowComment != "" {
+		fields = append(fields, slack.AttachmentField{
+			Title: "Comment",
+			Value: workflowComment,
+			Short: true,
+		})
+	}
+
 	attachment := slack.Attachment{
 		Pretext: "Here's your test report",
 		Text:    reportText,
 		// Color Styles the Text, making it possible to have like Warnings etc.
-		Color: "#36a64f",
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Test start",
-				Value: startTime.Local().Format(SlackDateFormat),
-				Short: true,
-			},
-			{
-				Title: "Number of users",
-				Value: usersString,
-				Short: true,
-			},
-			{
-				Title: "Test end",
-				Value: endTime.Local().Format(SlackDateFormat),
-				Short: true,
-			},
-			{
-				Title: "Total duration",
-				Value: fmt.Sprintf("%s", runDuration),
-				Short: true,
-			},
-		},
+		Color:   "#36a64f",
+		Fields:  fields,
 		Actions: []slack.AttachmentAction{{URL: reportUrl}},
 	}
 
