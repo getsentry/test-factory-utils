@@ -1,3 +1,4 @@
+
 import io
 from typing import Sequence, List
 import os
@@ -10,14 +11,14 @@ import yaml
 
 from util import to_optional_datetime
 
-INFLUX_TOKEN = "JM4AJhWwUcAFLXv4b3MP_odVqCj07ssqu7Sp2FG_KJO-H0qjxFVlAIJxlmWIlIOxXC3wG1rFA0bZRV59X_tHcQ=="  # local admin token
-# INFLUX_TOKEN = "kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw=="  # test server admin token
+#INFLUX_TOKEN = "JM4AJhWwUcAFLXv4b3MP_odVqCj07ssqu7Sp2FG_KJO-H0qjxFVlAIJxlmWIlIOxXC3wG1rFA0bZRV59X_tHcQ=="  # local admin token
+INFLUX_TOKEN = "kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw=="  # test server admin token
 
 INFLUX_URL = 'http://localhost:8086/'  # this is local
 
 
 # INFLUX_URL = 'https://influxdb.testa.getsentry.net/'  # this needs gcloud auth
-# INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
+INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
 
 
 @click.command()
@@ -28,7 +29,7 @@ INFLUX_URL = 'http://localhost:8086/'  # this is local
 @click.option('--token', '-t', default=None, help="Access token for InfluxDb, if None $INFLUX_TOKEN will be used")
 @click.option("--org", '-o', default="sentry", help="Organization used in InfluxDb")
 @click.option("--multistage", "-m", default=None, help="File name for multistage run result. Will generate multistage result")
-@click.option("--format", '-f', default="text", type=click.Choice(["text", "json"]), help="Select the output req_format")
+@click.option("--format", '-f', default="text", type=click.Choice(["text", "json", "yaml"]), help="Select the output req_format")
 def main(start, end, duration, token, url, org, multistage, format):
     """Simple program that greets NAME for a total of COUNT times."""
 
@@ -56,20 +57,22 @@ def main(start, end, duration, token, url, org, multistage, format):
                 start_time = end_time - duration_interval
             else:
                 end_time = start_time + duration_interval
-        stages = {
-            "stageReports": [
-                {
-                    "steps": [
-                        {
-                            "startTime": start_time,
-                            "endTime": end_time
-                        }
-                    ],
-                    "name": "",
-                    "stageType": "static"
-                }
-            ]
-        }
+        stages = [
+
+            Stage(
+                type=StageType.static,
+                name="legacy",
+                steps=[
+                    StageStep(
+                        start_time=start_time,
+                        end_time=end_time,
+                        metrics=[],
+                        users=None,
+                    )
+                ]
+            )
+        ]
+
     else:
         stages = get_stages_from_report(multistage)
 
@@ -129,6 +132,8 @@ def get_formatter(req_format: str):
         return TextFormatter()
     elif req_format == "json":
         return JsonFormatter()
+    elif req_format == "yaml":
+        return YamlFormatter()
     else:
         return TextFormatter()
 
@@ -166,6 +171,12 @@ class JsonFormatter:
     def format(self, stages: Sequence[Stage]) -> str:
         result = [stage.to_dict() for stage in stages]
         return json.dumps(result, indent=2)
+
+
+class YamlFormatter:
+    def format(self, stages: Sequence[Stage]) -> str:
+        result = [stage.to_dict() for stage in stages]
+        return yaml.dump(result, indent=2, default_flow_style=False)
 
 
 if __name__ == '__main__':
