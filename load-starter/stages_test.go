@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // Tests _getU*serByStep functionality
@@ -24,10 +25,10 @@ func TestUsersByStep(t *testing.T) {
 			input: StageGradual{
 				Name:       "not exact",
 				StartUsers: 10,
-				EndUsers:   25,
+				EndUsers:   21,
 				Step:       5,
 			},
-			expected: []int64{10, 15, 20, 25},
+			expected: []int64{10, 15, 20, 21},
 		},
 		{
 			input: StageGradual{
@@ -41,11 +42,11 @@ func TestUsersByStep(t *testing.T) {
 		{
 			input: StageGradual{
 				Name:       "negative not exact",
-				StartUsers: 25,
-				EndUsers:   10,
+				StartUsers: 20,
+				EndUsers:   11,
 				Step:       -5,
 			},
-			expected: []int64{25, 20, 15, 10},
+			expected: []int64{20, 15, 11},
 		},
 	}
 
