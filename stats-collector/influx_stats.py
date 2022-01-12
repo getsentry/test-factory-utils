@@ -2,8 +2,9 @@ from typing import Generator, List, Sequence, Callable, Any, Optional
 from datetime import datetime
 
 from influxdb_client import QueryApi, InfluxDBClient
-from util import load_flux_file, to_flux_datetime
+from util import load_flux_file, to_flux_datetime, to_optional_datetime
 from dataclasses import dataclass
+from enum import Enum
 
 
 @dataclass
@@ -15,6 +16,12 @@ class MetricValue:
     value: float
     attributes: List[str]
 
+    def to_dict(self):
+        return {
+            "value": self.value,
+            "attributes": [val for val in self.attributes],
+        }
+
 
 @dataclass
 class MetricSummary:
@@ -23,6 +30,56 @@ class MetricSummary:
     """
     name: str
     values: List[MetricValue]
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "values": [value.to_dict() for value in self.values]
+        }
+
+
+@dataclass
+class StageStep:
+    users: Optional[int]
+    start_time: datetime
+    end_time: datetime
+    metrics: List[MetricSummary]
+
+    def to_dict(self):
+
+        return {
+            "users": self.users,
+            "startTime": to_optional_datetime(self.start_time),
+            "endTime": to_optional_datetime(self.end_time),
+            "metrics": [metric.to_dict() for metric in self.metrics]
+        }
+
+
+class StageType(Enum):
+    static = "static"
+    gradual = "gradual"
+    undefined = None
+
+    @staticmethod
+    def from_str(v: str) -> "StageType":
+        for val in StageType:
+            if val.value == v:
+                return val
+        return StageType.undefined
+
+
+@dataclass
+class Stage:
+    steps: List[StageStep]
+    type: StageType
+    name: Optional[str]
+
+    def to_dict(self):
+        return {
+            "steps": [step.to_dict() for step in self.steps],
+            "type": self.type.value,
+            "name": self.name
+        }
 
 
 def event_accepted_stats(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
@@ -67,7 +124,7 @@ def kafka_messages_produced(start: str, stop: str, query_api: QueryApi) -> Gener
             "start": start,
             "stop": stop,
             "quantile": quantile,
-         })
+        })
 
         r = query_api.query(code)
 
@@ -95,6 +152,7 @@ def requests_per_second_locust(start: str, stop: str, query_api: QueryApi) -> Ge
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
+
 def cpu_usage(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("cpu_usage.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
@@ -109,6 +167,7 @@ def cpu_usage(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSum
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+
 
 def memory_usage(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("memory_usage.flux")
@@ -142,16 +201,13 @@ stats_functions = [
     ("events accepted", event_accepted_stats),
     ("event processing time (ms)", event_processing_time),
     ("received events/s kafka", kafka_messages_produced),
-    ("request per second (locust POV)",requests_per_second_locust),
+    ("request per second (locust POV)", requests_per_second_locust),
     ("cpu usage (nanocores)", cpu_usage),
     ("memory_usage (Mb)", memory_usage),
 ]
 
 
-def get_stats(start_time: datetime, end_time: datetime, url: str, token: str, org: str) -> Sequence[MetricSummary]:
-    start = to_flux_datetime(start_time)
-    stop = to_flux_datetime(end_time)
-
+def get_stats(stages: List[Stage], url: str, token: str, org: str) -> List[Stage]:
     client = InfluxDBClient(
         url=url,
         token=token,
@@ -159,10 +215,16 @@ def get_stats(start_time: datetime, end_time: datetime, url: str, token: str, or
     )
     query_api = client.query_api()
 
-    results = []
-    for metric_name, generator in stats_functions:
-        summary = MetricSummary(name=metric_name, values=[])
-        results.append(summary)
-        for result in generator(start=start, stop=stop, query_api=query_api):
-            summary.values.append(result)
-    return results
+    for stage in stages:
+        for step in stage.steps:
+            start = to_flux_datetime(step.start_time)
+            stop = to_flux_datetime(step.end_time)
+
+            metrics = []
+            for metric_name, generator in stats_functions:
+                summary = MetricSummary(name=metric_name, values=[])
+                metrics.append(summary)
+                for result in generator(start=start, stop=stop, query_api=query_api):
+                    summary.values.append(result)
+            step.metrics = metrics
+    return stages

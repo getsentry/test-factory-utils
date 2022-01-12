@@ -53,6 +53,7 @@ def load_flux_file(file_name: str) -> str:
     content = dir_path.read_text()
     return content
 
+
 def to_flux_datetime(d: datetime) -> str:
     if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
         # naive tz assume it is local
@@ -62,3 +63,10 @@ def to_flux_datetime(d: datetime) -> str:
     d = d.astimezone(UTC)
 
     return d.isoformat()[:19] + "Z"
+
+
+def to_optional_datetime(d: Optional[datetime]) -> str:
+    if d is not None:
+        return to_flux_datetime(d)
+    else:
+        return ""
