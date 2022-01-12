@@ -12,7 +12,7 @@ metadata:
   name: ingest-load-tester-worker
   labels: {{ labels }}
 spec:
-  replicas: 16
+  replicas: 24
   selector:
     matchLabels: {{ labels }}
   strategy:
