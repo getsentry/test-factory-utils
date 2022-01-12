@@ -9,7 +9,8 @@ venv/
 *.pyc
 
 # Editors
-/.idea/
+.idea/
+**/.idea/
 .DS_Store
 .vscode
 
