@@ -50,7 +50,7 @@ spec:
           value: "{{ values.influx_token }}"
         resources:
           requests:
-            cpu: 500m
+            cpu: 600m
             memory: 1000Mi
           limits:
             cpu: 2000m
