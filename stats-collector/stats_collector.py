@@ -9,7 +9,7 @@ from influx_stats import get_stats, Stage, StageType, StageStep
 import click
 import yaml
 
-from util import to_optional_datetime
+from util import to_optional_datetime, parse_timedelta
 
 #INFLUX_TOKEN = "JM4AJhWwUcAFLXv4b3MP_odVqCj07ssqu7Sp2FG_KJO-H0qjxFVlAIJxlmWIlIOxXC3wG1rFA0bZRV59X_tHcQ=="  # local admin token
 INFLUX_TOKEN = "kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw=="  # test server admin token
@@ -30,7 +30,8 @@ INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube 
 @click.option("--org", '-o', default="sentry", help="Organization used in InfluxDb")
 @click.option("--multistage", "-m", default=None, help="File name for multistage run result. Will generate multistage result")
 @click.option("--format", '-f', default="text", type=click.Choice(["text", "json", "yaml"]), help="Select the output req_format")
-def main(start, end, duration, token, url, org, multistage, format):
+@click.option("--out", '-O', default=None, help="File name for output, if not specified stdout will be used")
+def main(start, end, duration, token, url, org, multistage, format, out):
     """Simple program that greets NAME for a total of COUNT times."""
 
     start_time = None
@@ -51,7 +52,7 @@ def main(start, end, duration, token, url, org, multistage, format):
             if duration is None:
                 raise click.UsageError(min_requirements_message)
             else:
-                duration_interval = util.parse_timedelta(duration)
+                duration_interval = parse_timedelta(duration)
             if start_time is None:
                 assert end_time is not None
                 start_time = end_time - duration_interval
@@ -95,7 +96,15 @@ def main(start, end, duration, token, url, org, multistage, format):
     )
 
     formatter = get_formatter(format)
-    print(formatter.format(stats))
+
+    result = formatter.format(stats)
+
+    if out is not None:
+        with open(out, "wt") as o:
+            print(result, file=o)
+        print(f"Result written to: {out}")
+    else:
+        print(result)
 
 
 # Note just crash if we don't get the proper yaml doc
