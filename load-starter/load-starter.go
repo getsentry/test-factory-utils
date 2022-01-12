@@ -119,7 +119,10 @@ func runLoadStarter() {
 	}
 
 	fmt.Printf("Configuration: %#v\n", config)
-	fmt.Printf("Total planned running time: %s\n", config.getTotalDuration())
+
+	totalDuration := config.getTotalDuration()
+	fmt.Printf("Total estimated running time: %s\n", totalDuration)
+	fmt.Printf("Esimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
 
 	runReport := executeConfig(config)
 
@@ -205,7 +208,7 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 		fields = append(fields, slack.AttachmentField{
 			Title: "Comment",
 			Value: workflowComment,
-			Short: true,
+			Short: false,
 		})
 	}
 
