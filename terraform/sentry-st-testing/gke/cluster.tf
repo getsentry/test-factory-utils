@@ -70,7 +70,20 @@ module "node_pool_loads" {
   machine_type     = "n2-standard-8"
   min_cpu_platform = "Intel Cascade Lake"
   min_node_count   = 0
-  max_node_count   = 8
+  max_node_count   = 2
+  metadata_mode    = "GKE_METADATA"
+  taint_nodes      = true
+}
+
+module "node_pool_ingest_load_tester" {
+  source           = "../../_modules/gke_nodepool"
+  name             = "ingest-load-tester"
+  label            = "ingest-load-tester"
+  cluster          = google_container_cluster.cluster_1.name
+  machine_type     = "n2-standard-8"
+  min_cpu_platform = "Intel Cascade Lake"
+  min_node_count   = 0
+  max_node_count   = 3
   metadata_mode    = "GKE_METADATA"
   taint_nodes      = true
 }
