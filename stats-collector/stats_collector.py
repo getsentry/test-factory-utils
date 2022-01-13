@@ -1,4 +1,3 @@
-
 import io
 from datetime import timedelta
 from typing import Sequence, List
@@ -104,6 +103,8 @@ def main(start, end, duration, token, url, org, multistage, format, out):
         with open(out, "wt") as o:
             print(result, file=o)
         print(f"Result written to: {out}")
+        text_formatter = TextFormatter()
+        print(text_formatter.format(stats))
     else:
         print(result)
 
