@@ -729,7 +729,7 @@ data:
       command: [cowsay]
     argoproj/argosay:v2:
       command: [/argosay]
-    docker/whalesay:latest:
+    docker/whalesay:v3.2.6:
        command: [cowsay]
     python:alpine3.6:
        command: [python3]
@@ -911,7 +911,7 @@ spec:
         - server
         - --auth-mode
         - client
-        image: quay.io/argoproj/argocli:latest
+        image: quay.io/argoproj/argocli:v3.2.6
         name: argo-server
         ports:
         - containerPort: 2746
@@ -950,6 +950,8 @@ spec:
   selector:
     matchLabels:
       app: minio
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -965,7 +967,7 @@ spec:
           value: admin
         - name: MINIO_SECRET_KEY
           value: password
-        image: minio/minio
+        image: minio/minio:RELEASE.2022-01-08T03-11-54Z
         lifecycle:
           postStart:
             exec:
@@ -979,6 +981,9 @@ spec:
             port: 9000
           initialDelaySeconds: 5
           periodSeconds: 10
+        volumeMounts:
+        - name: minio-disk
+          mountPath: /data
         name: main
         ports:
         - containerPort: 9000
@@ -988,6 +993,10 @@ spec:
             port: 9000
           initialDelaySeconds: 5
           periodSeconds: 10
+      volumes:
+      - name: minio-disk
+        persistentVolumeClaim:
+          claimName: minio-claim
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1046,7 +1055,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - quay.io/argoproj/argoexec:latest
+        - quay.io/argoproj/argoexec:v3.2.6
         - --namespaced
         command:
         - workflow-controller
@@ -1056,7 +1065,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: quay.io/argoproj/workflow-controller:latest
+        image: quay.io/argoproj/workflow-controller:v3.2.6
         livenessProbe:
           failureThreshold: 3
           httpGet:

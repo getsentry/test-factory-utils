@@ -1,21 +1,28 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: zookeeper-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: kafka-claim
+  name: minio-claim
+  namespace: argo
+  labels:
+    serivce: argo-workflows
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 400Gi
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-claim
+  namespace: argo
+  labels:
+    serivce: argo-workflows
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
