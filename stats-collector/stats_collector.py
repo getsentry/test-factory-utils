@@ -1,5 +1,6 @@
 
 import io
+from datetime import timedelta
 from typing import Sequence, List
 import os
 import json
@@ -129,6 +130,10 @@ def get_stages_from_report(multi_report_file_name: str) -> List[Stage]:
             if type(end_time) == str:
                 end_time = parser.parse(end_time)
             users = step.get("users")
+            if end_time - start_time > timedelta(minutes=2):
+                end_time = end_time - timedelta(minutes=1)
+                start_time = start_time + timedelta(minutes=1)
+
             stage_step = StageStep(start_time=start_time, end_time=end_time, users=users, metrics=[])
             steps.append(stage_step)
         stage = Stage(name=name, type=stage_type, steps=steps)
