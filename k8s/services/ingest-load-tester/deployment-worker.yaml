@@ -24,6 +24,14 @@ spec:
         configVersion1: "{{ md5template("templates/locust.config.yml") }}"
         configVersion2: "{{ md5template("templates/test_simple.config.yml") }}"
     spec:
+      nodeSelector:
+        nodepool.sentry.io/name: ingest-load-tester
+      # Dedicated node pools have a taint that we should tolerate
+      tolerations:
+      - key: "nodepool-dedicated"
+        operator: "Equal"
+        value: "ingest-load-tester"
+        effect: "NoSchedule"
       terminationGracePeriodSeconds: 30
       containers:
       - name: ingest-load-tester-worker
@@ -59,3 +67,9 @@ spec:
         - name: ingest-load-tester-config
           configMap:
             name: ingest-load-tester
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {{ labels }}

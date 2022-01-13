@@ -1,0 +1,630 @@
+apiVersion: v1
+items:
+- apiVersion: argoproj.io/v1alpha1
+  kind: WorkflowTemplate
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowTemplate","metadata":{"annotations":{},"labels":{"workflows.argoproj.io/creator":"system-serviceaccount-argo-argo-server"},"name":"relay-locust-load-test","namespace":"argo"},"spec":{"arguments":{"parameters":[{"name":"test_factory_branch","value":"main"},{"name":"test_duration","value":"default"},{"name":"test_users","value":"default"},{"name":"comment","value":""}]},"entrypoint":"main","podGC":{"strategy":"OnWorkflowCompletion"},"synchronization":{"mutex":{"name":"relay-locust-load-test"}},"templates":[{"dag":{"tasks":[{"name":"prepare-run","templateRef":{"name":"z-prepare-run","template":"prepare-run"}},{"depends":"prepare-run","name":"relay-update-configuration","templateRef":{"name":"z-deploy-relay","template":"relay-update-configuration"}},{"depends":"relay-update-configuration","name":"relay-wait-for-rollout","templateRef":{"name":"z-deploy-relay","template":"relay-wait-for-rollout"}},{"depends":"prepare-run","name":"locust-update-configuration","templateRef":{"name":"z-deploy-locust","template":"locust-update-configuration"}},{"depends":"locust-update-configuration","name":"locust-wait-for-rollout","templateRef":{"name":"z-deploy-locust","template":"locust-wait-for-rollout"}},{"arguments":{"artifacts":[{"from":"{{workflow.outputs.artifacts.run_manifest}}","name":"run_manifest"}],"parameters":[{"name":"test_duration","value":"{{workflow.outputs.parameters.test_duration}}"},{"name":"test_users","value":"{{workflow.outputs.parameters.test_users}}"},{"name":"test_override","value":"{{workflow.outputs.parameters.test_override}}"}]},"depends":"relay-wait-for-rollout \u0026\u0026 locust-wait-for-rollout","name":"run-test","templateRef":{"name":"z-run-test","template":"run-test"}}]},"inputs":{},"metadata":{},"name":"main","outputs":{}}],"ttlStrategy":{"secondsAfterCompletion":86400}}}
+    creationTimestamp: "2021-12-06T18:16:00Z"
+    generation: 32
+    labels:
+      workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+    managedFields:
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:labels:
+            .: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec:
+          .: {}
+          f:arguments: {}
+          f:entrypoint: {}
+          f:podGC: {}
+          f:synchronization: {}
+          f:ttlStrategy: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2022-01-07T11:32:41Z"
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:spec:
+          f:templates: {}
+      manager: argo
+      operation: Update
+      time: "2022-01-12T10:37:18Z"
+    name: relay-locust-load-test
+    namespace: argo
+    resourceVersion: "32844365"
+    selfLink: /apis/argoproj.io/v1alpha1/namespaces/argo/workflowtemplates/relay-locust-load-test
+    uid: b683afba-aa2b-42b3-a2fc-aa41b7cf81df
+  spec:
+    arguments:
+      parameters:
+      - name: test_factory_branch
+        value: main
+      - name: test_duration
+        value: default
+      - name: test_users
+        value: default
+      - name: comment
+        value: ""
+    entrypoint: main
+    podGC:
+      strategy: OnWorkflowCompletion
+    synchronization:
+      mutex:
+        name: relay-locust-load-test
+    templates:
+    - dag:
+        tasks:
+        - arguments: {}
+          name: prepare-run
+          templateRef:
+            name: z-prepare-run
+            template: prepare-run
+        - arguments: {}
+          depends: prepare-run
+          name: relay-update-configuration
+          templateRef:
+            name: z-deploy-relay
+            template: relay-update-configuration
+        - arguments: {}
+          depends: relay-update-configuration
+          name: relay-wait-for-rollout
+          templateRef:
+            name: z-deploy-relay
+            template: relay-wait-for-rollout
+        - arguments: {}
+          depends: prepare-run
+          name: locust-update-configuration
+          templateRef:
+            name: z-deploy-locust
+            template: locust-update-configuration
+        - arguments: {}
+          depends: locust-update-configuration
+          name: locust-wait-for-rollout
+          templateRef:
+            name: z-deploy-locust
+            template: locust-wait-for-rollout
+        - arguments:
+            artifacts:
+            - from: '{{workflow.outputs.artifacts.run_manifest}}'
+              name: run_manifest
+            parameters:
+            - name: test_duration
+              value: '{{workflow.outputs.parameters.test_duration}}'
+            - name: test_users
+              value: '{{workflow.outputs.parameters.test_users}}'
+            - name: test_override
+              value: '{{workflow.outputs.parameters.test_override}}'
+          depends: relay-wait-for-rollout && locust-wait-for-rollout
+          name: run-test
+          templateRef:
+            name: z-run-test
+            template: run-test
+        - arguments:
+            artifacts:
+            - from: '{{workflow.outputs.artifacts.run_report}}'
+              name: run_report
+          depends: run-test
+          name: run-stats
+          templateRef:
+            name: z-run-test
+            template: run-stats-collector
+      inputs: {}
+      metadata: {}
+      name: main
+      outputs: {}
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+- apiVersion: argoproj.io/v1alpha1
+  kind: WorkflowTemplate
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowTemplate","metadata":{"annotations":{},"labels":{"workflows.argoproj.io/creator":"system-serviceaccount-argo-argo-server"},"name":"z-deploy-locust","namespace":"argo"},"spec":{"podGC":{"strategy":"OnWorkflowCompletion"},"templates":[{"container":{"command":["bash","-c","exec 2\u003e\u00261\nset -euxo pipefail\n\ngit status\n\n# Update ingest-load-tester version\nyq eval -i '.image_tag = \"{{workflow.outputs.parameters.ingest_load_tester_sha}}\"' ./k8s/services/ingest-load-tester/_values.yaml\nyq eval -i '.image_tag = \"{{workflow.outputs.parameters.ingest_load_tester_sha}}\"' ./k8s/services/fake-sentry/_values.yaml\n\n# FIXME: sentry-kube should be updated to handle this\n# sentry-kube diff-beta ingest-load-tester\nsentry-kube render ingest-load-tester \u003e _ingest-load-tester.yaml\nsentry-kube render fake-sentry \u003e _fake-sentry.yaml\n\nyq eval '(select(.kind == \"Deployment\") | .spec.template.metadata.annotations.argoWorkflowId) = \"{{workflow.uid}}\"' _ingest-load-tester.yaml \u003e _ingest-load-tester.processed.yaml\nyq eval '(select(.kind == \"Deployment\") | .spec.template.metadata.annotations.argoWorkflowId) = \"{{workflow.uid}}\"' _fake-sentry.yaml \u003e _fake-sentry.processed.yaml\n\n# FIXME: do not hardcode namespaces\nsentry-kube kubectl apply -n default -f _ingest-load-tester.processed.yaml\nsentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml\n"],"image":"europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642","name":"sentry-kube"},"inputs":{"artifacts":[{"git":{"depth":1,"repo":"git@github.com:getsentry/test-factory","revision":"{{inputs.parameters.test_factory_sha}}","sshPrivateKeySecret":{"key":"ssh-private-key","name":"ssh-deploy-key-test-factory"}},"name":"test-factory-checkout","path":"/root/test-factory"}],"parameters":[{"name":"test_factory_sha","value":"{{workflow.outputs.parameters.test_factory_sha}}"}]},"name":"locust-update-configuration","serviceAccountName":"default"},{"container":{"command":["bash","-c","kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s\nkubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s\nkubectl rollout status deployment --namespace=default fake-sentry --timeout=60s\n"],"image":"bitnami/kubectl:1.19","name":"kubectl"},"name":"locust-wait-for-rollout","serviceAccountName":"default"}]}}
+    creationTimestamp: "2021-12-16T18:32:12Z"
+    generation: 6
+    labels:
+      workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+    managedFields:
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:labels:
+            .: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec:
+          .: {}
+          f:podGC: {}
+          f:templates: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2021-12-16T18:32:12Z"
+    name: z-deploy-locust
+    namespace: argo
+    resourceVersion: "31814788"
+    selfLink: /apis/argoproj.io/v1alpha1/namespaces/argo/workflowtemplates/z-deploy-locust
+    uid: 69795ac0-bebe-4cff-845c-71a03e5e8380
+  spec:
+    podGC:
+      strategy: OnWorkflowCompletion
+    templates:
+    - container:
+        command:
+        - bash
+        - -c
+        - |
+          exec 2>&1
+          set -euxo pipefail
+
+          git status
+
+          # Update ingest-load-tester version
+          yq eval -i '.image_tag = "{{workflow.outputs.parameters.ingest_load_tester_sha}}"' ./k8s/services/ingest-load-tester/_values.yaml
+          yq eval -i '.image_tag = "{{workflow.outputs.parameters.ingest_load_tester_sha}}"' ./k8s/services/fake-sentry/_values.yaml
+
+          # FIXME: sentry-kube should be updated to handle this
+          # sentry-kube diff-beta ingest-load-tester
+          sentry-kube render ingest-load-tester > _ingest-load-tester.yaml
+          sentry-kube render fake-sentry > _fake-sentry.yaml
+
+          yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{{workflow.uid}}"' _ingest-load-tester.yaml > _ingest-load-tester.processed.yaml
+          yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{{workflow.uid}}"' _fake-sentry.yaml > _fake-sentry.processed.yaml
+
+          # FIXME: do not hardcode namespaces
+          sentry-kube kubectl apply -n default -f _ingest-load-tester.processed.yaml
+          sentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642
+        name: sentry-kube
+      inputs:
+        artifacts:
+        - git:
+            depth: 1
+            repo: git@github.com:getsentry/test-factory
+            revision: '{{inputs.parameters.test_factory_sha}}'
+            sshPrivateKeySecret:
+              key: ssh-private-key
+              name: ssh-deploy-key-test-factory
+          name: test-factory-checkout
+          path: /root/test-factory
+        parameters:
+        - name: test_factory_sha
+          value: '{{workflow.outputs.parameters.test_factory_sha}}'
+      name: locust-update-configuration
+      serviceAccountName: default
+    - container:
+        command:
+        - bash
+        - -c
+        - |
+          kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s
+          kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
+          kubectl rollout status deployment --namespace=default fake-sentry --timeout=60s
+        image: bitnami/kubectl:1.19
+        name: kubectl
+      name: locust-wait-for-rollout
+      serviceAccountName: default
+- apiVersion: argoproj.io/v1alpha1
+  kind: WorkflowTemplate
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowTemplate","metadata":{"annotations":{},"labels":{"workflows.argoproj.io/creator":"system-serviceaccount-argo-argo-server"},"name":"z-deploy-relay","namespace":"argo"},"spec":{"podGC":{"strategy":"OnWorkflowCompletion"},"templates":[{"inputs":{"parameters":[{"name":"relay_version"}]},"name":"relay-update-version","resource":{"action":"patch","manifest":"apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: relay-main\n  namespace: default\nspec:\n  template:\n    metadata:\n      annotations:\n        argoWorkflowId: \"{{workflow.uid}}\"\n    spec:\n      containers:\n      - image: us.gcr.io/sentryio/relay:{{inputs.parameters.relay_version}}\n        name: relay\n"}},{"container":{"command":["bash","-c","exec 2\u003e\u00261\nset -euxo pipefail\n\ngit status\n\n# Update relay version\nyq eval -i '.environments.main.image_tag = \"{{workflow.outputs.parameters.relay_sha}}\"' ./k8s/services/relay/_values.yaml\n\n# FIXME: sentry-kube should be updated to handle this\n# sentry-kube diff-beta relay\nsentry-kube render relay \u003e _relay.yaml\n\n# Add an annotation with run ID\nyq eval '(select(.kind == \"Deployment\") | .spec.template.metadata.annotations.argoWorkflowId) = \"{{workflow.uid}}\"' _relay.yaml \u003e _relay.processed.yaml\n\n# FIXME: do not hardcode namespaces\nsentry-kube kubectl apply -n default -f _relay.processed.yaml\n"],"image":"europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642","name":"sentry-kube"},"inputs":{"artifacts":[{"git":{"depth":1,"repo":"git@github.com:getsentry/test-factory","revision":"{{inputs.parameters.test_factory_sha}}","sshPrivateKeySecret":{"key":"ssh-private-key","name":"ssh-deploy-key-test-factory"}},"name":"test-factory-checkout","path":"/root/test-factory"}],"parameters":[{"name":"test_factory_sha","value":"{{workflow.outputs.parameters.test_factory_sha}}"}]},"name":"relay-update-configuration","serviceAccountName":"default"},{"container":{"command":["kubectl","rollout","status","deployment","--namespace=default","relay-main","--timeout=60s"],"image":"bitnami/kubectl:1.19","name":"kubectl"},"name":"relay-wait-for-rollout","serviceAccountName":"default"}]}}
+    creationTimestamp: "2021-12-16T18:32:12Z"
+    generation: 4
+    labels:
+      workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+    managedFields:
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:labels:
+            .: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec:
+          .: {}
+          f:podGC: {}
+          f:templates: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2021-12-16T18:32:12Z"
+    name: z-deploy-relay
+    namespace: argo
+    resourceVersion: "28198674"
+    selfLink: /apis/argoproj.io/v1alpha1/namespaces/argo/workflowtemplates/z-deploy-relay
+    uid: ea79cc96-24c7-409a-9d70-28c99722c36e
+  spec:
+    podGC:
+      strategy: OnWorkflowCompletion
+    templates:
+    - inputs:
+        parameters:
+        - name: relay_version
+      name: relay-update-version
+      resource:
+        action: patch
+        manifest: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: relay-main
+            namespace: default
+          spec:
+            template:
+              metadata:
+                annotations:
+                  argoWorkflowId: "{{workflow.uid}}"
+              spec:
+                containers:
+                - image: us.gcr.io/sentryio/relay:{{inputs.parameters.relay_version}}
+                  name: relay
+    - container:
+        command:
+        - bash
+        - -c
+        - |
+          exec 2>&1
+          set -euxo pipefail
+
+          git status
+
+          # Update relay version
+          yq eval -i '.environments.main.image_tag = "{{workflow.outputs.parameters.relay_sha}}"' ./k8s/services/relay/_values.yaml
+
+          # FIXME: sentry-kube should be updated to handle this
+          # sentry-kube diff-beta relay
+          sentry-kube render relay > _relay.yaml
+
+          # Add an annotation with run ID
+          yq eval '(select(.kind == "Deployment") | .spec.template.metadata.annotations.argoWorkflowId) = "{{workflow.uid}}"' _relay.yaml > _relay.processed.yaml
+
+          # FIXME: do not hardcode namespaces
+          sentry-kube kubectl apply -n default -f _relay.processed.yaml
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642
+        name: sentry-kube
+      inputs:
+        artifacts:
+        - git:
+            depth: 1
+            repo: git@github.com:getsentry/test-factory
+            revision: '{{inputs.parameters.test_factory_sha}}'
+            sshPrivateKeySecret:
+              key: ssh-private-key
+              name: ssh-deploy-key-test-factory
+          name: test-factory-checkout
+          path: /root/test-factory
+        parameters:
+        - name: test_factory_sha
+          value: '{{workflow.outputs.parameters.test_factory_sha}}'
+      name: relay-update-configuration
+      serviceAccountName: default
+    - container:
+        command:
+        - kubectl
+        - rollout
+        - status
+        - deployment
+        - --namespace=default
+        - relay-main
+        - --timeout=60s
+        image: bitnami/kubectl:1.19
+        name: kubectl
+      name: relay-wait-for-rollout
+      serviceAccountName: default
+- apiVersion: argoproj.io/v1alpha1
+  kind: WorkflowTemplate
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowTemplate","metadata":{"annotations":{},"labels":{"workflows.argoproj.io/creator":"system-serviceaccount-argo-argo-server"},"name":"z-prepare-run","namespace":"argo"},"spec":{"podGC":{"strategy":"OnWorkflowCompletion"},"templates":[{"container":{"command":["bash","-c","# To avoid out of order stdout/stderr mess\nexec 2\u003e\u00261\nset -euxo pipefail\n\nROOT_DIR=$(pwd)\nMANIFEST_FILE=\"${ROOT_DIR}/run-manifest.yaml\"\ncp \"${MANIFEST_FILE}\" /tmp/run-manifest.yaml\n\nRELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})\nINGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})\n\n### Resolve test_factory revision\ngit rev-parse HEAD | tee /tmp/test_factory_sha\n\n### Resolve relay revision\nRELAY_REPO=\"https://github.com/getsentry/relay/\"\nRELAY_DIR=\"/tmp/relay\"\ngit clone \"${RELAY_REPO}\" \"${RELAY_DIR}\"\ncd \"${RELAY_DIR}\"\ngit checkout \"${RELAY_REV_ORIGINAL}\"\ngit rev-parse HEAD | tee /tmp/relay_sha\n\n### Resolve ingest-load-tester revision\nINGEST_LOAD_TESTER_REPO=\"https://github.com/getsentry/ingest-load-tester/\"\nINGEST_LOAD_TESTER_DIR=\"/tmp/ingest-load-tester\"\ngit clone \"${INGEST_LOAD_TESTER_REPO}\" \"${INGEST_LOAD_TESTER_DIR}\"\ncd \"${INGEST_LOAD_TESTER_DIR}\"\ngit checkout \"${INGEST_LOAD_TESTER_REV_ORIGINAL}\"\ngit rev-parse HEAD | tee /tmp/ingest_load_tester_sha\n\n### Record Locust settings\nDEFAULT_STUB=\"default\"\nOVERRIDE_USED=\"0\"\nDEFAULT_DURATION=\"1m\"\nDEFAULT_USERS=5\n\nTEST_DURATION='{{workflow.parameters.test_duration}}'\nif [[ \"${TEST_DURATION}\" == \"${DEFAULT_STUB}\" ]]; then\n  TEST_DURATION=\"${DEFAULT_DURATION}\"\nelse\n  OVERRIDE_USED=\"1\"\nfi\n\nTEST_USERS='{{workflow.parameters.test_users}}'\nif [[ \"${TEST_USERS}\" == \"${DEFAULT_STUB}\" ]]; then\n  TEST_USERS=\"${DEFAULT_USERS}\"\nelse\n  OVERRIDE_USED=\"1\"\nfi\n\necho \"${TEST_DURATION}\" | tee /tmp/test_duration\necho \"${TEST_USERS}\" | tee /tmp/test_users\necho \"${OVERRIDE_USED}\" | tee /tmp/test_override\n\nset +x\n### Print out some valuable info\necho '### Manifest file'\ncat \"${MANIFEST_FILE}\"\necho '---'\n"],"image":"europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"},"inputs":{"artifacts":[{"git":{"depth":1,"repo":"git@github.com:getsentry/test-factory","revision":"{{workflow.parameters.test_factory_branch}}","sshPrivateKeySecret":{"key":"ssh-private-key","name":"ssh-deploy-key-test-factory"}},"name":"test-factory-checkout","path":"/root/test-factory"}]},"name":"prepare-run","outputs":{"artifacts":[{"globalName":"run_manifest","name":"run_manifest","path":"/tmp/run-manifest.yaml"}],"parameters":[{"globalName":"test_factory_sha","name":"test_factory_sha","valueFrom":{"path":"/tmp/test_factory_sha"}},{"globalName":"relay_sha","name":"relay_sha","valueFrom":{"path":"/tmp/relay_sha"}},{"globalName":"ingest_load_tester_sha","name":"ingest_load_tester_sha","valueFrom":{"path":"/tmp/ingest_load_tester_sha"}},{"globalName":"test_duration","name":"test_duration","valueFrom":{"path":"/tmp/test_duration"}},{"globalName":"test_users","name":"test_users","valueFrom":{"path":"/tmp/test_users"}},{"globalName":"test_override","name":"test_override","valueFrom":{"path":"/tmp/test_override"}}]}}]}}
+    creationTimestamp: "2021-12-16T18:41:07Z"
+    generation: 7
+    labels:
+      workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+    managedFields:
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:labels:
+            .: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec:
+          .: {}
+          f:podGC: {}
+          f:templates: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2021-12-16T18:41:07Z"
+    name: z-prepare-run
+    namespace: argo
+    resourceVersion: "31814785"
+    selfLink: /apis/argoproj.io/v1alpha1/namespaces/argo/workflowtemplates/z-prepare-run
+    uid: 0b8177c6-e45c-42a6-a881-b68838e7e2fb
+  spec:
+    podGC:
+      strategy: OnWorkflowCompletion
+    templates:
+    - container:
+        command:
+        - bash
+        - -c
+        - |
+          # To avoid out of order stdout/stderr mess
+          exec 2>&1
+          set -euxo pipefail
+
+          ROOT_DIR=$(pwd)
+          MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
+          cp "${MANIFEST_FILE}" /tmp/run-manifest.yaml
+
+          RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
+          INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
+
+          ### Resolve test_factory revision
+          git rev-parse HEAD | tee /tmp/test_factory_sha
+
+          ### Resolve relay revision
+          RELAY_REPO="https://github.com/getsentry/relay/"
+          RELAY_DIR="/tmp/relay"
+          git clone "${RELAY_REPO}" "${RELAY_DIR}"
+          cd "${RELAY_DIR}"
+          git checkout "${RELAY_REV_ORIGINAL}"
+          git rev-parse HEAD | tee /tmp/relay_sha
+
+          ### Resolve ingest-load-tester revision
+          INGEST_LOAD_TESTER_REPO="https://github.com/getsentry/ingest-load-tester/"
+          INGEST_LOAD_TESTER_DIR="/tmp/ingest-load-tester"
+          git clone "${INGEST_LOAD_TESTER_REPO}" "${INGEST_LOAD_TESTER_DIR}"
+          cd "${INGEST_LOAD_TESTER_DIR}"
+          git checkout "${INGEST_LOAD_TESTER_REV_ORIGINAL}"
+          git rev-parse HEAD | tee /tmp/ingest_load_tester_sha
+
+          ### Record Locust settings
+          DEFAULT_STUB="default"
+          OVERRIDE_USED="0"
+          DEFAULT_DURATION="1m"
+          DEFAULT_USERS=5
+
+          TEST_DURATION='{{workflow.parameters.test_duration}}'
+          if [[ "${TEST_DURATION}" == "${DEFAULT_STUB}" ]]; then
+            TEST_DURATION="${DEFAULT_DURATION}"
+          else
+            OVERRIDE_USED="1"
+          fi
+
+          TEST_USERS='{{workflow.parameters.test_users}}'
+          if [[ "${TEST_USERS}" == "${DEFAULT_STUB}" ]]; then
+            TEST_USERS="${DEFAULT_USERS}"
+          else
+            OVERRIDE_USED="1"
+          fi
+
+          echo "${TEST_DURATION}" | tee /tmp/test_duration
+          echo "${TEST_USERS}" | tee /tmp/test_users
+          echo "${OVERRIDE_USED}" | tee /tmp/test_override
+
+          set +x
+          ### Print out some valuable info
+          echo '### Manifest file'
+          cat "${MANIFEST_FILE}"
+          echo '---'
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642
+      inputs:
+        artifacts:
+        - git:
+            depth: 1
+            repo: git@github.com:getsentry/test-factory
+            revision: '{{workflow.parameters.test_factory_branch}}'
+            sshPrivateKeySecret:
+              key: ssh-private-key
+              name: ssh-deploy-key-test-factory
+          name: test-factory-checkout
+          path: /root/test-factory
+      name: prepare-run
+      outputs:
+        artifacts:
+        - globalName: run_manifest
+          name: run_manifest
+          path: /tmp/run-manifest.yaml
+        parameters:
+        - globalName: test_factory_sha
+          name: test_factory_sha
+          valueFrom:
+            path: /tmp/test_factory_sha
+        - globalName: relay_sha
+          name: relay_sha
+          valueFrom:
+            path: /tmp/relay_sha
+        - globalName: ingest_load_tester_sha
+          name: ingest_load_tester_sha
+          valueFrom:
+            path: /tmp/ingest_load_tester_sha
+        - globalName: test_duration
+          name: test_duration
+          valueFrom:
+            path: /tmp/test_duration
+        - globalName: test_users
+          name: test_users
+          valueFrom:
+            path: /tmp/test_users
+        - globalName: test_override
+          name: test_override
+          valueFrom:
+            path: /tmp/test_override
+- apiVersion: argoproj.io/v1alpha1
+  kind: WorkflowTemplate
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowTemplate","metadata":{"annotations":{},"labels":{"workflows.argoproj.io/creator":"system-serviceaccount-argo-argo-server"},"name":"z-run-test","namespace":"argo"},"spec":{"podGC":{"strategy":"OnWorkflowCompletion"},"templates":[{"container":{"command":["bash","-c","exec 2\u003e\u00261\nset -euo pipefail\n\nTEST_DURATION=\"{{inputs.parameters.test_duration}}\"\nTEST_USERS=\"{{inputs.parameters.test_users}}\"\nMANUAL_OVERRIDE=\"{{inputs.parameters.test_override}}\"\n\nRUN_REPORT_FILE=\"/tmp/run-report.yaml\"\n\nARGS=(\n  '--influx'\n  'https://influxdb.testa.getsentry.net'\n  --organisation\n  'f1c58f1d769114e6'\n  --board\n  '08830e9216d27000'\n  --report\n  \"${RUN_REPORT_FILE}\"\n)\n\nif [[ \"${MANUAL_OVERRIDE}\" == \"1\" ]]; then\n  ARGS+=(\n    --users\n    \"${TEST_USERS}\"\n    --duration\n    \"${TEST_DURATION}\"\n  )\nelse\n  ARGS+=(\n    --config\n    /etc/run-manifest.yaml\n  )\nfi\nset -x\n/load-starter ${ARGS[@]}\n\ncat \"${RUN_REPORT_FILE}\"\n"],"env":[{"name":"SLACK_AUTH_TOKEN","valueFrom":{"secretKeyRef":{"key":"token","name":"slack-oauth-token"}}},{"name":"SLACK_CHANNEL_ID","value":"#feed-qa"},{"name":"WORKFLOW_URL","value":"https://run.testa.getsentry.net/archived-workflows/argo/{{workflow.uid}}"},{"name":"WORKFLOW_ID","value":"{{workflow.uid}}"},{"name":"WORKFLOW_COMMENT","value":"{{inputs.parameters.test_comment}}"}],"image":"europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:a031bb898a0fe08210c06b254b90ef53c84e7898","name":"load-starter","resources":{}},"inputs":{"artifacts":[{"name":"run_manifest","path":"/etc/run-manifest.yaml"}],"parameters":[{"name":"test_duration"},{"name":"test_users"},{"name":"test_override"},{"name":"test_comment","value":"{{workflow.parameters.comment}}"}]},"name":"run-test","outputs":{"artifacts":[{"globalName":"run_report","name":"run_report","path":"/tmp/run-report.yaml"}]}}]}}
+    creationTimestamp: "2021-12-16T18:32:13Z"
+    generation: 22
+    labels:
+      workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+    managedFields:
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:metadata:
+          f:annotations:
+            .: {}
+            f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:labels:
+            .: {}
+            f:workflows.argoproj.io/creator: {}
+        f:spec:
+          .: {}
+          f:podGC: {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: "2021-12-16T18:32:13Z"
+    - apiVersion: argoproj.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:spec:
+          f:arguments: {}
+          f:templates: {}
+      manager: argo
+      operation: Update
+      time: "2022-01-12T10:26:26Z"
+    name: z-run-test
+    namespace: argo
+    resourceVersion: "32848477"
+    selfLink: /apis/argoproj.io/v1alpha1/namespaces/argo/workflowtemplates/z-run-test
+    uid: 3a226fa5-d71f-47f3-8220-45c071790b55
+  spec:
+    arguments: {}
+    podGC:
+      strategy: OnWorkflowCompletion
+    templates:
+    - container:
+        command:
+        - python
+        - stats_collector.py
+        - --format
+        - text
+        - --multistage
+        - /tmp/run-report.yaml
+        - --start
+        - "2022-01-12T08:17:00Z"
+        - --end
+        - "2022-01-12T08:20:00Z"
+        env:
+        - name: INFLUX_TOKEN
+          value: kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw==
+        - name: INFLUX_URL
+          value: http://influxdb-server.default.svc.cluster.local
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:5e8d14b7a9655069db22407a8c5873427357355d
+        name: load-starter
+        resources: {}
+      inputs:
+        artifacts:
+        - name: run_report
+          path: /tmp/run-report.yaml
+      metadata: {}
+      name: run-stats-collector
+      outputs:
+        artifacts:
+        - globalName: stats_report
+          name: stats_report
+          path: /tmp/stats-report.yaml
+    - container:
+        command:
+        - bash
+        - -c
+        - |
+          exec 2>&1
+          set -euo pipefail
+
+          TEST_DURATION="{{inputs.parameters.test_duration}}"
+          TEST_USERS="{{inputs.parameters.test_users}}"
+          MANUAL_OVERRIDE="{{inputs.parameters.test_override}}"
+
+          RUN_REPORT_FILE="/tmp/run-report.yaml"
+
+          ARGS=(
+            '--influx'
+            'https://influxdb.testa.getsentry.net'
+            --organisation
+            'f1c58f1d769114e6'
+            --board
+            '08830e9216d27000'
+            --report
+            "${RUN_REPORT_FILE}"
+          )
+
+          if [[ "${MANUAL_OVERRIDE}" == "1" ]]; then
+            ARGS+=(
+              --users
+              "${TEST_USERS}"
+              --duration
+              "${TEST_DURATION}"
+            )
+          else
+            ARGS+=(
+              --config
+              /etc/run-manifest.yaml
+            )
+          fi
+          set -x
+          /load-starter ${ARGS[@]}
+
+          cat "${RUN_REPORT_FILE}"
+        env:
+        - name: SLACK_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: slack-oauth-token
+        - name: SLACK_CHANNEL_ID
+          value: '#feed-qa'
+        - name: WORKFLOW_URL
+          value: https://run.testa.getsentry.net/archived-workflows/argo/{{workflow.uid}}
+        - name: WORKFLOW_ID
+          value: '{{workflow.uid}}'
+        - name: WORKFLOW_COMMENT
+          value: '{{inputs.parameters.test_comment}}'
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:a031bb898a0fe08210c06b254b90ef53c84e7898
+        name: load-starter
+        resources: {}
+      inputs:
+        artifacts:
+        - name: run_manifest
+          path: /etc/run-manifest.yaml
+        parameters:
+        - name: test_duration
+        - name: test_users
+        - name: test_override
+        - name: test_comment
+          value: '{{workflow.parameters.comment}}'
+      metadata: {}
+      name: run-test
+      outputs:
+        artifacts:
+        - globalName: run_report
+          name: run_report
+          path: /tmp/run-report.yaml
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
