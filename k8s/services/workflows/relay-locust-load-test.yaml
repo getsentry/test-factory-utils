@@ -78,7 +78,7 @@ spec:
         arguments:
           artifacts:
             - name: run_report
-              from: '{{workflow.outputs.artifacts.run_report}}'
+              from: '{% raw %}{{workflow.outputs.artifacts.run_report}}{% endraw %}'
         depends: run-test
     inputs: {}
     metadata: {}
