@@ -67,7 +67,7 @@ spec:
       - name: WORKFLOW_COMMENT
         value: '{% raw %}{{inputs.parameters.test_comment}}{% endraw %}'
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:a031bb898a0fe08210c06b254b90ef53c84e7898
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:1dc8ab4863bbfa0a98098bc229bf5e7637b8355f
       resources: {}
     inputs:
       parameters:
