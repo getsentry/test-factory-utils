@@ -1009,6 +1009,8 @@ spec:
   selector:
     matchLabels:
       app: postgres
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -1019,6 +1021,8 @@ spec:
       - env:
         - name: POSTGRES_PASSWORD
           value: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
         image: postgres:12-alpine
         name: main
         ports:
@@ -1033,8 +1037,15 @@ spec:
             - SELECT 1
           initialDelaySeconds: 15
           timeoutSeconds: 2
+        volumeMounts:
+        - name: postgres-disk
+          mountPath: /var/lib/postgresql/data
       nodeSelector:
         kubernetes.io/os: linux
+      volumes:
+      - name: postgres-disk
+        persistentVolumeClaim:
+          claimName: postgres-claim
 ---
 apiVersion: apps/v1
 kind: Deployment
