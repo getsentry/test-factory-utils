@@ -185,6 +185,22 @@ def memory_usage(start: str, stop: str, query_api: QueryApi) -> Generator[Metric
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
+def event_queue_size(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+    template = load_flux_file("event_queue_size.flux")
+    quantiles = [(0.5, "median"), (1.0, "max")]
+
+    for quantile, q_name in quantiles:
+        code = template.format(**{
+            "start": start,
+            "stop": stop,
+            "quantile": quantile,
+        })
+
+        r = query_api.query(code)
+
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+
+
 def get_scalar_from_result(result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None) -> Optional[float]:
     for table in result:
         for record in table:
@@ -199,7 +215,7 @@ def get_scalar_from_result(result, column: str = "_value", condition: Optional[C
 
 stats_functions = [
     ("events accepted", event_accepted_stats),
-    ("event processing time (ms)", event_processing_time),
+    ("events queue size max", event_queue_size),
     ("received events/s kafka", kafka_messages_produced),
     ("request per second (locust POV)", requests_per_second_locust),
     ("cpu usage (nanocores)", cpu_usage),
