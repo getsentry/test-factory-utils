@@ -84,3 +84,30 @@ spec:
       - name: run_report
         path: /tmp/run-report.yaml
         globalName: run_report
+  - name: run-stats-collector
+    inputs:
+      artifacts:
+        - name: run_report
+          path: /tmp/run-report.yaml
+    outputs:
+      artifacts:
+        - name: stats_report
+          path: /tmp/stats-report.yaml
+          globalName: stats_report
+    container:
+      name: load-starter
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:5e8d14b7a9655069db22407a8c5873427357355d
+      command:
+        - python
+        - stats_collector.py
+        - '--format'
+        - text
+        - '--multistage'
+        - /tmp/run-report.yaml
+        - '--out'
+        - /tmp/stats-report.yaml
+      env:
+        - name: INFLUX_TOKEN
+          value: kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw==
+        - name: INFLUX_URL
+          value: 'http://influxdb-server.default.svc.cluster.local'
