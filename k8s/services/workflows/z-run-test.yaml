@@ -96,12 +96,12 @@ spec:
           globalName: stats_report
     container:
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:6d8216178208c4f2df812c6ddd8b3c9522b6242a
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:5b4c93b656e835f720b2df97ed60e0184d4fe91e
       command:
         - python
         - stats_collector.py
         - '--format'
-        - text
+        - yaml
         - '--multistage'
         - /tmp/run-report.yaml
         - '--out'
