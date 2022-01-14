@@ -16,4 +16,4 @@ stages:
   startUsers: 20
   endUsers: 100
   step: 40
-  stepDuration: '5m'
+  stepDuration: '4m'
