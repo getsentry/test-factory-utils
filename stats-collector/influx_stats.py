@@ -84,7 +84,7 @@ class Stage:
 
 def event_accepted_stats(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("events_accepted.flux")
-    funcs = ['max', 'median']
+    funcs = ['median', 'max']
 
     for func in funcs:
         code = template.format(**{
@@ -218,7 +218,7 @@ stats_functions = [
     ("events queue size max", event_queue_size),
     ("received events/s kafka", kafka_messages_produced),
     ("request per second (locust POV)", requests_per_second_locust),
-    ("cpu usage (nanocores)", cpu_usage),
+    ("cpu usage (cores)", cpu_usage),
     ("memory_usage (Mb)", memory_usage),
 ]
 

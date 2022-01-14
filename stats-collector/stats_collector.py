@@ -159,12 +159,12 @@ class TextFormatter:
         base_indent = "  "
         for stage in stages:
             level = 0
-            print(f"Stage {stage.name} of type: {stage.type.value}", file=output)
+            print(f"\nStage {stage.name} of type: {stage.type.value}", file=output)
 
             for step in stage.steps:
                 level = 1
                 indent = base_indent * level
-                print(f"{indent}Step start:{to_optional_datetime(step.start_time)} end:{to_optional_datetime(step.end_time)} users:{step.users}", file=output)
+                print(f"\n{indent}Step start:{to_optional_datetime(step.start_time)} end:{to_optional_datetime(step.end_time)} users:{step.users}", file=output)
                 for stat in step.metrics:
                     level = 3
                     indent = base_indent * level
