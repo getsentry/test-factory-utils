@@ -96,7 +96,7 @@ spec:
           globalName: stats_report
     container:
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:5b4c93b656e835f720b2df97ed60e0184d4fe91e
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:2d0e65479482598304fd1aaae4fc6135525725d8
       command:
         - python
         - stats_collector.py
