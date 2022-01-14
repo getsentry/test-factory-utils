@@ -4,9 +4,11 @@ FROM python:3.8.12-alpine
 
 WORKDIR /app
 
-COPY *.py  requirements.txt ./
-COPY flux/ ./flux
+# Install requirements first to optimize layer caching
+COPY requirements.txt ./
+RUN pip install -r requirements.txt --no-cache-dir
 
-RUN pip install -r requirements.txt
+COPY *.py ./
+COPY flux/ ./flux
 
 ENTRYPOINT ["python", "stats_collector.py"]
