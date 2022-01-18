@@ -1,0 +1,44 @@
+### These storage classes are basically copies of the default storage classes (standard, standard-rwo, premium-rwo),
+### just with one difference: their reclaim policy is set to "Retain" (the default is "Delete").
+### These classes should be used for sensitive volumes that we don't want to (accidentally) delete when deleting the corresponding PVC.
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-retain
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-rwo-retain
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+    k8s-app: gcp-compute-persistent-disk-csi-driver
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-balanced
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: premium-rwo-retain
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+    k8s-app: gcp-compute-persistent-disk-csi-driver
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
