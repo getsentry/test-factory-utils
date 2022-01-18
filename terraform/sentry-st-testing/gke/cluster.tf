@@ -67,7 +67,7 @@ module "node_pool_loads" {
   name             = "loads"
   label            = "loads"
   cluster          = google_container_cluster.cluster_1.name
-  machine_type     = "n2-standard-8"
+  machine_type     = "n2-highcpu-16"
   min_cpu_platform = "Intel Cascade Lake"
   min_node_count   = 0
   max_node_count   = 2
