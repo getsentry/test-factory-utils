@@ -75,7 +75,8 @@ def main(start, end, duration, token, url, org, multistage, format, out):
     if token is None:
         token = os.getenv("INFLUX_TOKEN")
         if not token:
-            print("Warn: INFLUX_TOKEN not provided")
+            raise click.UsageError("INFLUX_TOKEN not provided.\n"
+                                   "Set INFLUX_TOKEN environment variable or provide --token command line argument")
 
     if url is None:
         url = os.getenv("INFLUX_URL")
