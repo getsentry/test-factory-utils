@@ -11,13 +11,7 @@ import yaml
 
 from util import to_optional_datetime, parse_timedelta
 
-# FIXME: remove these
-#INFLUX_TOKEN = "JM4AJhWwUcAFLXv4b3MP_odVqCj07ssqu7Sp2FG_KJO-H0qjxFVlAIJxlmWIlIOxXC3wG1rFA0bZRV59X_tHcQ=="  # local admin token
-INFLUX_TOKEN = "kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw=="  # test server admin token
-
-INFLUX_URL = 'http://localhost:8086/'  # this is local
-
-
+# INFLUX_URL = 'http://localhost:8086/'  # this is local
 # INFLUX_URL = 'https://influxdb.testa.getsentry.net/'  # this needs gcloud auth
 INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
 
@@ -80,8 +74,8 @@ def main(start, end, duration, token, url, org, multistage, format, out):
 
     if token is None:
         token = os.getenv("INFLUX_TOKEN")
-        if token is None:
-            token = INFLUX_TOKEN
+        if not token:
+            print("Warn: INFLUX_TOKEN not provided")
 
     if url is None:
         url = os.getenv("INFLUX_URL")
