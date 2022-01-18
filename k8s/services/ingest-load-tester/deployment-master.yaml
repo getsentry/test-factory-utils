@@ -41,12 +41,6 @@ spec:
             mountPath: /root/config/simple.test.yml
             subPath: test_simple.config.yml
             readOnly: true
-        env:
-          - name: INFLUX_URL
-            value: "{{ values.influx_url }}"
-          # FIXME: move it to a secret
-          - name: INFLUX_TOKEN
-            value: "{{ values.influx_token }}"
         resources:
           requests:
             cpu: 500m

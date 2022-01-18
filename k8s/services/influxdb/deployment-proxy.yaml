@@ -36,7 +36,7 @@ spec:
         - sh
         - -c
         - |
-          echo '
+          cat << EOF > /etc/nginx/conf.d/default.conf
           # Nginx config
 
           server {
@@ -45,7 +45,7 @@ spec:
               proxy_pass http://influxdb-server.default.svc.cluster.local:80;
 
               # With the token passed, InfluxDB will not ask for username/password every time.
-              proxy_set_header Authorization "Token {{ values.influx_token }}";
+              proxy_set_header Authorization "Token ${INFLUX_TOKEN}";
             }
 
             # Ignore the sign-in page since auth should be handled transparently
@@ -53,7 +53,13 @@ spec:
               return 302 /;
             }
           }
-          ' > /etc/nginx/conf.d/default.conf
+          EOF
+        env:
+        - name: INFLUX_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: influx-rw
+              key: token
         volumeMounts:
           - name: nginx-config
             mountPath: /etc/nginx/conf.d/

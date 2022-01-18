@@ -33,9 +33,11 @@ spec:
         env:
         - name: INFLUX_URL
           value: "{{ values.influx_url }}"
-        # FIXME: move it to a secret
         - name: INFLUX_TOKEN
-          value: "{{ values.influx_token }}"
+          valueFrom:
+            secretKeyRef:
+              name: influx-rw
+              key: token
         - name: HOSTIP
           valueFrom:
             fieldRef:

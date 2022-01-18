@@ -1,2 +1,2 @@
-# FIXME: move it to a secret
-influx_token: "97MCAx-Rh6ZEHjRWEX37-aobKMjuvNG9u4fLy7zMLis_oq7xrAlGl4gARgWMen0W1NmWyZP6UnYta015me85nw=="
+# Empty values are not allowed for whatever reason, so just an example value
+key1: value1

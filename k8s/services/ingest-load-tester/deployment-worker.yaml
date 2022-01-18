@@ -51,11 +51,6 @@ spec:
         - name: MASTER_HOST
           # Service address
           value: "ingest-load-tester.default.svc.cluster.local"
-        - name: INFLUX_URL
-          value: "{{ values.influx_url }}"
-        # FIXME: move it to a secret
-        - name: INFLUX_TOKEN
-          value: "{{ values.influx_token }}"
         resources:
           requests:
             cpu: 600m

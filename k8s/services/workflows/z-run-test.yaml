@@ -108,6 +108,9 @@ spec:
         - /tmp/stats-report.yaml
       env:
         - name: INFLUX_TOKEN
-          value: kOcdxZtSCrPtUNrNUwedanLj1K35uA_Unopv782_BVALznr60s5CkajiXOwSr21klYqWN7g46WZdTlziYmUfdw==
+          valueFrom:
+            secretKeyRef:
+              name: influx-rw
+              key: token
         - name: INFLUX_URL
           value: 'http://influxdb-server.default.svc.cluster.local'
