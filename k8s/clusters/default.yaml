@@ -9,6 +9,7 @@ services:
   - k8s/services/iap-ingress
   - k8s/services/ingest-load-tester
   - k8s/services/influxdb
+  - k8s/services/memcached
   - k8s/services/relay
   - k8s/services/telegraf
   - k8s/services/workflows

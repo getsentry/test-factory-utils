@@ -1,0 +1,15 @@
+{% set labels = {
+  "service": "memcached",
+  "component": "server",
+} %}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memcached-sentry
+  labels: {{ labels }}
+spec:
+  ports:
+    - port: 11211
+  selector: {{ labels }}
+  clusterIP: None
