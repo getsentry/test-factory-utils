@@ -1,4 +1,3 @@
-# TODO: use *-retain storage classes when recreating these PVCs
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

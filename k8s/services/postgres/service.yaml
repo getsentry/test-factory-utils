@@ -1,0 +1,17 @@
+{% set labels = {
+  "service": "postgres",
+  "component": "server",
+} %}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-sentry
+spec:
+  clusterIP: None
+  selector: {{ labels }}
+  ports:
+    - port: 5432
+      protocol: TCP
+      targetPort: 5432
