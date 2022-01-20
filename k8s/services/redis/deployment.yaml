@@ -1,0 +1,43 @@
+{% set labels = {
+  "service": "redis",
+  "component": "server",
+} %}
+
+{% set memory_mb = 2048 %}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-sentry
+  labels: {{ labels }}
+spec:
+  selector:
+    matchLabels: {{ labels }}
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: {{ labels }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - image: redis:6.2.4-alpine
+        name: redis-sentry
+        ports:
+        - containerPort: 6379
+        args:
+        - --save
+        - ''
+        - --maxmemory
+        - {{ memory_mb }}mb
+        - --maxmemory-policy
+        - volatile-ttl
+        resources:
+          requests:
+            cpu: 500m
+            memory: {{ memory_mb + 50 }}Mi
+          limits:
+            cpu: 1000m
+            memory: {{ memory_mb + 50 }}Mi

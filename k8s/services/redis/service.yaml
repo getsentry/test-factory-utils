@@ -1,0 +1,15 @@
+{% set labels = {
+  "service": "redis",
+  "component": "server",
+} %}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentry
+spec:
+  clusterIP: None
+  selector: {{ labels }}
+  ports:
+    - port: 6379
