@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ingest-metrics-config
+  name: sentry-config
 data:
   config.yml: |
     {% filter indent %}{% include 'templates/config.yml' %}{% endfilter %}

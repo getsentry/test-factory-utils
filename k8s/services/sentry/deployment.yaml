@@ -1,13 +1,15 @@
 {%  set labels = {
-
+  "service": "sentry",
+  "component":"ingest-metrics-consumer",
 } %}
 
   {% set image = values.image_name + ":" + values.image_tag %}
 ---
-apiVersion: v1
-kind: Depolyment
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: ingest-metrics-consumer
+  name: "ingest-metrics-consumer"
+  labels: {{ labels }}
 spec:
   replicas: 1
   selector:
@@ -25,18 +27,18 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         - image: "{{ image }}"
-          name: ingest-metrics-consumer
+          name: sentry
           args: ["run", "ingest-metrics-consumer"]
           resources:
             requests:
               cpu: 1000m
               memory: 2000Mi
           volumeMounts:
-            - name: ingest-metrics-consumer-config1
+            - name: sentry-config
               mountPath: /etc/sentry/config.yml
               subPath: config.yml
               readOnly: true
-            - name: ingest-metrics-consumer-config2
+            - name: sentry-config
               mountPath: /etc/sentry/sentry.conf.py
               subPath: sentry.conf.py
               readOnly: true
@@ -47,9 +49,6 @@ spec:
                   - /bin/sleep
                   - "5"
       volumes:
-        - name: ingest-metrics-consumer-config1
+        - name: sentry-config
           configMap:
-            name: ingest-metrics-config
-        - name: ingest-metrics-consumer-config2
-          configMap:
-            name: ingest-metrics-config
+            name: sentry-config

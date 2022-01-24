@@ -39,7 +39,7 @@ DATABASES = {
         "NAME": "postgres",
         "USER": "postgres",
         "PASSWORD": "",
-        "HOST": "postgres",
+        "HOST": "postgres-sentry.default.svc.cluster.local",
         "PORT": "",
     }
 }
@@ -72,7 +72,7 @@ SENTRY_OPTIONS["system.event-retention-days"] = int(
 
 SENTRY_OPTIONS["redis.clusters"] = {
     "default": {
-        "hosts": {0: {"host": "redis", "password": "", "port": "6379", "db": "0"}}
+        "hosts": {0: {"host": "redis-sentry.default.svc.cluster.local", "password": "", "port": "6379", "db": "0"}}
     }
 }
 
@@ -105,7 +105,7 @@ else:
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
-        "LOCATION": ["memcached:11211"],
+        "LOCATION": ["memcached-sentry.default.svc.cluster.local:11211"],
         "TIMEOUT": 3600,
     }
 }
@@ -114,7 +114,7 @@ CACHES = {
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
 DEFAULT_KAFKA_OPTIONS = {
-    "bootstrap.servers": "kafka:9092",
+    "bootstrap.servers": "ingest-kafka.default.svc.cluster.local:9092",
     "message.max.bytes": 50000000,
     "socket.timeout.ms": 1000,
 }

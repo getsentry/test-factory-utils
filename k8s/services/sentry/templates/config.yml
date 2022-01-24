@@ -55,8 +55,10 @@ system.secret-key: 'iW2tZ6=B)d4h+(A#(FS.PC5n,@&ss.X_hf8htU(^H;d3.86<l3'
 #   default:
 #     hosts:
 #       0:
-#         host: 127.0.0.1
+#         host: redis-sentry.default.svc.cluster.local
 #         port: 6379
+#         password: ""
+#         db: 0
 
 ################
 # File storage #
