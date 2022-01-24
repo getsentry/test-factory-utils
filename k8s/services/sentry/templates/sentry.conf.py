@@ -36,7 +36,7 @@ INTERNAL_SYSTEM_IPS = (get_internal_network(),)
 DATABASES = {
     "default": {
         "ENGINE": "sentry.db.postgres",
-        "NAME": "postgres",
+        "NAME": "sentry",
         "USER": "postgres",
         "PASSWORD": "",
         "HOST": "postgres-sentry.default.svc.cluster.local",

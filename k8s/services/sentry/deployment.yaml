@@ -1,9 +1,9 @@
-{%  set labels = {
+{% set labels = {
   "service": "sentry",
-  "component":"ingest-metrics-consumer",
+  "component": "ingest-metrics-consumer",
 } %}
 
-  {% set image = values.image_name + ":" + values.image_tag %}
+{% set image = values.image_name + ":" + values.image_tag %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15,22 +15,25 @@ spec:
   selector:
     matchLabels: {{ labels }}
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 10%
-      maxUnavailable: 0
+    type: Recreate
   minReadySeconds: 5
   template:
     metadata:
       labels: {{ labels }}
+      annotations:
+        configVersion1: "{{ md5template("templates/config.yml") }}"
+        configVersion2: "{{ md5template("templates/sentry.conf.py") }}"
     spec:
       terminationGracePeriodSeconds: 10
       containers:
         - image: "{{ image }}"
-          name: sentry
+          name: ingest-metrics-consumer
           args: ["run", "ingest-metrics-consumer"]
           resources:
             requests:
+              cpu: 500m
+              memory: 2000Mi
+            limits:
               cpu: 1000m
               memory: 2000Mi
           volumeMounts:

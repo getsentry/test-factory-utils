@@ -23,10 +23,10 @@ spec:
       - image: postgres:13
         name: postgres-sentry
         env:
-        - name: POSTGRES_PASSWORD
-          value: 'postgres'
         - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
+          value: '/var/lib/postgresql/data/pgdata'
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: 'trust'
         volumeMounts:
         - name: postgres-disk
           mountPath: /var/lib/postgresql/data
