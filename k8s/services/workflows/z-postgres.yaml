@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-postgres
+  namespace: argo
+  labels:
+    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: run-sentry-migrate
+    steps:
+    - - name: reset-postgres
+        template: reset-postgres
+    - - name: apply-migrations
+        template: apply-migrations
+
+  - name: reset-postgres
+    container:
+      name: reset-postgres
+      image: postgres:13-alpine
+      command:
+        - psql
+        - -h
+        - postgres-sentry.default.svc.cluster.local
+        - -U
+        - postgres
+        - -c
+        - 'DROP DATABASE IF EXISTS sentry WITH (FORCE);'
+        - -c
+        - 'CREATE DATABASE sentry;'
+    serviceAccountName: default
+
+  - name: apply-migrations
+    container:
+      image: bitnami/kubectl:1.19
+      command:
+        - sh
+        - -c
+        - |
+          cat <<EOF >/tmp/pod.yaml
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "apply-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
+            namespace: "default"
+            labels:
+              workflowTemplate: 'apply-migrations'
+          spec:
+            containers:
+              # FIXME: how to update this dynamically?
+              - image: "getsentry/sentry:c7b815ade5f40a3a6194b1d2f8d88cf31d6b659e"
+                name: ingest-metrics-consumer
+                args:
+                - upgrade
+                - --noinput
+                resources:
+                  requests:
+                    cpu: 500m
+                    memory: 1000Mi
+                  limits:
+                    cpu: 2000m
+                    memory: 1000Mi
+                volumeMounts:
+                  - name: sentry-config
+                    mountPath: /etc/sentry/config.yml
+                    subPath: config.yml
+                    readOnly: true
+                  - name: sentry-config
+                    mountPath: /etc/sentry/sentry.conf.py
+                    subPath: sentry.conf.py
+                    readOnly: true
+            volumes:
+              - name: sentry-config
+                configMap:
+                  name: sentry-config
+            restartPolicy: Never
+          EOF
+
+          kubectl apply -f /tmp/pod.yaml
+
+    serviceAccountName: default

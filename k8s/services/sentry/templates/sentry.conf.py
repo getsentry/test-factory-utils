@@ -279,3 +279,11 @@ GEOIP_PATH_MMDB = '/geoip/GeoLite2-City.mmdb'
 
 # BITBUCKET_CONSUMER_KEY = 'YOUR_BITBUCKET_CONSUMER_KEY'
 # BITBUCKET_CONSUMER_SECRET = 'YOUR_BITBUCKET_CONSUMER_SECRET'
+
+# Statsd metrics
+SENTRY_METRICS_BACKEND = "sentry.metrics.dogstatsd.DogStatsdMetricsBackend"
+SENTRY_METRICS_OPTIONS = {
+    "statsd_host": "telegraf-proxy.sentry-system.svc.cluster.local",
+    "statsd_port": 8125,
+}
+SENTRY_METRICS_SKIP_ALL_INTERNAL = True

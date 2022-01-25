@@ -28,7 +28,11 @@ spec:
       containers:
         - image: "{{ image }}"
           name: ingest-metrics-consumer
-          args: ["run", "ingest-metrics-consumer"]
+          args:
+          - "run"
+          - "ingest-metrics-consumer"
+          - "--max-batch-size=1000"
+          - "--max-batch-time-ms=1000"
           resources:
             requests:
               cpu: 500m
