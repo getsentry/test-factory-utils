@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-kafka
+  namespace: argo
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: flush-all-kafka
+    container:
+      name: flush-all-kafka
+      image: confluentinc/cp-kafka:5.1.4
+      command:
+      - sh
+      - -c
+      - |
+        exec 2>&1
+        set -eux
+
+        BOOTSTRAP_SERVER="ingest-kafka.default.svc.cluster.local:9092"
+        ZK_SERVER="ingest-kafka.default.svc.cluster.local:2181"
+
+        TOPICS_TO_DELETE=$(kafka-topics --zookeeper "${ZK_SERVER}" --list | grep -v '__')
+
+        for TOPIC in ${TOPICS_TO_DELETE}; do
+          kafka-topics --zookeeper "${ZK_SERVER}" --delete --topic "${TOPIC}"
+        done
+
+        echo 'Done!'
