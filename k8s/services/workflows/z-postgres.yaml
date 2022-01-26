@@ -9,12 +9,12 @@ spec:
   podGC:
     strategy: OnWorkflowCompletion
   templates:
-  - name: run-sentry-migrate
+  - name: reset-and-run-migrations
     steps:
     - - name: reset-postgres
         template: reset-postgres
-    - - name: apply-migrations
-        template: apply-migrations
+    - - name: run-migrations
+        template: run-migrations
 
   - name: reset-postgres
     container:
@@ -32,7 +32,7 @@ spec:
         - 'CREATE DATABASE sentry;'
     serviceAccountName: default
 
-  - name: apply-migrations
+  - name: run-migrations
     container:
       image: bitnami/kubectl:1.19
       command:
@@ -43,10 +43,10 @@ spec:
           apiVersion: v1
           kind: Pod
           metadata:
-            name: "apply-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
+            name: "run-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
             namespace: "default"
             labels:
-              workflowTemplate: 'apply-migrations'
+              workflowTemplate: 'run-migrations'
           spec:
             containers:
               # FIXME: how to update this dynamically?
