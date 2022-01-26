@@ -13,7 +13,6 @@ from util import parse_timedelta
 
 @click.command()
 @click.option("--num-messages", "-n", default=None, type=int, help="The number of messages to send to the kafka queue")
-@click.option("--keep-topic", "-x", default=False, help="Keep the kafka topic, and possible existing unread messages")
 @click.option("--settings-file", "-f", default=None, help="The settings file name (json or yaml)")
 @click.option("--topic-name", "-t", default=None, help="The name of the ingest metrics topic")
 @click.option("--broker", "-b", default=None, help="the kafka broker address and port (e.g. localhost:9092)")
@@ -35,7 +34,6 @@ def main(**kwargs):
 
     producer = get_kafka_producer(settings)
     send_metrics(producer, settings)
-    print(f"settings {dump(settings, Dumper=Dumper)}")
 
 
 def send_metrics(producer, settings):
@@ -55,7 +53,6 @@ def generate_metrics(settings):
 
 def get_settings(
     num_messages: int,
-    keep_topic: bool,
     settings_file: Optional[str],
     topic_name: Optional[str],
     broker: Optional[str],
@@ -81,6 +78,9 @@ def get_settings(
         "col_max": 1,
         "kafka": {
         },
+        "metric_types": {
+
+        }
     }
 
     if settings_file is not None:
@@ -89,9 +89,6 @@ def get_settings(
                 settings.update(load(f, Loader=Loader))
         except:
             raise click.UsageError(f"Could not parse settings file {settings_file}")
-
-    if keep_topic:
-        settings["keep_topic"] = True
 
     if num_messages is not None:
         settings["num_messages"] = num_messages
@@ -113,6 +110,12 @@ def get_settings(
 
     if settings["kafka"].get("bootstrap.servers") is None:
         raise click.UsageError(f"Kafka broker was not specified, to specify either use --broker argument or set [kafka][bootstrap.servers] in the settings file")
+
+    if settings.get("org") is None:
+        raise click.UsageError(f"Organization was not specified, to specify either use --org argument or set [org] in the settings file")
+
+    if settings.get("projects") is None:
+        raise click.UsageError(f"projects not specified, to specify either use --project argument or set [project] array in the settings file")
 
     if timestamp is not None:
         settings["timestamp"] = timestamp
@@ -140,7 +143,48 @@ def get_settings(
 
     settings["time_delta"] = time_delta
 
+    _calculate_metrics_distribution(settings)
     return settings
+
+
+def _calculate_metrics_distribution(settings):
+    """
+    Creates a helper array that has precalculated distributions for various metric types
+
+    Example:
+    If original metric types relative distributions are: { "metric-1": 3, "metric-2": 1, "metric-3": 5 }
+    The calculated metric distribution will be: dist= [ ("metric-1", 3), ("metric-2", 4), ("metric-3": 9)]
+    Use the array like this:
+    idx = random.randint(1, dist[len(dist)-1][1])
+    for d in dist:
+        if idx <= d[1]:
+            return d[0]
+    return None
+    """
+    dist = []
+    count = 0
+    for k, v in settings["metric_types"].items():
+        count += v
+        dist.append((k, count))
+
+    settings["metric_distribution"] = dist
+
+
+def get_fake_kafka_producer(settings):
+    """
+    A fake producer that just dumps to console (for testing)
+    """
+    class FakeProducer:
+        def __init__(self, settings):
+            pass
+
+        def produce(self, topic_name, message):
+            print(message)
+
+        def flush(self):
+            print("Flushing !!! ")
+
+    return FakeProducer(settings)
 
 
 def get_kafka_producer(settings):

@@ -1,32 +1,35 @@
-from typing import Callable, Mapping, Any, List
+from typing import Callable, Mapping, Any, List, Optional
 import random
-import math
 
 
 def generate_metric(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
-    return {
-        "org_id": 1,
-        "project_id": 1,
-        "name": "sentry.sessions.session",
-        "unit": "",
-        "type": "c",
-        "value": 9441.0,
-        "timestamp": 1643113620,
-        "tags": {
-            "environment": "environment-1",
-            "release": "r-1.0.2",
-            "session.status": "init"
-        },
-        "metric_types": {
-            "session": 1,
-            "user": 1,
-            "session.error": 1,
-            "session.duration": 1
-        }
-    }
+    metric_type = _get_metric_type(idx, settings)
+    generator = _get_metric_generator(metric_type)
+
+    return generator(idx, settings)
 
 
-def get_metric_generator(metric_type: str) -> Callable[[int, int, Mapping[str, Any]], Mapping[str, Any]]:
+def _get_metric_type(idx: int, settings: Mapping[str, Any]) -> Optional[str]:
+    dist = settings["metric_distribution"]
+
+    if len(dist) == 0:
+        return None
+
+    max_val = dist[-1][1]
+
+    if is_repeatable(settings):
+        i = idx % max_val
+    else:
+        i = random.randint(1, max_val)
+
+    for name, val in dist:
+        if i <= val:
+            return name
+
+    return None
+
+
+def _get_metric_generator(metric_type: str) -> Callable[[int, Mapping[str, Any]], Mapping[str, Any]]:
     return {
         "session": session_metric_generator,
         "user": user_metric_generator,
@@ -45,7 +48,7 @@ def _get_org_id(idx: int, settings: Mapping[str, Any]) -> int:
 
 
 def _get_project_id(idx: int, settings: Mapping[str, Any]) -> int:
-    projects = settings["project"]
+    projects = settings["projects"]
 
     if is_repeatable(settings):
         proj_idx = idx % len(projects)
@@ -55,7 +58,6 @@ def _get_project_id(idx: int, settings: Mapping[str, Any]) -> int:
 
 
 def _get_timestamp(idx: int, settings: Mapping[str, Any]) -> int:
-    base = settings["time_delta"]
     base_seconds = int(settings["time_delta"].total_seconds())
     num_messages = settings["num_messages"]
     if is_repeatable(settings):
@@ -67,35 +69,36 @@ def _get_timestamp(idx: int, settings: Mapping[str, Any]) -> int:
     return timestamp
 
 
-def _get_num_elments_in_collection(idx: int, settings: Mapping[str, Any]) -> List[int]:
-    col_range = abs(settings["col_max"] - settings["col_min"])
+def _get_num_elements_in_collection(idx: int, settings: Mapping[str, Any]) -> int:
+    col_range = abs(settings["col_max"] - settings["col_min"]) + 1
+
     num_messages = settings["num_messages"]
 
     if is_repeatable(settings):
         step = max(1, int(col_range / num_messages))
-        offset = step * idx
+        offset = step * idx % col_range
     else:
-        offset = random.randint(0, col_range)
+        offset = random.randint(0, col_range - 1)
 
     return settings["col_min"] + offset
 
 
 def _get_set(idx: int, settings: Mapping[str, Any]) -> List[int]:
-    num_elms = _get_num_elments_in_collection(idx, settings)
+    num_elms = _get_num_elements_in_collection(idx, settings)
 
     if is_repeatable(settings):
-        return [idx + i for i in num_elms]
+        return [idx + i for i in range(num_elms)]
     else:
-        return [random.randint(1, 9999) for i in num_elms]
+        return [random.randint(1, 9999) for i in range(num_elms)]
 
 
 def _get_distribution(idx: int, settings: Mapping[str, Any]) -> List[float]:
-    num_elms = _get_num_elments_in_collection(idx, settings)
+    num_elms = _get_num_elements_in_collection(idx, settings)
 
     if is_repeatable(settings):
-        return [(idx + i) * 5 + 0.1 for i in num_elms]
+        return [(idx + i) * 5 + 0.1 for i in range(num_elms)]
     else:
-        return [random.random() * 999 for i in num_elms]
+        return [random.random() * 999 for i in range(num_elms)]
 
 
 def _get_release(idx: int, settings: Mapping[str, Any]) -> str:
@@ -135,7 +138,6 @@ def default_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[s
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "init"
         }
     }
 
@@ -143,7 +145,7 @@ def default_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[s
 def session_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
-        "project_id": 1,
+        "project_id": _get_project_id(idx, settings),
         "name": "sentry.sessions.session",
         "unit": "",
         "type": "c",
@@ -151,15 +153,15 @@ def session_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[s
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "init"
+            "session.status": "init"  # maybe cycle through all available statuses
         }
     }
 
 
 def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
-        "org_id": 1,
-        "project_id": 1,
+        "org_id": _get_org_id(idx, settings),
+        "project_id": _get_project_id(idx, settings),
         "name": "sentry.sessions.user",
         "unit": "",
         "type": "s",
@@ -167,7 +169,7 @@ def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str,
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "init"
+            "session.status": "init"  # maybe cycle through all available statuses
         }
     }
 
@@ -175,7 +177,7 @@ def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str,
 def session_error_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
-        "project_id": 1,
+        "project_id": _get_project_id(idx, settings),
         "name": "sentry.sessions.session.error",
         "unit": "",
         "type": "s",
@@ -183,7 +185,7 @@ def session_error_metric_generator(idx: int, settings: Mapping[str, Any]) -> Map
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "errored_preaggr"
+            "session.status": "errored_preaggr"  # maybe cycle through all available statuses
         }
     }
 
@@ -192,13 +194,13 @@ def session_duration_metric_generator(idx: int, settings: Mapping[str, Any]) -> 
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": 1,
-        "name": "sentry.sessions.session.error",
-        "unit": "ms",
+        "name": "sentry.sessions.session.duration",
+        "unit": "s",
         "type": "d",
         "value": _get_distribution(idx, settings),
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "errored_preaggr"
+            "session.status": "exited"  # maybe cycle through all available statuses
         }
     }
