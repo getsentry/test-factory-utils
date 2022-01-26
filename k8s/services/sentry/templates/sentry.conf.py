@@ -114,7 +114,7 @@ CACHES = {
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
 DEFAULT_KAFKA_OPTIONS = {
-    "bootstrap.servers": "ingest-kafka-bla.default.svc.cluster.local:9092",
+    "bootstrap.servers": "ingest-kafka.default.svc.cluster.local:9092",
     "message.max.bytes": 50000000,
     "socket.timeout.ms": 1000,
 }
