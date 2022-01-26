@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-redis
+  namespace: argo
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: flush-all-redis
+    container:
+      name: flush-all-redis
+      image: redis:6-alpine
+      command:
+      - sh
+      - -c
+      - |
+        exec 2>&1
+        set -euxo pipefail
+
+        redis-cli -h redis-sentry.default.svc.cluster.local FLUSHALL

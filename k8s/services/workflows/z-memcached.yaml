@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-memcached
+  namespace: argo
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: flush-all-memcached
+    container:
+      name: flush-all-memcached
+      image: busybox:1.32
+      command:
+      - sh
+      - -c
+      - |
+        exec 2>&1
+        set -euxo pipefail
+
+        echo flush_all | nc -v -w 30 memcached-sentry.default.svc.cluster.local 11211
