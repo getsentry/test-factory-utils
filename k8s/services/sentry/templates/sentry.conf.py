@@ -114,7 +114,7 @@ CACHES = {
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
 DEFAULT_KAFKA_OPTIONS = {
-    "bootstrap.servers": "ingest-kafka.default.svc.cluster.local:9092",
+    "bootstrap.servers": "ingest-kafka-bla.default.svc.cluster.local:9092",
     "message.max.bytes": 50000000,
     "socket.timeout.ms": 1000,
 }
@@ -280,10 +280,15 @@ GEOIP_PATH_MMDB = '/geoip/GeoLite2-City.mmdb'
 # BITBUCKET_CONSUMER_KEY = 'YOUR_BITBUCKET_CONSUMER_KEY'
 # BITBUCKET_CONSUMER_SECRET = 'YOUR_BITBUCKET_CONSUMER_SECRET'
 
-# Statsd metrics
+### Statsd metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dogstatsd.DogStatsdMetricsBackend"
 SENTRY_METRICS_OPTIONS = {
     "statsd_host": "telegraf-proxy.sentry-system.svc.cluster.local",
     "statsd_port": 8125,
 }
 SENTRY_METRICS_SKIP_ALL_INTERNAL = True
+
+### Configure error reporting
+# Project: https://sentry.io/organizations/sentry-test/issues/?project=6168995
+SENTRY_SDK_CONFIG["dsn"] = "https://583089217e124ac39240c6b7f78fc59a@o19635.ingest.sentry.io/6168995"
+SENTRY_PROJECT = None
