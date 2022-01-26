@@ -1,0 +1,11 @@
+kafka:
+  bootstrap.servers: "127.0.0.1:9092"
+ingest-metrics: ingest-metrics
+org: 1
+projects: [1]
+metric_types: {
+  "session":1,
+  "user": 1,
+  "session.error": 1,
+  "session.duration":1
+}
