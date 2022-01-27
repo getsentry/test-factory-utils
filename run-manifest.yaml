@@ -4,6 +4,8 @@
 # FIXME(anton): it might be confusing to have these here and also in k8s/services directories
 relay_revision: '4639455273ed8caccf5c11b929ef42d3a7ac6d61'
 ingest_load_tester_revision: '7078c23424394908e27873a9b31aa23d0f8f6733'
+# FIXME: doesn't support branches/tags/etc.
+sentry_revision: 'eee19dfe40713e38e6fdaaa09907483ed28b3a61'
 
 ### Test settings
 stages:
