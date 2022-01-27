@@ -58,6 +58,10 @@ spec:
         git checkout "${INGEST_LOAD_TESTER_REV_ORIGINAL}"
         git rev-parse HEAD | tee /tmp/ingest_load_tester_sha
 
+        ### "Resolve" (FIXME) sentry revision
+        SENTRY_REVISION=$(yq e '.sentry_revision' ${MANIFEST_FILE})
+        echo "${SENTRY_REVISION}" | tee /tmp/sentry_sha
+
         ### Record Locust settings
         DEFAULT_STUB="default"
         OVERRIDE_USED="0"
@@ -105,6 +109,10 @@ spec:
           valueFrom:
             path: /tmp/ingest_load_tester_sha
           globalName: ingest_load_tester_sha
+        - name: sentry_sha
+          valueFrom:
+            path: /tmp/sentry_sha
+          globalName: sentry_sha
         - name: test_duration
           valueFrom:
             path: /tmp/test_duration
