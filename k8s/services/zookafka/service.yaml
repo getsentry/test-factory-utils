@@ -11,8 +11,11 @@ spec:
   clusterIP: None
   selector:
     service: zookafka
+    component: zookafka
   ports:
     - port: 9092
       name: kafka
     - port: 2181
       name: zookeeper
+    - port: 9999
+      name: kafka-jmx

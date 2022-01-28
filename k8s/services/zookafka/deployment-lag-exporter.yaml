@@ -1,0 +1,56 @@
+{% set labels = {
+  "service": "zookafka",
+  "component": "lag-exporter",
+} %}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookafka-lag-exporter
+  labels: {{ labels }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{ labels }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels: {{ labels }}
+      annotations:
+        configVersion: "{{ md5template("templates/report_kafka_consumer_lag.py") }}"
+    spec:
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        # Telegraf statsd
+        - {{ port_forward_initcontainer(["8125/udp"]) }}
+      containers:
+      - image: confluentinc/cp-kafka:{{ values.confluent_version }}
+        name: zookafka-lag-exporter
+        args:
+        - bash
+        - -c
+        - |
+          while true; do
+            python /root/report_kafka_consumer_lag.py --consumer-group=ingest-metrics-consumer
+            sleep 5
+          done
+        env:
+        - name: BOOTSTRAP_SERVERS
+          value: 'ingest-kafka.default.svc.cluster.local:9092'
+        volumeMounts:
+        - name: lag-exporter-config
+          mountPath: /root/report_kafka_consumer_lag.py
+          subPath: report_kafka_consumer_lag.py
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+      volumes:
+      - name: lag-exporter-config
+        configMap:
+          name: lag-exporter-config

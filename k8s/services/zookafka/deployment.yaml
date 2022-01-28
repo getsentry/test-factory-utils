@@ -1,25 +1,26 @@
-{% set confluent_version = '5.1.4' %}
-
+{% set labels = {
+  "service": "zookafka",
+  "component": "zookafka",
+} %}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zookafka
-  labels:
-    service: zookafka
+  labels: {{ labels }}
 spec:
   selector:
-    matchLabels:
-      service: zookafka
+    matchLabels: {{ labels }}
   strategy:
     type: Recreate
   template:
     metadata:
-      labels:
-        service: zookafka
+      labels: {{ labels }}
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - image: confluentinc/cp-zookeeper:{{ confluent_version }}
+      # Zookeeper
+      - image: confluentinc/cp-zookeeper:{{ values.confluent_version }}
         name: zookeeper
         env:
         - name: ZOOKEEPER_CLIENT_PORT
@@ -48,7 +49,8 @@ spec:
           limits:
             cpu: 250m
             memory: 640Mi
-      - image: confluentinc/cp-kafka:{{ confluent_version }}
+      # Kafka
+      - image: confluentinc/cp-kafka:{{ values.confluent_version }}
         name: kafka
         env:
         - name: KAFKA_HEAP_OPTS
@@ -59,10 +61,17 @@ spec:
           value: '1'
         - name: KAFKA_ADVERTISED_LISTENERS
           value: PLAINTEXT://ingest-kafka.default.svc.cluster.local:9092
-        - name: KAFKA_JMX_PORT
-          value: '9999'
-        - name: KAFKA_JMX_OPTS
-          value: '-Djava.net.preferIPv4Stack=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
+        ## Enable this for exporting metrics via JMX
+        # - name: KAFKA_JMX_OPTS
+        #   value: >
+        #     -Djava.net.preferIPv4Stack=true
+        #     -Djava.rmi.server.hostname=ingest-kafka.default.svc.cluster.local
+        #     -Dcom.sun.management.jmxremote=true
+        #     -Dcom.sun.management.jmxremote.authenticate=false
+        #     -Dcom.sun.management.jmxremote.local.only=false
+        #     -Dcom.sun.management.jmxremote.ssl=false
+        #     -Dcom.sun.management.jmxremote.port=9999
+        #     -Dcom.sun.management.jmxremote.rmi.port=9999
         - name: CONFLUENT_SUPPORT_METRICS_ENABLE
           value: 'false'
         ports:
