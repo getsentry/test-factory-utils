@@ -86,3 +86,6 @@ spec:
       image: bitnami/kubectl:1.19
       name: kubectl
     serviceAccountName: default
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

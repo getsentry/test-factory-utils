@@ -68,3 +68,6 @@ spec:
         kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
         kubectl rollout status deployment --namespace=default fake-sentry --timeout=60s
     serviceAccountName: default
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

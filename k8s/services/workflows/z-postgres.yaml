@@ -81,3 +81,6 @@ spec:
           kubectl apply -f /tmp/pod.yaml
 
     serviceAccountName: default
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

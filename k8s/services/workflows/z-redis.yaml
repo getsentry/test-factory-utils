@@ -19,3 +19,6 @@ spec:
         set -euxo pipefail
 
         redis-cli -h redis-sentry.default.svc.cluster.local FLUSHALL
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200
