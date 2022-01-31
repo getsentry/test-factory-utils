@@ -36,9 +36,17 @@ spec:
     container:
       image: bitnami/kubectl:1.19
       command:
-        - sh
+        - bash
         - -c
         - |
+
+          SENTRY_IMAGE=$(kubectl get deployment -n default ingest-metrics-consumer -o jsonpath='{.spec.template.spec.containers[0].image}')
+          if [[ "${SENTRY_IMAGE}" != *"getsentry/sentry"* ]]; then
+            echo "Incorrect Sentry image: ${SENTRY_IMAGE}"
+            exit 1
+          fi
+          echo "Using Sentry image: ${SENTRY_IMAGE}"
+
           cat <<EOF >/tmp/pod.yaml
           apiVersion: v1
           kind: Pod
@@ -49,8 +57,7 @@ spec:
               workflowTemplate: 'run-migrations'
           spec:
             containers:
-              # FIXME: how to update this dynamically?
-              - image: "getsentry/sentry:c7b815ade5f40a3a6194b1d2f8d88cf31d6b659e"
+              - image: "${SENTRY_IMAGE}"
                 name: ingest-metrics-consumer
                 args:
                 - upgrade
@@ -62,6 +69,7 @@ spec:
                   limits:
                     cpu: 2000m
                     memory: 1000Mi
+                # Note: these mounts have to be the same as for other Sentry containers
                 volumeMounts:
                   - name: sentry-config
                     mountPath: /etc/sentry/config.yml
