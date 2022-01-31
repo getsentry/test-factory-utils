@@ -19,3 +19,6 @@ spec:
         set -euxo pipefail
 
         echo flush_all | nc -v -w 30 memcached-sentry.default.svc.cluster.local 11211
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

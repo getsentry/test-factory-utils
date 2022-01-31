@@ -84,4 +84,5 @@ spec:
     metadata: {}
     outputs: {}
   ttlStrategy:
-    secondsAfterCompletion: 86400
+    # 3 days
+    secondsAfterCompletion: 259200

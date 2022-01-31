@@ -10,9 +10,17 @@ spec:
     strategy: OnWorkflowCompletion
   templates:
   - name: reset-and-run-migrations
+    inputs:
+      parameters:
+      - name: sentry_sha
+        value: default
     steps:
     - - name: reset-postgres
         template: reset-postgres
+        arguments:
+          parameters:
+          - name: sentry_sha
+            value: "{% raw %}{{inputs.parameters.sentry_sha}}{% endraw %}"
     - - name: run-migrations
         template: run-migrations
 
@@ -33,24 +41,45 @@ spec:
     serviceAccountName: default
 
   - name: run-migrations
+    inputs:
+      parameters:
+      - name: sentry_sha
+        value: default
     container:
       image: bitnami/kubectl:1.19
       command:
-        - sh
+        - bash
         - -c
         - |
+          exec 2>&1
+          set -euo pipefail
+
+          SENTRY_SHA='{% raw %}{{inputs.parameters.sentry_sha}}{% endraw %}'
+          if [[ "${SENTRY_SHA}" == "default" ]]; then
+            SENTRY_IMAGE=$(kubectl get deployment -n default ingest-metrics-consumer -o jsonpath='{.spec.template.spec.containers[0].image}')
+          else
+            SENTRY_IMAGE="getsentry/sentry:${SENTRY_SHA}"
+          fi
+
+          if [[ "${SENTRY_IMAGE}" != *"getsentry/sentry"* ]]; then
+            echo "Incorrect Sentry image: ${SENTRY_IMAGE}"
+            exit 1
+          fi
+          echo "Using Sentry image: ${SENTRY_IMAGE}"
+
+          POD_NAME="run-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
+
           cat <<EOF >/tmp/pod.yaml
           apiVersion: v1
           kind: Pod
           metadata:
-            name: "run-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
+            name: "${POD_NAME}"
             namespace: "default"
             labels:
               workflowTemplate: 'run-migrations'
           spec:
             containers:
-              # FIXME: how to update this dynamically?
-              - image: "getsentry/sentry:c7b815ade5f40a3a6194b1d2f8d88cf31d6b659e"
+              - image: "${SENTRY_IMAGE}"
                 name: ingest-metrics-consumer
                 args:
                 - upgrade
@@ -62,6 +91,7 @@ spec:
                   limits:
                     cpu: 2000m
                     memory: 1000Mi
+                # Note: these mounts have to be the same as for other Sentry containers
                 volumeMounts:
                   - name: sentry-config
                     mountPath: /etc/sentry/config.yml
@@ -77,7 +107,27 @@ spec:
                   name: sentry-config
             restartPolicy: Never
           EOF
-
           kubectl apply -f /tmp/pod.yaml
 
+          echo 'Waiting for the migration to finish...'
+          while true; do
+            PHASE=$(kubectl get pod -n default "${POD_NAME}" -o jsonpath='{.status.phase}')
+            if [[ "${PHASE}" == "Succeeded" ]]; then
+              echo 'Done!'
+              exit 0
+            elif [[ "${PHASE}" == "Failed" ]]; then
+              echo 'Error!'
+              kubectl desribe pod -n default "${POD_NAME}"
+              exit 1
+            elif [[ ${PHASE} == "" ]]; then
+              echo 'Something went wrong.'
+              exit 1
+            else
+              echo "[$(date)] Waiting..."
+              sleep 5
+            fi
+          done
     serviceAccountName: default
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

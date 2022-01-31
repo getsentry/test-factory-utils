@@ -28,3 +28,6 @@ spec:
         done
 
         echo 'Done!'
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

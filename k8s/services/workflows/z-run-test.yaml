@@ -114,3 +114,6 @@ spec:
               key: token
         - name: INFLUX_URL
           value: 'http://influxdb-server.default.svc.cluster.local'
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

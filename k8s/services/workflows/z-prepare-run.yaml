@@ -131,3 +131,6 @@ spec:
           valueFrom:
             path: /tmp/test_override
           globalName: test_override
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200
