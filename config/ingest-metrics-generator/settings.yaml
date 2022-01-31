@@ -1,0 +1,17 @@
+kafka:
+  bootstrap.servers: "ingest-kafka.default.svc.cluster.local:9092"
+ingest-metrics: ingest-metrics
+org: 1
+projects: [5,6,7,8,9,10]
+spread: 2h
+releases: 20
+environments: 10
+repeatable: false
+metric_types: {
+  "session":1,
+  "user": 1,
+  "session.error": 1,
+  "session.duration":1
+}
+col_min: 3
+col_max: 7

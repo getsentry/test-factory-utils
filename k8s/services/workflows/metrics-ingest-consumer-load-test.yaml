@@ -1,0 +1,92 @@
+# setup sentry
+# setup kafka message generator
+# start and wait containers
+# run data migrations
+# start kafka message generator
+# wait for kafka queue empty
+
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: metrics-ingest-consumer-load-test
+  namespace: argo
+spec:
+  # Disallow to run this workflow in parallel (with itself or relay-locust-load-test)
+  synchronization:
+    mutex:
+      name:  relay-locust-load-test
+  arguments:
+    parameters:
+    - name: test_factory_branch
+      value: "main"
+    - name: num_messages
+      value: "default"
+    - name: comment
+      value: ""
+  entrypoint: main
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+  - name: main
+    dag:
+      tasks:
+      # Prepare
+      # TODO we need to split this in two ( since it also deploys ingest-load-tester)
+      - name: prepare-run
+        templateRef:
+          name: z-prepare-run
+          template: prepare-run
+      # Stop sentry
+      - name: sentry-stop-all
+        templateRef:
+          name: z-sentry
+          template: sentry-stop-all
+      # Clear previous state
+      - name: flush-all-kafka
+        templateRef:
+          - name: z-kafka
+            template: flush-all-kafka
+        depends: sentry-stop-all
+      - name: flush-all-memcached
+        templateRef:
+          - name: z-memcached
+            template: flush-all-memcached
+      - name: reset-and-run-migrations
+        templateRef:
+          - name: z-postgres
+            template: reset-and-run-migrations
+      # Deploy sentry
+      - name: sentry-update-configuration
+        templateRef:
+          name: z-sentry
+          template: senty-update-configuratioon
+        depends: "prepare-run && stop-sentry && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
+      - name: sentry-wait-for-rollout
+        templateRef:
+          name: z-sentry
+          template: sentry-wait-for-rollout
+        depends: sentry-update-configuration
+      # push metric on kafka topic
+      - name: run-ingest-metrics-generator
+        templateRef:
+          name: z-ingest-metrics-generator
+          template: run-ingest-metrics-generator
+        arguments:
+          parameters:
+          - name: num_messages
+            value: '{% raw %}{{workflow.outputs.parameters.num_messages}}{% endraw %}'
+          artifacts:
+            - name: ingest_metrics_generator_settings
+              from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
+        depends: sentry-update-configuration
+      # wait for ingest metrics consumer
+      - name: wait-clear-kafka-queue
+        templateRef:
+          name: z-infulxdb-monitor
+          template: infulxdb-monitor
+        depends: run-ingest-metrics-generator
+    inputs: {}
+    metadata: {}
+    outputs: {}
+  ttlStrategy:
+    secondsAfterCompletion: 86400

@@ -36,6 +36,9 @@ spec:
         MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
         cp "${MANIFEST_FILE}" /tmp/run-manifest.yaml
 
+        DATA_GENERATOR_SETTINGS_FILE = "${ROOT_DIR}/config/ingest-metrics-generator/settings.yaml"
+        cp "${DATA_GENERATOR_SETTINGS_FILE} /tmp/ingest-metrics-generator-settings.yaml
+      
         RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
         INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
 
@@ -96,6 +99,9 @@ spec:
         - name: run_manifest
           path: /tmp/run-manifest.yaml
           globalName: run_manifest
+        - name: ingest-metrics-generator-settings
+          path: /tmp/ingest-metrics-generator-settings.yaml
+          globalName: ingest_metrics_generator_settings
       parameters:
         - name: test_factory_sha
           valueFrom:
