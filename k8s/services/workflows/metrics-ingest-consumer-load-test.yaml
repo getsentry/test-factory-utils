@@ -13,7 +13,7 @@ spec:
     - name: test_factory_branch
       value: "main"
     - name: num_messages
-      value: "default"
+      value: "1000"
     - name: comment
       value: ""
   entrypoint: main
@@ -44,16 +44,22 @@ spec:
         templateRef:
           name: z-memcached
           template: flush-all-memcached
+        depends: sentry-stop-all
       - name: reset-and-run-migrations
         templateRef:
           name: z-postgres
           template: reset-and-run-migrations
+        arguments:
+          parameters:
+          - name: sentry_sha
+            value: '{% raw %}{{workflow.outputs.parameters.sentry_sha}}{% endraw %}'
+        depends: "sentry-stop-all && prepare-run"
       # Deploy sentry
       - name: sentry-update-configuration
         templateRef:
           name: z-sentry
-          template: senty-update-configuratioon
-        depends: "prepare-run && sentry-stop-all && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
+          template: sentry-update-configuration
+        depends: "prepare-run && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
       - name: sentry-wait-for-rollout
         templateRef:
           name: z-sentry
@@ -62,12 +68,12 @@ spec:
       # push metric on kafka topic
       - name: run-ingest-metrics-generator
         templateRef:
-          name: z-ingest-metrics-generator
+          name: z-data-generator
           template: run-ingest-metrics-generator
         arguments:
           parameters:
           - name: num_messages
-            value: '{% raw %}{{workflow.outputs.parameters.num_messages}}{% endraw %}'
+            value: '{% raw %}{{workflow.parameters.num_messages}}{% endraw %}'
           artifacts:
           - name: ingest_metrics_generator_settings
             from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
@@ -75,7 +81,7 @@ spec:
       # wait for ingest metrics consumer
       - name: wait-clear-kafka-queue
         templateRef:
-          name: z-infulxdb-monitor
+          name: z-influxdb-monitor
           template: infulxdb-monitor
         depends: run-ingest-metrics-generator
     inputs: {}

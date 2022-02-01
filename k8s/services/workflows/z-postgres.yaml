@@ -17,12 +17,12 @@ spec:
     steps:
     - - name: reset-postgres
         template: reset-postgres
+    - - name: run-migrations
+        template: run-migrations
         arguments:
           parameters:
           - name: sentry_sha
             value: "{% raw %}{{inputs.parameters.sentry_sha}}{% endraw %}"
-    - - name: run-migrations
-        template: run-migrations
 
   - name: reset-postgres
     container:

@@ -22,6 +22,11 @@ spec:
             sshPrivateKeySecret:
               name: ssh-deploy-key-test-factory
               key: ssh-private-key
+      parameters:
+      - name: test_duration
+        value: "30s"
+      - name: test_users
+        value: "10"
     container:
       image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
       command:
@@ -36,9 +41,9 @@ spec:
         MANIFEST_FILE="${ROOT_DIR}/run-manifest.yaml"
         cp "${MANIFEST_FILE}" /tmp/run-manifest.yaml
 
-        DATA_GENERATOR_SETTINGS_FILE = "${ROOT_DIR}/config/ingest-metrics-generator/settings.yaml"
-        cp "${DATA_GENERATOR_SETTINGS_FILE} /tmp/ingest-metrics-generator-settings.yaml
-      
+        DATA_GENERATOR_SETTINGS_FILE="${ROOT_DIR}/config/ingest-metrics-generator/settings.yaml"
+        cp "${DATA_GENERATOR_SETTINGS_FILE}" /tmp/ingest-metrics-generator-settings.yaml
+
         RELAY_REV_ORIGINAL=$(yq e '.relay_revision' ${MANIFEST_FILE})
         INGEST_LOAD_TESTER_REV_ORIGINAL=$(yq e '.ingest_load_tester_revision' ${MANIFEST_FILE})
 
@@ -71,14 +76,14 @@ spec:
         DEFAULT_DURATION="1m"
         DEFAULT_USERS=5
 
-        TEST_DURATION='{% raw %}{{workflow.parameters.test_duration}}{% endraw %}'
+        TEST_DURATION='{% raw %}{{inputs.parameters.test_duration}}{% endraw %}'
         if [[ "${TEST_DURATION}" == "${DEFAULT_STUB}" ]]; then
           TEST_DURATION="${DEFAULT_DURATION}"
         else
           OVERRIDE_USED="1"
         fi
 
-        TEST_USERS='{% raw %}{{workflow.parameters.test_users}}{% endraw %}'
+        TEST_USERS='{% raw %}{{inputs.parameters.test_users}}{% endraw %}'
         if [[ "${TEST_USERS}" == "${DEFAULT_STUB}" ]]; then
           TEST_USERS="${DEFAULT_USERS}"
         else
