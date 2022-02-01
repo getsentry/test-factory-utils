@@ -37,23 +37,23 @@ spec:
       # Clear previous state
       - name: flush-all-kafka
         templateRef:
-          - name: z-kafka
-            template: flush-all-kafka
+          name: z-kafka
+          template: flush-all-kafka
         depends: sentry-stop-all
       - name: flush-all-memcached
         templateRef:
-          - name: z-memcached
-            template: flush-all-memcached
+          name: z-memcached
+          template: flush-all-memcached
       - name: reset-and-run-migrations
         templateRef:
-          - name: z-postgres
-            template: reset-and-run-migrations
+          name: z-postgres
+          template: reset-and-run-migrations
       # Deploy sentry
       - name: sentry-update-configuration
         templateRef:
           name: z-sentry
           template: senty-update-configuratioon
-        depends: "prepare-run && stop-sentry && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
+        depends: "prepare-run && sentry-stop-all && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
       - name: sentry-wait-for-rollout
         templateRef:
           name: z-sentry
@@ -69,8 +69,8 @@ spec:
           - name: num_messages
             value: '{% raw %}{{workflow.outputs.parameters.num_messages}}{% endraw %}'
           artifacts:
-            - name: ingest_metrics_generator_settings
-              from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
+          - name: ingest_metrics_generator_settings
+            from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
         depends: sentry-update-configuration
       # wait for ingest metrics consumer
       - name: wait-clear-kafka-queue
