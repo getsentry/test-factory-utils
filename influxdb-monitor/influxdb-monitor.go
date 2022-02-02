@@ -109,8 +109,8 @@ func cliSetup() *cobra.Command {
 	Params.influxDbServer = rootCmd.Flags().StringP("influxdb-url", "u", "", "InfluxDb url (e.g. http://localhost:8086)")
 	Params.influxDbToken = rootCmd.Flags().StringP("influxdb-token", "x", "", "InfluxDb access token")
 	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
-	Params.bucketName = rootCmd.Flags().StringP("bucket-name", "b", "statsd", "the InfluxDb organisation id")
-	Params.measurement = rootCmd.Flags().StringP("measurement", "m", "kafka_consumer_lag", "the InfluxDb organisation id")
+	Params.bucketName = rootCmd.Flags().StringP("bucket-name", "b", "statsd", "the bucket where the metric is stored")
+	Params.measurement = rootCmd.Flags().StringP("measurement", "m", "kafka_consumer_lag", "the name of the measurement")
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
 	flags := rootCmd.Flags()
