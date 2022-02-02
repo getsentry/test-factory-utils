@@ -67,8 +67,15 @@ def main(**kwargs):
     """
     settings = get_settings(**kwargs)
 
+    print("Settings:")
+    print(settings)
+
     producer = get_kafka_producer(settings)
+
+    print("Sending data...")
     send_metrics(producer, settings)
+
+    print("Done!")
 
 
 def send_metrics(producer, settings):
