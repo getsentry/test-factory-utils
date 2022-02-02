@@ -75,6 +75,7 @@ def send_metrics(producer, settings):
     topic_name = settings["topic_name"]
     for metric in generate_metrics(settings):
         producer.produce(topic_name, json.dumps(metric))
+        producer.poll(0)
 
     producer.flush()
 
