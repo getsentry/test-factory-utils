@@ -15,8 +15,13 @@ spec:
           - '5m'
           - '--organisation'
           - '1'
+          - '--bucket-name'
+          - 'statsd'
+          - '--measurement'
+          - 'kafka_consumer_lag'
+          - '--dry-run'
         name: influxdb-monitor
-        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:474c404af61291b2acd669245ba08ad1b0379d34
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:d43d82ae9d408f0bd5e329aba4e354955de98233
         resources: {}
       env:
         - name: INFLUX_TOKEN
