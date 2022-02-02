@@ -72,7 +72,8 @@ var Params CliParams
 
 func ShowParams() {
 
-	fmt.Printf(`Cli parameters:
+	fmt.Printf(`
+Cli parameters:
     timeout: %v
     dbServer: %s
     dbToken: %v
@@ -81,6 +82,20 @@ func ShowParams() {
     measurement: %s
     dryRun: %t`,
 		Params.timeout, *Params.influxDbServer, *Params.influxDbToken, *Params.organisationId, *Params.bucketName, *Params.measurement, Params.dryRun)
+
+	fmt.Printf(`
+
+Viper variables:
+	influxdb-token: %s
+	influxdb-url: %s`,
+		viper.GetString("influxdb-token"), viper.GetString("influxdb-url"))
+
+	fmt.Printf(`
+
+Env variables:
+	INFLUX_TOKEN: %s
+	INFLUX_URL: %s`,
+		os.Getenv("INFLUX_TOKEN"), os.Getenv("INFLUX_URL"))
 }
 
 func cliSetup() *cobra.Command {
