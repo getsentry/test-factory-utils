@@ -29,7 +29,9 @@ def _get_metric_type(idx: int, settings: Mapping[str, Any]) -> Optional[str]:
     return None
 
 
-def _get_metric_generator(metric_type: str) -> Callable[[int, Mapping[str, Any]], Mapping[str, Any]]:
+def _get_metric_generator(
+    metric_type: str,
+) -> Callable[[int, Mapping[str, Any]], Mapping[str, Any]]:
     return {
         "session": session_metric_generator,
         "user": user_metric_generator,
@@ -123,11 +125,13 @@ def _get_environment(idx: int, settings: Mapping[str, Any]) -> str:
 def _get_tags(idx: int, settings: Mapping[str, Any]) -> Mapping[str, str]:
     return {
         "environment": _get_environment(idx, settings),
-        "release": _get_release(idx, settings)
+        "release": _get_release(idx, settings),
     }
 
 
-def default_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
+def default_metric_generator(
+    idx: int, settings: Mapping[str, Any]
+) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
@@ -138,11 +142,13 @@ def default_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[s
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-        }
+        },
     }
 
 
-def session_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
+def session_metric_generator(
+    idx: int, settings: Mapping[str, Any]
+) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
@@ -153,8 +159,8 @@ def session_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[s
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "init"  # maybe cycle through all available statuses
-        }
+            "session.status": "init",  # maybe cycle through all available statuses
+        },
     }
 
 
@@ -169,12 +175,14 @@ def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str,
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "init"  # maybe cycle through all available statuses
-        }
+            "session.status": "init",  # maybe cycle through all available statuses
+        },
     }
 
 
-def session_error_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
+def session_error_metric_generator(
+    idx: int, settings: Mapping[str, Any]
+) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
@@ -185,12 +193,14 @@ def session_error_metric_generator(idx: int, settings: Mapping[str, Any]) -> Map
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "errored_preaggr"  # maybe cycle through all available statuses
-        }
+            "session.status": "errored_preaggr",  # maybe cycle through all available statuses
+        },
     }
 
 
-def session_duration_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
+def session_duration_metric_generator(
+    idx: int, settings: Mapping[str, Any]
+) -> Mapping[str, Any]:
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": 1,
@@ -201,6 +211,6 @@ def session_duration_metric_generator(idx: int, settings: Mapping[str, Any]) -> 
         "timestamp": _get_timestamp(idx, settings),
         "tags": {
             **_get_tags(idx, settings),
-            "session.status": "exited"  # maybe cycle through all available statuses
-        }
+            "session.status": "exited",  # maybe cycle through all available statuses
+        },
     }

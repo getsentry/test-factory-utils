@@ -4,18 +4,18 @@ from typing import Optional
 
 
 TIMEDELTA_REGEX = (
-    r'(?P<minus>-)?'
-    r'((?P<weeks>\d+)w)?'
-    r'((?P<days>\d+)d)?'
-    r'((?P<hours>\d+)h)?'
-    r'((?P<minutes>\d+)m)?'
-    r'((?P<seconds>\d+)s)?'
+    r"(?P<minus>-)?"
+    r"((?P<weeks>\d+)w)?"
+    r"((?P<days>\d+)d)?"
+    r"((?P<hours>\d+)h)?"
+    r"((?P<minutes>\d+)m)?"
+    r"((?P<seconds>\d+)s)?"
 )
 TIMEDELTA_PATTERN = re.compile(TIMEDELTA_REGEX, re.IGNORECASE)
 
 
 def parse_timedelta(delta: Optional[str]) -> Optional[timedelta]:
-    """ Parses a human readable timedelta (3d5h19m2s) into a datetime.timedelta.
+    """Parses a human readable timedelta (3d5h19m2s) into a datetime.timedelta.
     Delta includes:
     * - (for negative deltas)
     * Xw weeks

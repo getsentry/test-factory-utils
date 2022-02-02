@@ -12,25 +12,60 @@ from util import parse_timedelta
 
 
 @click.command()
-@click.option("--num-messages", "-n", default=None, type=int, help="The number of messages to send to the kafka queue")
-@click.option("--settings-file", "-f", default=None, help="The settings file name (json or yaml)")
-@click.option("--topic-name", "-t", default=None, help="The name of the ingest metrics topic")
-@click.option("--broker", "-b", default=None, help="the kafka broker address and port (e.g. localhost:9092)")
-@click.option("--repeatable", "-r", is_flag=True, help="Should it generate a repeatable load or use a random generator (default: random)")
-@click.option("--timestamp", type=int, help="Timestamp reference to use. If exactly repeatable tests are desired then a timestamp ref can be used")
-@click.option("--spread", "-s", help="Time spread from timestamp backward, (e.g. 1w2d3h4m5s 1 week 2 days 3 hours 4 minutes 5 seconds)")
+@click.option(
+    "--num-messages",
+    "-n",
+    default=None,
+    type=int,
+    help="The number of messages to send to the kafka queue",
+)
+@click.option(
+    "--settings-file", "-f", default=None, help="The settings file name (json or yaml)"
+)
+@click.option(
+    "--topic-name", "-t", default=None, help="The name of the ingest metrics topic"
+)
+@click.option(
+    "--broker",
+    "-b",
+    default=None,
+    help="the kafka broker address and port (e.g. localhost:9092)",
+)
+@click.option(
+    "--repeatable",
+    "-r",
+    is_flag=True,
+    help="Should it generate a repeatable load or use a random generator (default: random)",
+)
+@click.option(
+    "--timestamp",
+    type=int,
+    help="Timestamp reference to use. If exactly repeatable tests are desired then a timestamp ref can be used",
+)
+@click.option(
+    "--spread",
+    "-s",
+    help="Time spread from timestamp backward, (e.g. 1w2d3h4m5s 1 week 2 days 3 hours 4 minutes 5 seconds)",
+)
 @click.option("--org", "-o", type=int, help="organisation id")
 @click.option("--project", "-p", type=int, help="project id")
 @click.option("--releases", type=int, help="number of releases to generate")
-@click.option("--col-min", type=int, help="min number of items in collections (sets & distributions)")
-@click.option("--col-max", type=int, help="max number of items in collections (sets & distributions)")
+@click.option(
+    "--col-min",
+    type=int,
+    help="min number of items in collections (sets & distributions)",
+)
+@click.option(
+    "--col-max",
+    type=int,
+    help="max number of items in collections (sets & distributions)",
+)
 @click.option("--environments", type=int, help="number of environments to generate")
 def main(**kwargs):
     """
     Populates the ingest-metrics kafka topic with messages
     """
-    settings = get_settings(
-        **kwargs)
+    settings = get_settings(**kwargs)
 
     producer = get_kafka_producer(settings)
     send_metrics(producer, settings)
@@ -76,11 +111,8 @@ def get_settings(
         "environments": 1,
         "col_min": 1,
         "col_max": 1,
-        "kafka": {
-        },
-        "metric_types": {
-
-        }
+        "kafka": {},
+        "metric_types": {},
     }
 
     if settings_file is not None:
@@ -109,13 +141,19 @@ def get_settings(
         settings["projects"] = [project]
 
     if settings["kafka"].get("bootstrap.servers") is None:
-        raise click.UsageError(f"Kafka broker was not specified, to specify either use --broker argument or set [kafka][bootstrap.servers] in the settings file")
+        raise click.UsageError(
+            f"Kafka broker was not specified, to specify either use --broker argument or set [kafka][bootstrap.servers] in the settings file"
+        )
 
     if settings.get("org") is None:
-        raise click.UsageError(f"Organization was not specified, to specify either use --org argument or set [org] in the settings file")
+        raise click.UsageError(
+            f"Organization was not specified, to specify either use --org argument or set [org] in the settings file"
+        )
 
     if settings.get("projects") is None:
-        raise click.UsageError(f"projects not specified, to specify either use --project argument or set [project] array in the settings file")
+        raise click.UsageError(
+            f"projects not specified, to specify either use --project argument or set [project] array in the settings file"
+        )
 
     if timestamp is not None:
         settings["timestamp"] = timestamp
@@ -174,6 +212,7 @@ def get_fake_kafka_producer(settings):
     """
     A fake producer that just dumps to console (for testing)
     """
+
     class FakeProducer:
         def __init__(self, settings):
             pass
@@ -199,5 +238,5 @@ def get_kafka_producer(settings):
     return Producer(kafka_settings)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
