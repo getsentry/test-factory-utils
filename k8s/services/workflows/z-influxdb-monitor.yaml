@@ -14,20 +14,19 @@ spec:
           - '--timeout'
           - '5m'
           - '--organisation'
-          - '1'
+          - 'sentry'
           - '--bucket-name'
           - 'statsd'
           - '--measurement'
           - 'kafka_consumer_lag'
-          - '--dry-run'
         name: influxdb-monitor
-        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:d43d82ae9d408f0bd5e329aba4e354955de98233
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:85194e6aaca30c0cbeee5e8f398d5d7e892f7422
         resources: {}
-      env:
-        - name: INFLUX_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: influx-rw
-              key: token
-        - name: INFLUX_URL
-          value: 'http://influxdb-server.default.svc.cluster.local'
+        env:
+          - name: INFLUX_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: influx-rw
+                key: token
+          - name: INFLUX_URL
+            value: 'http://influxdb-server.default.svc.cluster.local'
