@@ -33,6 +33,7 @@ spec:
           - "ingest-metrics-consumer"
           - "--max-batch-size=1000"
           - "--max-batch-time-ms=1000"
+          - "--auto-offset-reset=earliest"
           resources:
             requests:
               cpu: 500m
