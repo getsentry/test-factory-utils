@@ -32,12 +32,17 @@ spec:
         templateRef:
           name: z-prepare-run
           template: prepare-run
+      # Stop sentry components (we don't need them for this test)
+      - name: sentry-stop-all
+        templateRef:
+          name: z-sentry
+          template: sentry-stop-all
       # Relay
       - name: relay-update-configuration
         templateRef:
           name: z-deploy-relay
           template: relay-update-configuration
-        depends: prepare-run
+        depends: "prepare-run && sentry-stop-all"
       - name: relay-wait-for-rollout
         templateRef:
           name: z-deploy-relay
