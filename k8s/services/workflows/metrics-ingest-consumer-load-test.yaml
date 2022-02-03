@@ -14,6 +14,10 @@ spec:
       value: "main"
     - name: num_messages
       value: "1000"
+    - name: releases
+      value: "10"
+    - name: environments
+      value: "10"
     - name: comment
       value: ""
   entrypoint: main
@@ -74,6 +78,10 @@ spec:
           parameters:
           - name: num_messages
             value: '{% raw %}{{workflow.parameters.num_messages}}{% endraw %}'
+          - name: releases
+            value: '{% raw %}{{workflow.parameters.releases}}{% endraw %}'
+          - name: environments
+            value: '{% raw %}{{workflow.parameters.environments}}{% endraw %}'
           artifacts:
           - name: ingest_metrics_generator_settings
             from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
