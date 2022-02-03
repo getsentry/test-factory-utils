@@ -18,6 +18,17 @@ func getKafkaLagQuery(bucketName string, measurement string) string {
   |> aggregateWindow(every: 2m, fn: max, createEmpty: false)`, bucketName, measurement)
 }
 
+type ErrorType int
+
+const (
+	BadQuery ErrorType = iota
+	BadDataType
+	NoResults
+	NoData
+	Timeout
+	UnexpectedNilValue
+)
+
 func QueryInfluxDb() {
 	ctx, cancel := context.WithTimeout(context.Background(), *Params.timeout)
 	defer cancel()
@@ -31,31 +42,73 @@ func QueryInfluxDb() {
 	// get QueryTableResult
 	query := getKafkaLagQuery(*Params.bucketName, *Params.measurement)
 
-	for {
+	for count := 0; ; count++ {
 		// loop until kafka_consumer_lag drops to 0 or we timeout
 		result, err := queryAPI.Query(ctx, query)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Query failed:\n%s", err)
-			os.Exit(2) // bad query
+			ExitWithError(BadQuery, err)
 		}
-		result.Next()
-		// Access data (first row)
-		data := result.Record().Value()
-		if data == nil || data == 0.0 {
-			return // if there is absolutely no data or we have caught up we are done
+		hasResults := result.Next()
+		if !hasResults {
+			fmt.Printf("No results found iteration:%d\n", count)
+			if count > 2 {
+				ExitWithError(NoResults, count)
+			}
+
+		} else {
+			// Access data (first record)
+			record := result.Record()
+			if record == nil {
+				ExitWithError(NoData, count)
+			}
+			data := record.Value()
+			if data == nil {
+				ExitWithError(UnexpectedNilValue, count)
+			}
+			queueSize, ok := data.(float64)
+			if !ok {
+				ExitWithError(BadDataType, data)
+			}
+
+			if queueSize == 0.0 {
+				return // we have caught up, we are done
+			}
+			// if  we are here we have activity wait till cancellation or till time
+			// for another try
+			fmt.Printf("Metric value: %v, continue waiting...\n", queueSize)
 		}
 
-		// if  we are here we have activity wait till cancellation or till time
-		// for another try
 		select {
 		case <-time.After(30 * time.Second):
 			continue // try again maybe the lag is at 0
 		case <-ctx.Done():
 			// request canceled exit with error
-			_, _ = fmt.Fprintf(os.Stderr, "\nWaiting for kafka consumer lag timed out after %v  !!!", *Params.timeout)
-			os.Exit(1)
+			ExitWithError(Timeout, *Params.timeout)
 		}
 	}
+}
+
+func ExitWithError(errorCode ErrorType, aux interface{}) {
+
+	param := aux
+	var msg string
+	switch errorCode {
+	case BadQuery:
+		msg = "Query failed:\n%s"
+	case BadDataType:
+		msg = "Data is not of the expected float64 type but %T"
+	case Timeout:
+		msg = "\nWaiting for kafka consumer lag timed out after %v"
+		param = *Params.timeout
+	case NoResults:
+		msg = "\nNo results found iteration:%d"
+	case NoData:
+		msg = "\nNo data found iteration:%d "
+	case UnexpectedNilValue:
+		msg = "\nNil data found in iteration:%d "
+	}
+	_, _ = fmt.Fprintf(os.Stderr, msg, param)
+	os.Exit(int(errorCode))
 }
 
 type CliParams struct {
@@ -116,6 +169,7 @@ func cliSetup() *cobra.Command {
 			*Params.influxDbServer = viper.GetString("influxdb-url")
 		},
 	}
+
 	viper.BindEnv("influxdb-token", "INFLUX_TOKEN")
 	viper.BindEnv("influxdb-url", "INFLUX_URL")
 
