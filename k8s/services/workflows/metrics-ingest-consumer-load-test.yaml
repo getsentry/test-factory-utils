@@ -38,6 +38,7 @@ spec:
         templateRef:
           name: z-sentry
           template: sentry-stop-all
+        depends: prepare-run
       # Clear previous state
       - name: flush-all-kafka
         templateRef:
