@@ -9,33 +9,13 @@ spec:
   podGC:
     strategy: OnWorkflowCompletion
   templates:
-  - name: relay-update-version
-    inputs:
-      parameters:
-      - name: relay_version
-    resource:
-      action: patch
-      manifest: |
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: relay-main
-          namespace: default
-        spec:
-          template:
-            metadata:
-              annotations:
-                argoWorkflowId: "{% raw %}{{workflow.uid}}{% endraw %}"
-            spec:
-              containers:
-              - image: us.gcr.io/sentryio/relay:{% raw %}{{inputs.parameters.relay_version}}{% endraw %}
-                name: relay
-
   - name: relay-update-configuration
     inputs:
       parameters:
       - name: test_factory_sha
         value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
+      - name: wait_for_rollout
+        value: '1'
       artifacts:
         - name: test-factory-checkout
           path: /root/test-factory
@@ -71,21 +51,18 @@ spec:
 
         # FIXME: do not hardcode namespaces
         sentry-kube kubectl apply -n default -f _relay.processed.yaml
+
+        ### Wait for rollout, if told
+        WAIT_FOR_ROLLOUT=$(echo "{% raw %}{{inputs.parameters.wait_for_rollout}}{% endraw %}" | tr '[:upper:]' '[:lower:]')
+        TRUTHY_VALUES=("1" "yes" "true")
+
+        if [[ " ${TRUTHY_VALUES[*]} " == *" ${WAIT_FOR_ROLLOUT} "* ]]; then
+          echo "Waiting for the rollout to finish..."
+          sentry-kube kubectl rollout status deployment -n default relay-main --timeout=60s
+        fi
+
     serviceAccountName: default
 
-  - name: relay-wait-for-rollout
-    container:
-      command:
-      - kubectl
-      - rollout
-      - status
-      - deployment
-      - --namespace=default
-      - relay-main
-      - --timeout=60s
-      image: bitnami/kubectl:1.19
-      name: kubectl
-    serviceAccountName: default
   ttlStrategy:
     # 3 days
     secondsAfterCompletion: 259200

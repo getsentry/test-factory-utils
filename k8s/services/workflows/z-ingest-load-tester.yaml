@@ -56,7 +56,7 @@ spec:
         sentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml
     serviceAccountName: default
 
-  - name: ingset-load-tester-wait-for-rollout
+  - name: ingest-load-tester-wait-for-rollout
     container:
       name: kubectl
       image: bitnami/kubectl:1.19
