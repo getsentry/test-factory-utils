@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: z-deploy-locust
+  name: z-ingest-load-tester
   namespace: argo
   labels:
     workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
@@ -10,7 +10,7 @@ spec:
     strategy: OnWorkflowCompletion
   templates:
 
-  - name: locust-update-configuration
+  - name: ingest-load-tester-update-configuration
     inputs:
       parameters:
       - name: test_factory_sha
@@ -56,7 +56,7 @@ spec:
         sentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml
     serviceAccountName: default
 
-  - name: locust-wait-for-rollout
+  - name: ingset-load-tester-wait-for-rollout
     container:
       name: kubectl
       image: bitnami/kubectl:1.19

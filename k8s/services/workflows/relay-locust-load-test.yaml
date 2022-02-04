@@ -59,12 +59,12 @@ spec:
       # Locust
       - name: locust-update-configuration
         templateRef:
-          name: z-deploy-locust
+          name: z-ingest-load-tester
           template: locust-update-configuration
         depends: prepare-run
       - name: locust-wait-for-rollout
         templateRef:
-          name: z-deploy-locust
+          name: z-ingest-load-tester
           template: locust-wait-for-rollout
         depends: locust-update-configuration
       # Test!
