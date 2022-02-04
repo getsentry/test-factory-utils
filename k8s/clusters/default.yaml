@@ -2,6 +2,7 @@ context: gke_sentry-st-testing_europe-west3-b_cluster-1
 
 services:
   - k8s/services/argo-workflows
+  - k8s/services/clickhouse
   - k8s/services/common
   - k8s/services/fake-sentry
   - k8s/services/geoipupdate
@@ -17,3 +18,4 @@ services:
   - k8s/services/workflows
   - k8s/services/zookafka
   - k8s/services/sentry
+  - k8s/services/snuba

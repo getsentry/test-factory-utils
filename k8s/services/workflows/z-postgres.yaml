@@ -40,6 +40,7 @@ spec:
         - 'CREATE DATABASE sentry;'
     serviceAccountName: default
 
+  # FIXME: move this to z-sentry?
   - name: run-migrations
     inputs:
       parameters:
@@ -69,6 +70,7 @@ spec:
 
           POD_NAME="run-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
 
+          # FIXME: extract this to a job
           cat <<EOF >/tmp/pod.yaml
           apiVersion: v1
           kind: Pod

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse
+  labels:
+    service: clickhouse
+data:
+  config.xml: |
+    {% filter indent %}{% include 'templates/config.xml' %}{% endfilter %}

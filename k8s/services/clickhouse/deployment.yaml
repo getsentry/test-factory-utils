@@ -1,0 +1,46 @@
+{% set labels = {
+  "service": "clickhouse",
+  "component": "server",
+} %}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse-sentry
+  labels: {{ labels }}
+spec:
+  selector:
+    matchLabels: {{ labels }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: {{ labels }}
+      annotations:
+        configVersion: "{{ md5template('templates/config.xml') }}"
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - image: yandex/clickhouse-server:21.8.8.29-alpine
+        name: clickhouse-sentry
+        volumeMounts:
+        - name: clickhouse-disk
+          mountPath: /var/lib/clickhouse
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/config.xml
+          subPath: config.xml
+        resources:
+          requests:
+            cpu: 200m
+            memory: 500Mi
+          limits:
+            cpu: 4000m
+            memory: 500Mi
+      volumes:
+      - name: clickhouse-disk
+        persistentVolumeClaim:
+          claimName: clickhouse-sentry-claim
+      - name: clickhouse-config
+        configMap:
+          name: clickhouse

@@ -1,0 +1,137 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: z-snuba
+  namespace: argo
+spec:
+  podGC:
+    strategy: OnWorkflowCompletion
+  templates:
+
+  # Stop all Snuba services
+  - name: snuba-stop-all
+    container:
+      name: kubectl
+      image: bitnami/kubectl:1.19
+      command:
+      - kubectl
+      - scale
+      - deployment
+      - --namespace=default
+      - --replicas=0
+      - --selector=service=snuba
+      - --timeout=60s
+    serviceAccountName: default
+
+  # Wait for rollout
+  - name: snuba-wait-for-rollout
+    container:
+      command:
+      - kubectl
+      - rollout
+      - status
+      - deployment
+      - --namespace=default
+      - snuba-metrics-consumer
+      - --timeout=60s
+      image: bitnami/kubectl:1.19
+      name: kubectl
+    serviceAccountName: default
+
+  - name: run-snuba-migrations
+    inputs:
+      parameters:
+      - name: snuba_sha
+        value: default
+    container:
+      image: bitnami/kubectl:1.19
+      command:
+        - bash
+        - -c
+        - |
+          exec 2>&1
+          set -euo pipefail
+
+          SNUBA_SHA='{% raw %}{{inputs.parameters.snuba_sha}}{% endraw %}'
+          if [[ "${SNUBA_SHA}" == "default" ]]; then
+            SNUBA_IMAGE=$(kubectl get deployment -n default snuba-metrics-consumer -o jsonpath='{.spec.template.spec.containers[0].image}')
+          else
+            SNUBA_IMAGE="us.gcr.io/sentryio/snuba:${SNUBA_SHA}"
+          fi
+
+          if [[ "${SNUBA_IMAGE}" != *"sentryio/snuba"* ]]; then
+            echo "Incorrect Snuba image: ${SNUBA_IMAGE}"
+            exit 1
+          fi
+          echo "Using Snuba image: ${SNUBA_IMAGE}"
+
+          POD_NAME="run-snuba-migrations-{% raw %}{{workflow.uid}}{% endraw %}"
+
+          # FIXME: extract this to a job?
+          cat <<EOF >/tmp/pod.yaml
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "${POD_NAME}"
+            namespace: "default"
+            labels:
+              workflowTemplate: 'run-snuba-migrations'
+          spec:
+            containers:
+              - image: "${SNUBA_IMAGE}"
+                name: snuba-metrics-consumer-migrate
+                args:
+                - bootstrap
+                - '--force'
+                resources:
+                  requests:
+                    cpu: 500m
+                    memory: 1000Mi
+                  limits:
+                    cpu: 2000m
+                    memory: 1000Mi
+                # Note: these mounts and env vars have to be the same as for other Snuba containers
+                volumeMounts:
+                  - name: snuba-config
+                    mountPath: /etc/snuba/settings.py
+                    subPath: settings.py
+                    readOnly: true
+                env:
+                  - name: SNUBA_SETTINGS
+                    value: /etc/snuba/settings.py
+            volumes:
+              - name: snuba-config
+                configMap:
+                  name: snuba
+            restartPolicy: Never
+          EOF
+          kubectl apply -f /tmp/pod.yaml
+
+          echo 'Waiting for the migration to finish...'
+          RET=0
+          while true; do
+            PHASE=$(kubectl get pod -n default "${POD_NAME}" -o jsonpath='{.status.phase}')
+            if [[ "${PHASE}" == "Succeeded" ]]; then
+              echo 'Done!'
+              RET=0
+              break
+            elif [[ "${PHASE}" == "Failed" ]]; then
+              echo 'Error!'
+              kubectl desribe pod -n default "${POD_NAME}"
+              RET=1
+              break
+            elif [[ ${PHASE} == "" ]]; then
+              echo 'Something went wrong.'
+              RET=1
+              break
+            else
+              echo "[$(date)] Waiting..."
+              sleep 5
+            fi
+          done
+          kubectl logs -n default "${POD_NAME}"
+          exit "${RET}"
+    serviceAccountName: default
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200
