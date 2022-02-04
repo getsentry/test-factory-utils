@@ -9,7 +9,7 @@ spec:
   # Disallow to run this workflow in parallel
   synchronization:
     mutex:
-      name:  relay-locust-load-test
+      name: relay-locust-load-test
   arguments:
     parameters:
     - name: test_factory_branch
@@ -32,6 +32,14 @@ spec:
         templateRef:
           name: z-prepare-run
           template: prepare-run
+        arguments:
+          parameters:
+          - name: test_factory_branch
+            value: "{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}"
+          - name: test_duration
+            value: "{% raw %}{{workflow.parameters.test_duration}}{% endraw %}"
+          - name: test_users
+            value: "{% raw %}{{workflow.parameters.test_users}}{% endraw %}"
       # Stop sentry components (we don't need them for this test)
       - name: sentry-stop-all
         templateRef:
@@ -40,12 +48,12 @@ spec:
       # Relay
       - name: relay-update-configuration
         templateRef:
-          name: z-deploy-relay
+          name: z-relay
           template: relay-update-configuration
         depends: "prepare-run && sentry-stop-all"
       - name: relay-wait-for-rollout
         templateRef:
-          name: z-deploy-relay
+          name: z-relay
           template: relay-wait-for-rollout
         depends: relay-update-configuration
       # Locust

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: z-deploy-relay
+  name: z-relay
   namespace: argo
   labels:
     workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server

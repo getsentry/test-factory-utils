@@ -12,17 +12,22 @@ spec:
   - name: prepare-run
     inputs:
       artifacts:
-        - name: test-factory-checkout
-          path: /root/test-factory
-          git:
-            repo: 'git@github.com:getsentry/test-factory'
-            # FIXME: can this workflow.parameters be replaced?
-            revision: '{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}'
-            depth: 1
-            sshPrivateKeySecret:
-              name: ssh-deploy-key-test-factory
-              key: ssh-private-key
+      # We can clone it to a volume that'll be shared with the consequitive steps,
+      # e.g. like here https://github.com/argoproj/argo-workflows/blob/master/examples/ci.yaml
+      # The problem is that the volume will be ReadWriteOnce, so it won't be possible to use it
+      # in different steps concurrently.
+      - name: test-factory-checkout
+        path: /root/test-factory
+        git:
+          repo: 'git@github.com:getsentry/test-factory'
+          revision: '{% raw %}{{inputs.parameters.test_factory_branch}}{% endraw %}'
+          # depth: 1
+          sshPrivateKeySecret:
+            name: ssh-deploy-key-test-factory
+            key: ssh-private-key
       parameters:
+      - name: test_factory_branch
+        value: "main"
       - name: test_duration
         value: "30s"
       - name: test_users

@@ -28,7 +28,7 @@ spec:
     dag:
       tasks:
       # Prepare
-      # TODO we need to split this in two ( since it also deploys ingest-load-tester)
+      # TODO we need to split this (since it fetches ingest-load-tester, relay, etc.)
       - name: prepare-run
         templateRef:
           name: z-prepare-run
