@@ -99,6 +99,9 @@ spec:
         echo '### Manifest file'
         cat "${MANIFEST_FILE}"
         echo '---'
+
+        # To reduce the directory size when archiving
+        rm -rf "${ROOT_DIR}/.git"
     outputs:
       artifacts:
         - name: run_manifest
@@ -107,6 +110,9 @@ spec:
         - name: ingest-metrics-generator-settings
           path: /tmp/ingest-metrics-generator-settings.yaml
           globalName: ingest_metrics_generator_settings
+        - name: test-factory-src
+          path: /root/test-factory
+          globalName: test-factory-src
       parameters:
         - name: test_factory_sha
           valueFrom:

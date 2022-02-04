@@ -44,6 +44,15 @@ spec:
           name: z-kafka
           template: flush-all-kafka
         depends: sentry-stop-all
+      - name: apply-topic-config
+        templateRef:
+          name: z-kafka
+          template: apply-topic-config
+        arguments:
+          artifacts:
+          - name: test-factory-src
+            from: '{% raw %}{{workflow.outputs.artifacts.test-factory-src}}{% endraw %}'
+        depends: flush-all-kafka
       - name: flush-all-memcached
         templateRef:
           name: z-memcached
@@ -63,7 +72,7 @@ spec:
         templateRef:
           name: z-sentry
           template: sentry-update-configuration
-        depends: "prepare-run && flush-all-kafka && flush-all-memcached && reset-and-run-migrations"
+        depends: "prepare-run && apply-topic-config && flush-all-memcached && reset-and-run-migrations"
       - name: sentry-wait-for-rollout
         templateRef:
           name: z-sentry
