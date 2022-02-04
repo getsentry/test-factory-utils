@@ -15,6 +15,8 @@ spec:
       parameters:
       - name: test_factory_sha
         value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
+      - name: wait_for_rollout
+        value: '1'
       # TODO: is there a way to dedupe this?
       artifacts:
         - name: test-factory-checkout
@@ -54,20 +56,19 @@ spec:
         # FIXME: do not hardcode namespaces
         sentry-kube kubectl apply -n default -f _ingest-load-tester.processed.yaml
         sentry-kube kubectl apply -n default -f _fake-sentry.processed.yaml
+
+        ### Wait for rollout, if told
+        WAIT_FOR_ROLLOUT=$(echo "{% raw %}{{inputs.parameters.wait_for_rollout}}{% endraw %}" | tr '[:upper:]' '[:lower:]')
+        TRUTHY_VALUES=("1" "yes" "true")
+
+        if [[ " ${TRUTHY_VALUES[*]} " == *" ${WAIT_FOR_ROLLOUT} "* ]]; then
+          echo "Waiting for the rollout to finish..."
+          sentry-kube kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s
+          sentry-kube kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
+          sentry-kube kubectl rollout status deployment --namespace=default fake-sentry --timeout=60s
+        fi
     serviceAccountName: default
 
-  - name: ingest-load-tester-wait-for-rollout
-    container:
-      name: kubectl
-      image: bitnami/kubectl:1.19
-      command:
-      - bash
-      - -c
-      - |
-        kubectl rollout status deployment --namespace=default ingest-load-tester-master --timeout=60s
-        kubectl rollout status deployment --namespace=default ingest-load-tester-worker --timeout=60s
-        kubectl rollout status deployment --namespace=default fake-sentry --timeout=60s
-    serviceAccountName: default
   ttlStrategy:
     # 3 days
     secondsAfterCompletion: 259200

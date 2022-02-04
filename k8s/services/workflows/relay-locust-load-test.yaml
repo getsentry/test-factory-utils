@@ -57,11 +57,6 @@ spec:
           name: z-ingest-load-tester
           template: ingest-load-tester-update-configuration
         depends: prepare-run
-      - name: ingest-load-tester-wait-for-rollout
-        templateRef:
-          name: z-ingest-load-tester
-          template: ingest-load-tester-wait-for-rollout
-        depends: ingest-load-tester-update-configuration
       # Test!
       - name: run-test
         templateRef:
@@ -78,7 +73,7 @@ spec:
           artifacts:
           - name: run_manifest
             from: '{% raw %}{{workflow.outputs.artifacts.run_manifest}}{% endraw %}'
-        depends: "relay-update-configuration && ingest-load-tester-wait-for-rollout"
+        depends: "relay-update-configuration && ingest-load-tester-update-configuration"
       - name: run-stats
         templateRef:
           name: z-run-test
