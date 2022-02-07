@@ -31,6 +31,8 @@ spec:
         value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
       - name: sentry_sha
         value: '{% raw %}{{workflow.outputs.parameters.sentry_sha}}{% endraw %}'
+      - name: wait_for_rollout
+        value: '1'
       artifacts:
         - name: test-factory-checkout
           path: /root/test-factory
@@ -65,21 +67,16 @@ spec:
 
         # FIXME: do not hardcode namespaces
         sentry-kube kubectl apply -n default -f _sentry.processed.yaml
+
+        ### Wait for rollout, if told
+        WAIT_FOR_ROLLOUT=$(echo "{% raw %}{{inputs.parameters.wait_for_rollout}}{% endraw %}" | tr '[:upper:]' '[:lower:]')
+        TRUTHY_VALUES=("1" "yes" "true")
+
+        if [[ " ${TRUTHY_VALUES[*]} " == *" ${WAIT_FOR_ROLLOUT} "* ]]; then
+          echo "Waiting for the rollout to finish..."
+          sentry-kube kubectl rollout status deployment --namespace=default ingest-metrics-consumer --timeout=60s
+        fi
     serviceAccountName: default
 
-  # Wait for rollout
-  - name: sentry-wait-for-rollout
-    container:
-      name: sentry-wait-for-rollout
-      image: {{ values.kubectl_image }}
-      command:
-      - kubectl
-      - rollout
-      - status
-      - deployment
-      - --namespace=default
-      - ingest-metrics-consumer
-      - --timeout=60s
-    serviceAccountName: default
   ttlStrategy:
     secondsAfterCompletion: {{ values.workflow_ttl_seconds }}
