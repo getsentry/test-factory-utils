@@ -146,5 +146,4 @@ spec:
             path: /tmp/test_override
           globalName: test_override
   ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
+    secondsAfterCompletion: {{ values.workflow_ttl_seconds }}

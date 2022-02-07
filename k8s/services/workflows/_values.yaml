@@ -1,3 +1,4 @@
+### Images
 kubectl_image: "bitnami/kubectl:1.19"
 
 # getsentry/ops branch: feat/sentry-kube-no-context
@@ -11,3 +12,6 @@ clickhouse_hostname: "clickhouse-sentry.default.svc.cluster.local"
 memcached_hostname: "memcached-sentry.default.svc.cluster.local"
 redis_hostname: "redis-sentry.default.svc.cluster.local"
 influxdb_hostname: "influxdb-server.default.svc.cluster.local"
+
+### Misc
+workflow_ttl_seconds: 259200

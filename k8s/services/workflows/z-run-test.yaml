@@ -113,5 +113,4 @@ spec:
         - name: INFLUX_URL
           value: 'http://{{ values.influxdb_hostname }}'
   ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
+    secondsAfterCompletion: {{ values.workflow_ttl_seconds }}

@@ -20,5 +20,4 @@ spec:
 
         echo flush_all | nc -v -w 30 {{ values.memcached_hostname }} 11211
   ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
+    secondsAfterCompletion: {{ values.workflow_ttl_seconds }}

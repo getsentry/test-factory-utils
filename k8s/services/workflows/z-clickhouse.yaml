@@ -23,5 +23,4 @@ spec:
         clickhouse-client --host "${CLICKHOUSE_HOST}" --query 'DROP DATABASE IF EXISTS default'
         clickhouse-client --host "${CLICKHOUSE_HOST}" --query 'CREATE DATABASE default'
   ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
+    secondsAfterCompletion: {{ values.workflow_ttl_seconds }}

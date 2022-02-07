@@ -129,5 +129,4 @@ spec:
           done
     serviceAccountName: default
   ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
+    secondsAfterCompletion: {{ values.workflow_ttl_seconds }}
