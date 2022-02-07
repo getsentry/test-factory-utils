@@ -30,7 +30,7 @@ spec:
           name: ingest-metrics-consumer
           args:
           - "run"
-          - "ingest-metrics-consumer"
+          - "ingest-metrics-consumer-2"
           - "--max-batch-size=1000"
           - "--max-batch-time-ms=1000"
           - "--auto-offset-reset=earliest"
