@@ -21,8 +21,7 @@ spec:
         path: /root/test-factory
     container:
       name: sentry-kube
-      # getsentry/ops branch: feat/sentry-kube-no-context
-      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      image: {{ values.sentry_kube_image }}
       command:
       - bash
       - '-c'

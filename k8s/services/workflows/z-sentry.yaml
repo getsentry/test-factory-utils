@@ -11,8 +11,8 @@ spec:
   # Stop all Sentry services
   - name: sentry-stop-all
     container:
-      name: kubectl
-      image: bitnami/kubectl:1.19
+      name: sentry-stop-all
+      image: {{ values.kubectl_image }}
       command:
       - kubectl
       - scale
@@ -43,8 +43,7 @@ spec:
               key: ssh-private-key
     container:
       name: sentry-kube
-      # getsentry/ops branch: feat/sentry-kube-no-context
-      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      image: {{ values.sentry_kube_image }}
       command:
       - bash
       - '-c'
@@ -71,6 +70,8 @@ spec:
   # Wait for rollout
   - name: sentry-wait-for-rollout
     container:
+      name: sentry-wait-for-rollout
+      image: {{ values.kubectl_image }}
       command:
       - kubectl
       - rollout
@@ -79,8 +80,6 @@ spec:
       - --namespace=default
       - ingest-metrics-consumer
       - --timeout=60s
-      image: bitnami/kubectl:1.19
-      name: kubectl
     serviceAccountName: default
   ttlStrategy:
     # 3 days

@@ -12,7 +12,7 @@ spec:
   - name: snuba-stop-all
     container:
       name: kubectl
-      image: bitnami/kubectl:1.19
+      image: {{ values.kubectl_image }}
       command:
       - kubectl
       - scale
@@ -26,6 +26,8 @@ spec:
   # Wait for rollout
   - name: snuba-wait-for-rollout
     container:
+      name: kubectl
+      image: {{ values.kubectl_image }}
       command:
       - kubectl
       - rollout
@@ -34,8 +36,6 @@ spec:
       - --namespace=default
       - snuba-metrics-consumer
       - --timeout=60s
-      image: bitnami/kubectl:1.19
-      name: kubectl
     serviceAccountName: default
 
   - name: run-snuba-migrations
@@ -44,7 +44,7 @@ spec:
       - name: snuba_sha
         value: default
     container:
-      image: bitnami/kubectl:1.19
+      image: {{ values.kubectl_image }}
       command:
         - bash
         - -c
@@ -136,9 +136,6 @@ spec:
           kubectl logs -n default "${POD_NAME}"
           exit "${RET}"
     serviceAccountName: default
-  ttlStrategy:
-    # 3 days
-    secondsAfterCompletion: 259200
 
   - name: snuba-update-configuration
     inputs:
@@ -150,8 +147,7 @@ spec:
         path: /root/test-factory
     container:
       name: sentry-kube
-      # getsentry/ops branch: feat/sentry-kube-no-context
-      image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+      image: {{ values.sentry_kube_image }}
       command:
       - bash
       - '-c'
@@ -185,3 +181,7 @@ spec:
         fi
 
     serviceAccountName: default
+
+  ttlStrategy:
+    # 3 days
+    secondsAfterCompletion: 259200

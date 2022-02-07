@@ -47,7 +47,7 @@ spec:
       - name: sentry_sha
         value: default
     container:
-      image: bitnami/kubectl:1.19
+      image: {{ values.kubectl_image }}
       command:
         - bash
         - -c
