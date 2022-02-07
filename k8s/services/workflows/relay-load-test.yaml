@@ -40,18 +40,26 @@ spec:
             value: "{% raw %}{{workflow.parameters.test_duration}}{% endraw %}"
           - name: test_users
             value: "{% raw %}{{workflow.parameters.test_users}}{% endraw %}"
-      # Stop sentry components (we don't need them for this test)
+      # Stop components that we don't need for this test
       - name: sentry-stop-all
         templateRef:
           name: z-sentry
           template: sentry-stop-all
-      # Relay
+      - name: snuba-stop-all
+        templateRef:
+          name: z-snuba
+          template: snuba-stop-all
+      # Update Relay
       - name: relay-update-configuration
         templateRef:
           name: z-relay
           template: relay-update-configuration
+        arguments:
+          artifacts:
+          - name: test-factory-src
+            from: '{% raw %}{{workflow.outputs.artifacts.test-factory-src}}{% endraw %}'
         depends: "prepare-run && sentry-stop-all"
-      # Load tester
+      # Update Load Tester
       - name: ingest-load-tester-update-configuration
         templateRef:
           name: z-ingest-load-tester

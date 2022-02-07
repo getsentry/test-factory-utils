@@ -17,15 +17,8 @@ spec:
       - name: wait_for_rollout
         value: '1'
       artifacts:
-        - name: test-factory-checkout
-          path: /root/test-factory
-          git:
-            repo: 'git@github.com:getsentry/test-factory'
-            revision: '{% raw %}{{inputs.parameters.test_factory_sha}}{% endraw %}'
-            depth: 1
-            sshPrivateKeySecret:
-              name: ssh-deploy-key-test-factory
-              key: ssh-private-key
+      - name: test-factory-src
+        path: /root/test-factory
     container:
       name: sentry-kube
       # getsentry/ops branch: feat/sentry-kube-no-context
@@ -37,7 +30,7 @@ spec:
         exec 2>&1
         set -euxo pipefail
 
-        git status
+        git init
 
         # Update relay version
         yq eval -i '.environments.main.image_tag = "{% raw %}{{workflow.outputs.parameters.relay_sha}}{% endraw %}"' ./k8s/services/relay/_values.yaml
