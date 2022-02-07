@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: relay-locust-load-test
+  name: relay-load-test
   namespace: argo
   labels:
     workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
@@ -9,7 +9,7 @@ spec:
   # Disallow to run this workflow in parallel
   synchronization:
     mutex:
-      name: relay-locust-load-test
+      name: relay-load-test
   arguments:
     parameters:
     - name: test_factory_branch

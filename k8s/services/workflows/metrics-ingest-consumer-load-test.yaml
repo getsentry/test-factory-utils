@@ -4,10 +4,10 @@ metadata:
   name: metrics-ingest-consumer-load-test
   namespace: argo
 spec:
-  # Disallow to run this workflow in parallel (with itself or relay-locust-load-test)
+  # Disallow to run this workflow in parallel (with itself or relay-load-test)
   synchronization:
     mutex:
-      name:  relay-locust-load-test
+      name:  relay-load-test
   arguments:
     parameters:
     - name: test_factory_branch
