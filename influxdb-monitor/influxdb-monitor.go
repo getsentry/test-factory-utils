@@ -25,13 +25,11 @@ const (
 	BadDataType
 	NoResults
 	NoData
-	Timeout
+	Stuck
 	UnexpectedNilValue
 )
 
 func QueryInfluxDb() {
-	ctx, cancel := context.WithTimeout(context.Background(), *Params.timeout)
-	defer cancel()
 
 	// Create a new client using an InfluxDB server base URL and an authentication token
 	client := influxdb2.NewClient(*Params.influxDbServer, *Params.influxDbToken)
@@ -41,10 +39,13 @@ func QueryInfluxDb() {
 	queryAPI := client.QueryAPI(*Params.organisationId)
 	// get QueryTableResult
 	query := getKafkaLagQuery(*Params.bucketName, *Params.measurement)
-
+	var dataValue, previousDataValue float64
+	var sameQueueSizeCounter int
 	for count := 0; ; count++ {
-		// loop until kafka_consumer_lag drops to 0 or we timeout
+		// loop until data value drops to 0 or we get stuck
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		result, err := queryAPI.Query(ctx, query)
+		cancel()
 		if err != nil {
 			ExitWithError(BadQuery, err)
 		}
@@ -65,41 +66,43 @@ func QueryInfluxDb() {
 			if data == nil {
 				ExitWithError(UnexpectedNilValue, count)
 			}
-			queueSize, ok := data.(float64)
+			var ok bool
+			previousDataValue = dataValue
+			dataValue, ok = data.(float64)
 			if !ok {
 				ExitWithError(BadDataType, data)
 			}
+			if dataValue == previousDataValue {
+				sameQueueSizeCounter++
+			} else {
+				sameQueueSizeCounter = 0
+			}
+			if sameQueueSizeCounter > 2 {
+				// queue size hasn't changed in the last few iteration time to stop
+				ExitWithError(Stuck, dataValue)
+			}
 
-			if queueSize == 0.0 {
+			if dataValue == 0.0 {
 				return // we have caught up, we are done
 			}
 			// if  we are here we have activity wait till cancellation or till time
 			// for another try
-			fmt.Printf("Metric value: %v, continue waiting...\n", queueSize)
+			fmt.Printf("Metric value: %v, continue waiting...\n", dataValue)
 		}
-
-		select {
-		case <-time.After(30 * time.Second):
-			continue // try again maybe the lag is at 0
-		case <-ctx.Done():
-			// request canceled exit with error
-			ExitWithError(Timeout, *Params.timeout)
-		}
+		time.Sleep(30 * time.Second)
 	}
 }
 
 func ExitWithError(errorCode ErrorType, aux interface{}) {
 
-	param := aux
 	var msg string
 	switch errorCode {
 	case BadQuery:
 		msg = "Query failed:\n%s"
 	case BadDataType:
 		msg = "Data is not of the expected float64 type but %T"
-	case Timeout:
-		msg = "\nWaiting for kafka consumer lag timed out after %v"
-		param = *Params.timeout
+	case Stuck:
+		msg = "\nData stuck at %v"
 	case NoResults:
 		msg = "\nNo results found iteration:%d"
 	case NoData:
@@ -107,12 +110,11 @@ func ExitWithError(errorCode ErrorType, aux interface{}) {
 	case UnexpectedNilValue:
 		msg = "\nNil data found in iteration:%d "
 	}
-	_, _ = fmt.Fprintf(os.Stderr, msg, param)
+	_, _ = fmt.Fprintf(os.Stderr, msg, aux)
 	os.Exit(int(errorCode))
 }
 
 type CliParams struct {
-	timeout        *time.Duration
 	influxDbServer *string
 	influxDbToken  *string
 	organisationId *string
@@ -127,14 +129,13 @@ func ShowParams() {
 
 	fmt.Printf(`
 Cli parameters:
-    timeout: %v
     dbServer: %s
     dbToken: %v
     orgId: %v
     bucketName: %s
     measurement: %s
     dryRun: %t`,
-		Params.timeout, *Params.influxDbServer, *Params.influxDbToken, *Params.organisationId, *Params.bucketName, *Params.measurement, Params.dryRun)
+		*Params.influxDbServer, *Params.influxDbToken, *Params.organisationId, *Params.bucketName, *Params.measurement, Params.dryRun)
 
 	fmt.Printf(`
 
@@ -173,8 +174,6 @@ func cliSetup() *cobra.Command {
 	viper.BindEnv("influxdb-token", "INFLUX_TOKEN")
 	viper.BindEnv("influxdb-url", "INFLUX_URL")
 
-	Params.timeout = rootCmd.Flags().DurationP("timeout", "t", time.Minute*2,
-		"the maximum duration after which a timeout occurs")
 	Params.influxDbServer = rootCmd.Flags().StringP("influxdb-url", "u", "", "InfluxDb url (e.g. http://localhost:8086)")
 	Params.influxDbToken = rootCmd.Flags().StringP("influxdb-token", "x", "", "InfluxDb access token")
 	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")

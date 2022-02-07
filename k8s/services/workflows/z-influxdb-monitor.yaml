@@ -11,8 +11,6 @@ spec:
       container:
         command:
           - '/influxdb-monitor'
-          - '--timeout'
-          - '5m'
           - '--organisation'
           - 'sentry'
           - '--bucket-name'
