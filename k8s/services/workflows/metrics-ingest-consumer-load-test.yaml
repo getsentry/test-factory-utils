@@ -20,6 +20,8 @@ spec:
       value: "10"
     - name: comment
       value: ""
+    - name: clear_kafka_queue
+      value: "true"
   entrypoint: main
   podGC:
     strategy: OnWorkflowCompletion
@@ -44,6 +46,7 @@ spec:
         templateRef:
           name: z-kafka
           template: flush-all-kafka
+        when: "{% raw %}{{workflow.parameters.clear_kafka_queue}}{% endraw %} == true"
         depends: sentry-stop-all
       - name: apply-topic-config
         templateRef:
@@ -53,6 +56,7 @@ spec:
           artifacts:
           - name: test-factory-src
             from: '{% raw %}{{workflow.outputs.artifacts.test-factory-src}}{% endraw %}'
+        when: "{% raw %}{{workflow.parameters.clear_kafka_queue}}{% endraw %} == true"
         depends: flush-all-kafka
       - name: flush-all-memcached
         templateRef:
