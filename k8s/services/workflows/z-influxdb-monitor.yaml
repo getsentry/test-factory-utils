@@ -27,4 +27,4 @@ spec:
                 name: influx-rw
                 key: token
           - name: INFLUX_URL
-            value: 'http://influxdb-server.default.svc.cluster.local'
+            value: 'http://{{ values.influxdb_hostname }}'

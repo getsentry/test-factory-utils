@@ -2,3 +2,12 @@ kubectl_image: "bitnami/kubectl:1.19"
 
 # getsentry/ops branch: feat/sentry-kube-no-context
 sentry_kube_image: "europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-kube:f575c8bb772339b61bc0caa8a337dec24ddc2642"
+
+### Endpoints
+kafka_hostname: "ingest-kafka.default.svc.cluster.local"
+zookeeper_hostname: "ingest-kafka.default.svc.cluster.local"
+postgres_hostname: "postgres-sentry.default.svc.cluster.local"
+clickhouse_hostname: "clickhouse-sentry.default.svc.cluster.local"
+memcached_hostname: "memcached-sentry.default.svc.cluster.local"
+redis_hostname: "redis-sentry.default.svc.cluster.local"
+influxdb_hostname: "influxdb-server.default.svc.cluster.local"

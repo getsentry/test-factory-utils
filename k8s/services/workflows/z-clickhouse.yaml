@@ -18,7 +18,7 @@ spec:
         exec 2>&1
         set -euxo pipefail
 
-        CLICKHOUSE_HOST="clickhouse-sentry.default.svc.cluster.local"
+        CLICKHOUSE_HOST="{{ values.clickhouse_hostname }}"
 
         clickhouse-client --host "${CLICKHOUSE_HOST}" --query 'DROP DATABASE IF EXISTS default'
         clickhouse-client --host "${CLICKHOUSE_HOST}" --query 'CREATE DATABASE default'

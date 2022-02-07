@@ -18,8 +18,8 @@ spec:
         exec 2>&1
         set -eux
 
-        BOOTSTRAP_SERVER="ingest-kafka.default.svc.cluster.local:9092"
-        ZK_SERVER="ingest-kafka.default.svc.cluster.local:2181"
+        BOOTSTRAP_SERVER="{{ values.kafka_hostname }}:9092"
+        ZK_SERVER="{{ values.zookeeper_hostname }}:2181"
 
         TOPICS_TO_DELETE=$(kafka-topics --zookeeper "${ZK_SERVER}" --list | grep -v '__' || true)
 

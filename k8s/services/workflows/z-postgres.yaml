@@ -3,8 +3,6 @@ kind: WorkflowTemplate
 metadata:
   name: z-postgres
   namespace: argo
-  labels:
-    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
 spec:
   podGC:
     strategy: OnWorkflowCompletion
@@ -31,7 +29,7 @@ spec:
       command:
         - psql
         - -h
-        - postgres-sentry.default.svc.cluster.local
+        - {{ values.postgres_hostname }}
         - -U
         - postgres
         - -c

@@ -3,8 +3,6 @@ kind: WorkflowTemplate
 metadata:
   name: z-ingest-load-tester
   namespace: argo
-  labels:
-    workflows.argoproj.io/creator: system-serviceaccount-argo-argo-server
 spec:
   podGC:
     strategy: OnWorkflowCompletion
