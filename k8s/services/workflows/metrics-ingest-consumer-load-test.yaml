@@ -35,7 +35,11 @@ spec:
         templateRef:
           name: z-prepare-run
           template: prepare-run
-      # Stop sentry
+        arguments:
+          parameters:
+            - name: test_factory_branch
+              value: "{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}"
+        # Stop sentry
       - name: sentry-stop-all
         templateRef:
           name: z-sentry
