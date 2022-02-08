@@ -18,7 +18,7 @@ spec:
           - '--measurement'
           - 'kafka_consumer_lag'
         name: influxdb-monitor
-        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:85194e6aaca30c0cbeee5e8f398d5d7e892f7422
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/influxdb-monitor:33d0298b352a9ff8e289224a268d00c388fea250
         resources: {}
         env:
           - name: INFLUX_TOKEN
