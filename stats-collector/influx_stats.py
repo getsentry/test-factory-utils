@@ -13,6 +13,7 @@ class MetricValue:
     A single value extracted from a metric e.g. "average event_processing_time"
     A Metric Summary contains a list of MetricValue
     """
+
     value: float
     attributes: List[str]
 
@@ -28,14 +29,12 @@ class MetricSummary:
     """
     Contains the extracted summaries for a metric
     """
+
     name: str
     values: List[MetricValue]
 
     def to_dict(self):
-        return {
-            "name": self.name,
-            "values": [value.to_dict() for value in self.values]
-        }
+        return {"name": self.name, "values": [value.to_dict() for value in self.values]}
 
 
 @dataclass
@@ -51,7 +50,7 @@ class StageStep:
             "users": self.users,
             "startTime": to_optional_datetime(self.start_time),
             "endTime": to_optional_datetime(self.end_time),
-            "metrics": [metric.to_dict() for metric in self.metrics]
+            "metrics": [metric.to_dict() for metric in self.metrics],
         }
 
 
@@ -78,130 +77,168 @@ class Stage:
         return {
             "steps": [step.to_dict() for step in self.steps],
             "type": self.type.value,
-            "name": self.name
+            "name": self.name,
         }
 
 
-def event_accepted_stats(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def event_accepted_stats(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("events_accepted.flux")
-    funcs = ['median', 'max']
+    funcs = ["median", "max"]
 
     for func in funcs:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "windowPeriod": "10s",
-            "func": func,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "windowPeriod": "10s",
+                "func": func,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[func])
 
 
-def event_processing_time(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def event_processing_time(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("event_processing_time.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def kafka_messages_produced(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def kafka_messages_produced(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("kafka_messages.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
-        def session_selector(row): return row["event_type"] == "session"
+        def session_selector(row):
+            return row["event_type"] == "session"
 
-        yield MetricValue(value=get_scalar_from_result(r, condition=session_selector), attributes=["session", q_name])
+        yield MetricValue(
+            value=get_scalar_from_result(r, condition=session_selector),
+            attributes=["session", q_name],
+        )
 
-        def metric_selector(row): return row["event_type"] == "metric"
+        def metric_selector(row):
+            return row["event_type"] == "metric"
 
-        yield MetricValue(value=get_scalar_from_result(r, condition=metric_selector), attributes=["metric", q_name])
+        yield MetricValue(
+            value=get_scalar_from_result(r, condition=metric_selector),
+            attributes=["metric", q_name],
+        )
 
 
-def requests_per_second_locust(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def requests_per_second_locust(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("total_requests_locust.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def cpu_usage(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def cpu_usage(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("cpu_usage.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def memory_usage(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def memory_usage(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("memory_usage.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def event_queue_size(start: str, stop: str, query_api: QueryApi) -> Generator[MetricSummary, None, None]:
+def event_queue_size(
+    start: str, stop: str, query_api: QueryApi
+) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("event_queue_size.flux")
     quantiles = [(0.5, "median"), (1.0, "max")]
 
     for quantile, q_name in quantiles:
-        code = template.format(**{
-            "start": start,
-            "stop": stop,
-            "quantile": quantile,
-        })
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+            }
+        )
 
         r = query_api.query(code)
 
         yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def get_scalar_from_result(result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None) -> Optional[float]:
+def get_scalar_from_result(
+    result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
+) -> Optional[float]:
     for table in result:
         for record in table:
             if condition is None:
@@ -224,11 +261,7 @@ stats_functions = [
 
 
 def get_stats(stages: List[Stage], url: str, token: str, org: str) -> List[Stage]:
-    client = InfluxDBClient(
-        url=url,
-        token=token,
-        org=org
-    )
+    client = InfluxDBClient(url=url, token=token, org=org)
     query_api = client.query_api()
 
     for stage in stages:

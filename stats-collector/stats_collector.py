@@ -13,19 +13,42 @@ from util import to_optional_datetime, parse_timedelta
 
 # INFLUX_URL = 'http://localhost:8086/'  # this is local
 # INFLUX_URL = 'https://influxdb.testa.getsentry.net/'  # this needs gcloud auth
-INFLUX_URL = 'http://localhost:8087/'  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
+INFLUX_URL = "http://localhost:8087/"  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
 
 
 @click.command()
-@click.option('--start', '-s', default=None, help='The start datetime of the test')
-@click.option('--end', '-e', default=None, help='The stop date time of the test')
-@click.option('--duration', '-d', default=None, help='The test duration e.g. 2d4h3m2s')
-@click.option('--url', '-u', default=None, help="Url InfluxDb, if None $INFLUX_URL will be used")
-@click.option('--token', '-t', default=None, help="Access token for InfluxDb, if None $INFLUX_TOKEN will be used")
-@click.option("--org", '-o', default="sentry", help="Organization used in InfluxDb")
-@click.option("--multistage", "-m", default=None, help="File name for multistage run result. Will generate multistage result")
-@click.option("--format", '-f', default="text", type=click.Choice(["text", "json", "yaml"]), help="Select the output req_format")
-@click.option("--out", '-O', default=None, help="File name for output, if not specified stdout will be used")
+@click.option("--start", "-s", default=None, help="The start datetime of the test")
+@click.option("--end", "-e", default=None, help="The stop date time of the test")
+@click.option("--duration", "-d", default=None, help="The test duration e.g. 2d4h3m2s")
+@click.option(
+    "--url", "-u", default=None, help="Url InfluxDb, if None $INFLUX_URL will be used"
+)
+@click.option(
+    "--token",
+    "-t",
+    default=None,
+    help="Access token for InfluxDb, if None $INFLUX_TOKEN will be used",
+)
+@click.option("--org", "-o", default="sentry", help="Organization used in InfluxDb")
+@click.option(
+    "--multistage",
+    "-m",
+    default=None,
+    help="File name for multistage run result. Will generate multistage result",
+)
+@click.option(
+    "--format",
+    "-f",
+    default="text",
+    type=click.Choice(["text", "json", "yaml"]),
+    help="Select the output req_format",
+)
+@click.option(
+    "--out",
+    "-O",
+    default=None,
+    help="File name for output, if not specified stdout will be used",
+)
 def main(start, end, duration, token, url, org, multistage, format, out):
     """Simple program that greets NAME for a total of COUNT times."""
 
@@ -54,7 +77,6 @@ def main(start, end, duration, token, url, org, multistage, format, out):
             else:
                 end_time = start_time + duration_interval
         stages = [
-
             Stage(
                 type=StageType.static,
                 name="legacy",
@@ -65,7 +87,7 @@ def main(start, end, duration, token, url, org, multistage, format, out):
                         metrics=[],
                         users=None,
                     )
-                ]
+                ],
             )
         ]
 
@@ -75,8 +97,10 @@ def main(start, end, duration, token, url, org, multistage, format, out):
     if token is None:
         token = os.getenv("INFLUX_TOKEN")
         if not token:
-            raise click.UsageError("INFLUX_TOKEN not provided.\n"
-                                   "Set INFLUX_TOKEN environment variable or provide --token command line argument")
+            raise click.UsageError(
+                "INFLUX_TOKEN not provided.\n"
+                "Set INFLUX_TOKEN environment variable or provide --token command line argument"
+            )
 
     if url is None:
         url = os.getenv("INFLUX_URL")
@@ -131,7 +155,9 @@ def get_stages_from_report(multi_report_file_name: str) -> List[Stage]:
                 end_time = end_time - timedelta(minutes=1)
                 start_time = start_time + timedelta(minutes=1)
 
-            stage_step = StageStep(start_time=start_time, end_time=end_time, users=users, metrics=[])
+            stage_step = StageStep(
+                start_time=start_time, end_time=end_time, users=users, metrics=[]
+            )
             steps.append(stage_step)
         stage = Stage(name=name, type=stage_type, steps=steps)
         ret_val.append(stage)
@@ -160,7 +186,10 @@ class TextFormatter:
             for step in stage.steps:
                 level = 1
                 indent = base_indent * level
-                print(f"\n{indent}Step start:{to_optional_datetime(step.start_time)} end:{to_optional_datetime(step.end_time)} users:{step.users}", file=output)
+                print(
+                    f"\n{indent}Step start:{to_optional_datetime(step.start_time)} end:{to_optional_datetime(step.end_time)} users:{step.users}",
+                    file=output,
+                )
                 for stat in step.metrics:
                     level = 3
                     indent = base_indent * level
@@ -168,7 +197,9 @@ class TextFormatter:
                     for metric_value in stat.values:
                         params = ", ".join(metric_value.attributes)
                         if metric_value.value is not None:
-                            s = "{}{:>16} -> {:.2f}".format(indent, params, metric_value.value)
+                            s = "{}{:>16} -> {:.2f}".format(
+                                indent, params, metric_value.value
+                            )
                         else:
                             s = "{}{:>16} -> Empty".format(indent, params)
                         print(s, file=output)
@@ -190,5 +221,5 @@ class YamlFormatter:
         return yaml.dump(result, indent=2, default_flow_style=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
