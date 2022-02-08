@@ -33,8 +33,10 @@ spec:
         - -c
         - |
           while true; do
-            python /root/report_kafka_consumer_lag.py --consumer-group=ingest-metrics-consumer
-            sleep 5
+            python /root/report_kafka_consumer_lag.py \
+                --consumer-group=ingest-metrics-consumer  \
+                --consumer-group=snuba-metrics-consumer
+            sleep 1
           done
         env:
         - name: BOOTSTRAP_SERVERS
