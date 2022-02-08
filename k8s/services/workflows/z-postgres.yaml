@@ -80,7 +80,7 @@ spec:
           spec:
             containers:
               - image: "${SENTRY_IMAGE}"
-                name: ingest-metrics-consumer
+                name: sentry-run-migrations
                 args:
                 - upgrade
                 - --noinput
