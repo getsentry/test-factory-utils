@@ -29,5 +29,5 @@ spec:
           - '--environments'
           - '{% raw %}{{inputs.parameters.environments}}{% endraw %}'
         name: ingest-metrics-generator
-        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-metrics-generator:146e872d3d4b6d75b4fb989509bada94b5148c3c
+        image: europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-metrics-generator:943a1e84e6d2fa15c3a11bbfc70fd3b1fae4c6d9
         resources: {}
