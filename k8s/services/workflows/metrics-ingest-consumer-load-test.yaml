@@ -13,11 +13,11 @@ spec:
     - name: test_factory_branch
       value: "main"
     - name: num_messages
-      value: "1000"
+      value: "default"
     - name: releases
-      value: "10"
+      value: "default"
     - name: environments
-      value: "10"
+      value: "default"
     - name: comment
       value: ""
     - name: clear_kafka_queue

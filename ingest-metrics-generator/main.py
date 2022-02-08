@@ -15,8 +15,7 @@ from util import parse_timedelta
 @click.option(
     "--num-messages",
     "-n",
-    default=None,
-    type=int,
+    default="",
     help="The number of messages to send to the kafka queue",
 )
 @click.option(
@@ -49,7 +48,7 @@ from util import parse_timedelta
 )
 @click.option("--org", "-o", type=int, help="organisation id")
 @click.option("--project", "-p", type=int, help="project id")
-@click.option("--releases", type=int, help="number of releases to generate")
+@click.option("--releases", default="", help="number of releases to generate")
 @click.option(
     "--col-min",
     type=int,
@@ -60,7 +59,8 @@ from util import parse_timedelta
     type=int,
     help="max number of items in collections (sets & distributions)",
 )
-@click.option("--environments", type=int, help="number of environments to generate")
+@click.option("--environments", default="", help="number of environments to generate")
+@click.option("--dry-run", is_flag=True, help="if set only prints the settings")
 def main(**kwargs):
     """
     Populates the ingest-metrics kafka topic with messages
@@ -69,6 +69,9 @@ def main(**kwargs):
 
     print("Settings:")
     print(settings)
+
+    if kwargs["dry_run"]:
+        return
 
     producer = get_kafka_producer(settings)
 
@@ -95,7 +98,7 @@ def generate_metrics(settings):
 
 
 def get_settings(
-    num_messages: int,
+    num_messages: Optional[str],
     settings_file: Optional[str],
     topic_name: Optional[str],
     broker: Optional[str],
@@ -104,10 +107,11 @@ def get_settings(
     project: Optional[int],
     timestamp: Optional[int],
     spread: Optional[str],
-    releases: Optional[int],
-    environments: Optional[int],
+    releases: Optional[str],
+    environments: Optional[str],
     col_min: Optional[int],
     col_max: Optional[int],
+    dry_run: bool
 ):
     # default settings
     settings = {
@@ -129,9 +133,6 @@ def get_settings(
                 settings.update(load(f, Loader=Loader))
         except:
             raise click.UsageError(f"Could not parse settings file {settings_file}")
-
-    if num_messages is not None:
-        settings["num_messages"] = num_messages
 
     if topic_name is not None:
         settings["topic_name"] = topic_name
@@ -168,11 +169,14 @@ def get_settings(
     else:
         settings["timestamp"] = int(time.time()) - 1  # now(ish)
 
-    if releases is not None:
-        settings["releases"] = releases
-
-    if environments is not None:
-        settings["environments"] = environments
+    # num_messages, environment and releases may be set to a string value (when started from kubernetes) like 'default'
+    # if set in the command line to anything that can't be converted to an integer just ignore it
+    for name, value in (("num_messages", num_messages), ("releases", releases), ("environments", environments)):
+        if value is not None:
+            try:
+                settings[name] = int(value)
+            except ValueError:
+                pass  # ignore non integer command line args
 
     if col_min is not None:
         settings["col_min"] = col_min
@@ -184,10 +188,12 @@ def get_settings(
         settings["spread"] = spread
 
     time_delta = parse_timedelta(settings["spread"])
-    if time_delta == None:
+    if time_delta is None:
         time_delta = datetime.timedelta(minutes=1)
 
     settings["time_delta"] = time_delta
+
+    settings["dry_run"] = dry_run
 
     _calculate_metrics_distribution(settings)
     return settings
