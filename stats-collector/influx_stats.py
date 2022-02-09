@@ -1,10 +1,22 @@
 from typing import Generator, List, Sequence, Callable, Any, Optional
 from datetime import datetime
+from functools import partial
 
 from influxdb_client import QueryApi, InfluxDBClient
 from util import load_flux_file, to_flux_datetime, to_optional_datetime
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, unique
+
+
+@unique
+class TestingProfile(Enum):
+    RELAY = "relay"
+    METRICS_INDEXER = "metrics-indexer"
+    SNUBA_METRICS_CONSUMER = "snuba-metrics-consumer"
+
+    @staticmethod
+    def values():
+        return [profile.value for profile in TestingProfile]
 
 
 @dataclass
@@ -99,7 +111,7 @@ def event_accepted_stats(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[func])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[func])
 
 
 def event_processing_time(
@@ -119,7 +131,7 @@ def event_processing_time(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
 
 
 def kafka_messages_produced(
@@ -143,7 +155,7 @@ def kafka_messages_produced(
             return row["event_type"] == "session"
 
         yield MetricValue(
-            value=get_scalar_from_result(r, condition=session_selector),
+            value=_get_scalar_from_result(r, condition=session_selector),
             attributes=["session", q_name],
         )
 
@@ -151,7 +163,7 @@ def kafka_messages_produced(
             return row["event_type"] == "metric"
 
         yield MetricValue(
-            value=get_scalar_from_result(r, condition=metric_selector),
+            value=_get_scalar_from_result(r, condition=metric_selector),
             attributes=["metric", q_name],
         )
 
@@ -173,11 +185,11 @@ def requests_per_second_locust(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
 
 
 def cpu_usage(
-    start: str, stop: str, query_api: QueryApi
+    start: str, stop: str, query_api: QueryApi, container_name: str
 ) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("cpu_usage.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
@@ -188,16 +200,17 @@ def cpu_usage(
                 "start": start,
                 "stop": stop,
                 "quantile": quantile,
+                "container_name": container_name,
             }
         )
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
 
 
 def memory_usage(
-    start: str, stop: str, query_api: QueryApi
+    start: str, stop: str, query_api: QueryApi, container_name: str
 ) -> Generator[MetricSummary, None, None]:
     template = load_flux_file("memory_usage.flux")
     quantiles = [(0.5, "median"), (0.9, "0.9"), (0.99, "0.99"), (1.0, "max")]
@@ -208,12 +221,13 @@ def memory_usage(
                 "start": start,
                 "stop": stop,
                 "quantile": quantile,
+                "container_name": container_name,
             }
         )
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
 
 
 def event_queue_size(
@@ -233,10 +247,34 @@ def event_queue_size(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
 
 
-def get_scalar_from_result(
+def kafka_consumer_processing_rate(
+    start: str,
+    stop: str,
+    query_api: QueryApi,
+    consumer_group: str,
+) -> Generator[MetricSummary, None, None]:
+    template = load_flux_file("kafka_consumer_processing_rate.flux")
+    quantiles = [(0.5, "median"), (1.0, "max")]
+
+    for quantile, q_name in quantiles:
+        code = template.format(
+            **{
+                "start": start,
+                "stop": stop,
+                "quantile": quantile,
+                "consumer_group": consumer_group,
+            }
+        )
+
+        r = query_api.query(code)
+
+        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+
+
+def _get_scalar_from_result(
     result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
 ) -> Optional[float]:
     for table in result:
@@ -250,17 +288,47 @@ def get_scalar_from_result(
     return None
 
 
-stats_functions = [
-    ("events accepted", event_accepted_stats),
-    ("events queue size max", event_queue_size),
-    ("received events/s kafka", kafka_messages_produced),
-    ("request per second (locust POV)", requests_per_second_locust),
-    ("cpu usage (cores)", cpu_usage),
-    ("memory_usage (Mb)", memory_usage),
-]
+TEST_PROFILES = {
+    TestingProfile.RELAY.value: {
+        "stats_functions": [
+            ("events accepted", event_accepted_stats),
+            ("events queue size max", event_queue_size),
+            ("received events/s kafka", kafka_messages_produced),
+            ("request per second (locust POV)", requests_per_second_locust),
+            ("cpu usage (cores)", partial(cpu_usage, container_name="relay")),
+            ("memory_usage (Mb)", partial(memory_usage, container_name="relay")),
+        ]
+    },
+    TestingProfile.METRICS_INDEXER.value: {
+        "stats_functions": [
+            (
+                "messages processed by consumer (/s)",
+                partial(
+                    kafka_consumer_processing_rate,
+                    consumer_group="ingest-metrics-consumer",
+                ),
+            ),
+            (
+                "cpu usage (cores)",
+                partial(cpu_usage, container_name="ingest-metrics-consumer"),
+            ),
+            (
+                "memory_usage (Mb)",
+                partial(memory_usage, container_name="ingest-metrics-consumer"),
+            ),
+        ]
+    },
+}
 
 
-def get_stats(stages: List[Stage], url: str, token: str, org: str) -> List[Stage]:
+def get_stats(
+    stages: List[Stage], url: str, token: str, org: str, profile: str
+) -> List[Stage]:
+    if profile not in TEST_PROFILES:
+        raise ValueError(f"No stats found for the profile: {profile}", profile)
+
+    stats_functions = TEST_PROFILES[profile]["stats_functions"]
+
     client = InfluxDBClient(url=url, token=token, org=org)
     query_api = client.query_api()
 

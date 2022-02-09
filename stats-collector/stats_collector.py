@@ -1,19 +1,28 @@
 import io
-from datetime import timedelta
-from typing import Sequence, List
-import os
 import json
-
+import os
+from datetime import timedelta
 from dateutil import parser
-from influx_stats import get_stats, Stage, StageType, StageStep
+from enum import Enum, unique
+from typing import Sequence, List
+
 import click
 import yaml
+from influx_stats import get_stats, Stage, StageType, StageStep, TestingProfile
 
 from util import to_optional_datetime, parse_timedelta
 
-# INFLUX_URL = 'http://localhost:8086/'  # this is local
-# INFLUX_URL = 'https://influxdb.testa.getsentry.net/'  # this needs gcloud auth
-INFLUX_URL = "http://localhost:8087/"  # this needs port forwarding sentry-kube kubectl port-forward service/influxdb 8087:80
+# Suitable for use with port forwarding, e.g. "sentry-kube kubectl port-forward service/influxdb 8087:80"
+INFLUX_URL = "http://localhost:8087/"
+
+MIN_REQUIREMENTS_MESSAGE = "Either multistage or at least two parameters from (start, stop, duration) must be specified."
+
+
+@unique
+class OutputFormat(Enum):
+    TEXT = "text"
+    JSON = "json"
+    YAML = "yaml"
 
 
 @click.command()
@@ -40,8 +49,8 @@ INFLUX_URL = "http://localhost:8087/"  # this needs port forwarding sentry-kube 
     "--format",
     "-f",
     default="text",
-    type=click.Choice(["text", "json", "yaml"]),
-    help="Select the output req_format",
+    type=click.Choice([format.value for format in OutputFormat]),
+    help="Select the output format",
 )
 @click.option(
     "--out",
@@ -49,9 +58,14 @@ INFLUX_URL = "http://localhost:8087/"  # this needs port forwarding sentry-kube 
     default=None,
     help="File name for output, if not specified stdout will be used",
 )
-def main(start, end, duration, token, url, org, multistage, format, out):
-    """Simple program that greets NAME for a total of COUNT times."""
-
+@click.option(
+    "--profile",
+    "-p",
+    type=click.Choice(TestingProfile.values()),
+    required=True,
+    help="Testing profile",
+)
+def main(start, end, duration, token, url, org, multistage, format, out, profile):
     start_time = None
     if start is not None:
         start_time = parser.parse(start)
@@ -60,15 +74,13 @@ def main(start, end, duration, token, url, org, multistage, format, out):
     if end is not None:
         end_time = parser.parse(end)
 
-    min_requirements_message = "Either multistage or at least two parameters from (start, stop, duration) must be specified."
-
     if multistage is None:
         if start_time is None and end_time is None:
-            raise click.UsageError(min_requirements_message)
+            raise click.UsageError(MIN_REQUIREMENTS_MESSAGE)
 
         if start_time is None or end_time is None:
             if duration is None:
-                raise click.UsageError(min_requirements_message)
+                raise click.UsageError(MIN_REQUIREMENTS_MESSAGE)
             else:
                 duration_interval = parse_timedelta(duration)
             if start_time is None:
@@ -109,10 +121,11 @@ def main(start, end, duration, token, url, org, multistage, format, out):
 
     # we have a valid start & stop time
     stats = get_stats(
-        stages,
+        stages=stages,
         url=url,
         token=token,
         org=org,
+        profile=profile,
     )
 
     formatter = get_formatter(format)
@@ -165,11 +178,11 @@ def get_stages_from_report(multi_report_file_name: str) -> List[Stage]:
 
 
 def get_formatter(req_format: str):
-    if req_format == "text":
+    if req_format == OutputFormat.TEXT.value:
         return TextFormatter()
-    elif req_format == "json":
+    elif req_format == OutputFormat.JSON.value:
         return JsonFormatter()
-    elif req_format == "yaml":
+    elif req_format == OutputFormat.YAML.value:
         return YamlFormatter()
     else:
         return TextFormatter()
