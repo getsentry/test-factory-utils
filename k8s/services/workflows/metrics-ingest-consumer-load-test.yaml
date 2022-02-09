@@ -39,11 +39,16 @@ spec:
           parameters:
             - name: test_factory_branch
               value: "{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}"
-      # Stop sentry
+      # Stop Sentry
       - name: sentry-stop-all
         templateRef:
           name: z-sentry
           template: sentry-stop-all
+      # Stop Snuba
+      - name: snuba-stop-all
+        templateRef:
+          name: z-snuba
+          template: snuba-stop-all
       # Clear previous state
       - name: flush-all-kafka
         templateRef:
@@ -75,12 +80,6 @@ spec:
           - name: sentry_sha
             value: '{% raw %}{{workflow.outputs.parameters.sentry_sha}}{% endraw %}'
         depends: "sentry-stop-all && prepare-run"
-      # Deploy sentry
-      - name: sentry-update-configuration
-        templateRef:
-          name: z-sentry
-          template: sentry-update-configuration
-        depends: "prepare-run && apply-topic-config && flush-all-memcached && reset-and-run-migrations"
       # Generate data and put it on Kafka
       - name: run-ingest-metrics-generator
         templateRef:
@@ -97,13 +96,24 @@ spec:
           artifacts:
           - name: ingest_metrics_generator_settings
             from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
-        depends: sentry-update-configuration
+        depends: "apply-topic-config"
+      # Deploy Sentry
+      - name: sentry-update-configuration
+        templateRef:
+          name: z-sentry
+          template: sentry-update-configuration
+        arguments:
+          artifacts:
+          - name: test-factory-src
+            from: '{% raw %}{{workflow.outputs.artifacts.test-factory-src}}{% endraw %}'
+        depends: "flush-all-memcached && reset-and-run-migrations && run-ingest-metrics-generator"
       # Wait for ingest metrics consumer to burn the backlog
       - name: wait-clear-kafka-queue
         templateRef:
           name: z-influxdb-monitor
           template: infulxdb-monitor
-        depends: run-ingest-metrics-generator
+        depends: sentry-update-configuration
+      # Aggregate results
       - name: run-stats
         templateRef:
           name: z-run-test

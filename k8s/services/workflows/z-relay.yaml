@@ -10,8 +10,8 @@ spec:
   - name: relay-update-configuration
     inputs:
       parameters:
-      - name: test_factory_sha
-        value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
+      - name: relay_sha
+        value: '{% raw %}{{workflow.outputs.parameters.relay_sha}}{% endraw %}'
       - name: wait_for_rollout
         value: '1'
       artifacts:
@@ -30,7 +30,7 @@ spec:
         git init
 
         # Update relay version
-        yq eval -i '.environments.main.image_tag = "{% raw %}{{workflow.outputs.parameters.relay_sha}}{% endraw %}"' ./k8s/services/relay/_values.yaml
+        yq eval -i '.environments.main.image_tag = "{% raw %}{{inputs.parameters.relay_sha}}{% endraw %}"' ./k8s/services/relay/_values.yaml
 
         # FIXME: sentry-kube should be updated to handle this
         # sentry-kube diff-beta relay

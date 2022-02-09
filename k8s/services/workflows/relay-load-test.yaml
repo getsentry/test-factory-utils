@@ -62,6 +62,10 @@ spec:
         templateRef:
           name: z-ingest-load-tester
           template: ingest-load-tester-update-configuration
+        arguments:
+          artifacts:
+          - name: test-factory-src
+            from: '{% raw %}{{workflow.outputs.artifacts.test-factory-src}}{% endraw %}'
         depends: prepare-run
       # Test!
       - name: run-test

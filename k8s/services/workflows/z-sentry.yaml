@@ -27,22 +27,13 @@ spec:
   - name: sentry-update-configuration
     inputs:
       parameters:
-      - name: test_factory_sha
-        value: '{% raw %}{{workflow.outputs.parameters.test_factory_sha}}{% endraw %}'
       - name: sentry_sha
         value: '{% raw %}{{workflow.outputs.parameters.sentry_sha}}{% endraw %}'
       - name: wait_for_rollout
         value: '1'
       artifacts:
-        - name: test-factory-checkout
+        - name: test-factory-src
           path: /root/test-factory
-          git:
-            repo: 'git@github.com:getsentry/test-factory'
-            revision: '{% raw %}{{inputs.parameters.test_factory_sha}}{% endraw %}'
-            depth: 1
-            sshPrivateKeySecret:
-              name: ssh-deploy-key-test-factory
-              key: ssh-private-key
     container:
       name: sentry-kube
       image: {{ values.sentry_kube_image }}
@@ -53,7 +44,7 @@ spec:
         exec 2>&1
         set -euxo pipefail
 
-        git status
+        git init
 
         # Update sentry version
         yq eval -i '.image_tag = "{% raw %}{{inputs.parameters.sentry_sha}}{% endraw %}"' ./k8s/services/sentry/_values.yaml
