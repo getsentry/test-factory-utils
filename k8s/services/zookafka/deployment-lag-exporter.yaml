@@ -28,11 +28,12 @@ spec:
       containers:
       - image: confluentinc/cp-kafka:{{ values.confluent_version }}
         name: zookafka-lag-exporter
-        args:
+        command:
         - bash
         - -c
         - |
           while true; do
+            date
             python /root/report_kafka_consumer_lag.py \
                 --consumer-group=ingest-metrics-consumer  \
                 --consumer-group=snuba-metrics-consumer
@@ -47,11 +48,11 @@ spec:
           subPath: report_kafka_consumer_lag.py
         resources:
           requests:
-            cpu: 100m
-            memory: 100Mi
+            cpu: 500m
+            memory: 200Mi
           limits:
-            cpu: 100m
-            memory: 100Mi
+            cpu: 500m
+            memory: 200Mi
       volumes:
       - name: lag-exporter-config
         configMap:
