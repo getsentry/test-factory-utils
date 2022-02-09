@@ -85,9 +85,12 @@ spec:
           name: z-run-test
           template: run-stats-collector
         arguments:
+          parameters:
+          - name: profile
+            value: "relay"
           artifacts:
-            - name: run_report
-              from: '{% raw %}{{workflow.outputs.artifacts.run_report}}{% endraw %}'
+          - name: run_report
+            from: '{% raw %}{{workflow.outputs.artifacts.run_report}}{% endraw %}'
         depends: run-test
     inputs: {}
     metadata: {}

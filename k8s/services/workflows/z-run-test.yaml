@@ -8,6 +8,16 @@ spec:
     strategy: OnWorkflowCompletion
   templates:
   - name: run-test
+    inputs:
+      parameters:
+      - name: test_duration
+      - name: test_users
+      - name: test_override
+      - name: test_comment
+        value: '{% raw %}{{workflow.parameters.comment}}{% endraw %}'
+      artifacts:
+      - name: run_manifest
+        path: /etc/run-manifest.yaml
     container:
       command:
       - bash
@@ -67,26 +77,24 @@ spec:
       name: load-starter
       image: europe-west3-docker.pkg.dev/sentry-st-testing/main/load-starter:1dc8ab4863bbfa0a98098bc229bf5e7637b8355f
       resources: {}
-    inputs:
-      parameters:
-      - name: test_duration
-      - name: test_users
-      - name: test_override
-      - name: test_comment
-        value: '{% raw %}{{workflow.parameters.comment}}{% endraw %}'
-      artifacts:
-      - name: run_manifest
-        path: /etc/run-manifest.yaml
     outputs:
       artifacts:
       - name: run_report
         path: /tmp/run-report.yaml
         globalName: run_report
+
   - name: run-stats-collector
     inputs:
       artifacts:
         - name: run_report
           path: /tmp/run-report.yaml
+          optional: true
+      parameters:
+        - name: profile
+        - name: start_time
+          value: 'default'
+        - name: end_time
+          value: 'default'
     outputs:
       artifacts:
         - name: stats_report
@@ -94,16 +102,44 @@ spec:
           globalName: stats_report
     container:
       name: load-starter
-      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:2d0e65479482598304fd1aaae4fc6135525725d8
+      image: europe-west3-docker.pkg.dev/sentry-st-testing/main/stats-collector:c9d3288492f7d275119761475be22075bfa90c44
       command:
-        - python
-        - stats_collector.py
-        - '--format'
-        - yaml
-        - '--multistage'
-        - /tmp/run-report.yaml
-        - '--out'
-        - /tmp/stats-report.yaml
+        - bash
+        - -c
+        - |
+          exec 2>&1
+          set -euxo pipefail
+
+          PROFILE="{% raw %}{{inputs.parameters.profile}}{% endraw %}"
+          START_TIME="{% raw %}{{inputs.parameters.start_time}}{% endraw %}"
+          END_TIME="{% raw %}{{inputs.parameters.end_time}}{% endraw %}"
+
+          ARGS=(
+            --profile
+            "${PROFILE}"
+            --format
+            yaml
+            --out
+            /tmp/stats-report.yaml
+          )
+
+          if [[ "${START_TIME}" != "default" ]] && [[ "${END_TIME}" != "default" ]]; then
+            # Use the provided start/end times
+            ARGS+=(
+              --start
+              "${START_TIME}"
+              --end
+              "${END_TIME}"
+            )
+          else
+            # Use the input file
+            ARGS+=(
+              --multistage
+              /tmp/run-report.yaml
+            )
+          fi
+
+          python stats_collector.py ${ARGS[@]}
       env:
         - name: INFLUX_TOKEN
           valueFrom:

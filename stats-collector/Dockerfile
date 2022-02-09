@@ -2,6 +2,8 @@
 
 FROM python:3.8.12-alpine
 
+RUN apk --no-cache add bash
+
 WORKDIR /app
 
 # Install requirements first to optimize layer caching

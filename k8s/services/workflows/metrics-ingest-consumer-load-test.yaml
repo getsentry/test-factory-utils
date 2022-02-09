@@ -39,12 +39,11 @@ spec:
           parameters:
             - name: test_factory_branch
               value: "{% raw %}{{workflow.parameters.test_factory_branch}}{% endraw %}"
-        # Stop sentry
+      # Stop sentry
       - name: sentry-stop-all
         templateRef:
           name: z-sentry
           template: sentry-stop-all
-        depends: prepare-run
       # Clear previous state
       - name: flush-all-kafka
         templateRef:
@@ -82,7 +81,7 @@ spec:
           name: z-sentry
           template: sentry-update-configuration
         depends: "prepare-run && apply-topic-config && flush-all-memcached && reset-and-run-migrations"
-      # push metric on kafka topic
+      # Generate data and put it on Kafka
       - name: run-ingest-metrics-generator
         templateRef:
           name: z-data-generator
@@ -99,12 +98,25 @@ spec:
           - name: ingest_metrics_generator_settings
             from: '{% raw %}{{workflow.outputs.artifacts.ingest_metrics_generator_settings}}{% endraw %}'
         depends: sentry-update-configuration
-      # wait for ingest metrics consumer
+      # Wait for ingest metrics consumer to burn the backlog
       - name: wait-clear-kafka-queue
         templateRef:
           name: z-influxdb-monitor
           template: infulxdb-monitor
         depends: run-ingest-metrics-generator
+      - name: run-stats
+        templateRef:
+          name: z-run-test
+          template: run-stats-collector
+        arguments:
+          parameters:
+          - name: profile
+            value: "metrics-indexer"
+          - name: start_time
+            value: '{% raw %}{{tasks.sentry-update-configuration.finishedAt}}{% endraw %}'
+          - name: end_time
+            value: '{% raw %}{{tasks.wait-clear-kafka-queue.finishedAt}}{% endraw %}'
+        depends: wait-clear-kafka-queue
     inputs: {}
     metadata: {}
     outputs: {}
