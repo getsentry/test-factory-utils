@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: influxdb
-  labels:
-    service: influxdb
-data:
-  config.yaml: |
-    {% filter indent %}{% include 'templates/config.yaml' %}{% endfilter %}
