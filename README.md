@@ -1,63 +1,10 @@
-# test-factory
+# test-factory-utils
 
-Configuration and tooling for the Sentry testbed environment.
+Contains utility programs used in test-factory.
 
+All utility programs that are not big enough to warrant their own repositories end up here.
 
-## Running tests
-
-**End user? [Go here for more info on how to configure and start tests.](https://www.notion.so/sentry/Running-Tests-711f5f7d959d425b871d5fae2f5d3d7d)**
-
-## Setup
-
-(you don't have to do this if you just want to run some tests; see the previous section for more details)
-
-1. [Install `gcloud`](https://cloud.google.com/sdk/docs/install), authenticate (`gcloud auth login`) and pick `sentry-st-testing` project, if asked.
-
-
-1. Prepare a Python virtual environment with Python 3.7+ and activate it. Make sure to have a recent `pip` installed!
-
-   For example:
-
-   ```
-   python3 -m venv .venv
-   source .venv/bin/activate
-   python3 -m pip install -U pip
-   ```
-
-1. Install [`sentry-kube`](https://github.com/getsentry/ops/tree/master/k8s/cli) **into the newly created virtual environment**.
-
-   `sentry-kube` is currently hosted in https://github.com/getsentry/ops/ repository.
-
-   ```
-   # Clone the ops repository somewhere else
-   cd ../
-   
-   git clone https://github.com/getsentry/ops/
-
-   ./ops/k8s/cli/install.sh
-   ```
-   
-1. Pull the Kubernetes cluster credentials from Google. It'll fetch the authentication credentials from GCP and write to a local configuration file.
-
-   ```
-   gcloud container clusters get-credentials cluster-1 --region europe-west3-b --project sentry-st-testing
-   ```
-
-### Testing the installation
-
-Run the following commands to check your setup:
-
-```
-# Should list all running pods in the cluster
-sentry-kube kubectl get pod -A
-
-# Should exit without error (output may be empty)
-sentry-kube diff relay
-```
-
-## Google Cloud UI
-
-The GCP project we currently operate in is called [`sentry-st-testing`](https://console.cloud.google.com/home/dashboard?project=sentry-st-testing).
+__See: [test-factory](https://github.com/getsentry/test-factory) for details.__
 
 ## FAQ
 
