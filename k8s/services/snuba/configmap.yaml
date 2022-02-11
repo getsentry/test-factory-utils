@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: snuba
-  labels:
-    service: snuba
-data:
-  settings.py: |
-    {% filter indent %}{% include 'templates/settings.py' %}{% endfilter %}
