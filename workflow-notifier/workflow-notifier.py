@@ -70,7 +70,7 @@ def main(text: str, channel: str, token: str, level: str, message_file: str):
 
 def send_slack_message(channel, text, token, level, message_file):
     if message_file:
-        # Send from file
+        print(f"Sending from file: {message_file}")
         with open(message_file) as f:
             raw = f.read()
             # Replace environment variables
@@ -100,9 +100,9 @@ def send_slack_message(channel, text, token, level, message_file):
             "attachments": attachments,
         }
     else:
-        # Send from CLI
         if not text:
             raise ValueError("No text specified!")
+        print(f"Sending from command line: {text}")
         post_message_kwargs = {
             # "text" will be used as a fallback when rich content cannot be generated
             "text": text,
@@ -110,7 +110,9 @@ def send_slack_message(channel, text, token, level, message_file):
         }
 
     # Prepend a divider
-    post_message_kwargs["blocks"] = [{"type": "divider"}] + post_message_kwargs["blocks"]
+    post_message_kwargs["blocks"] = [{"type": "divider"}] + post_message_kwargs[
+        "blocks"
+    ]
 
     # Add additional values from the environment
     enhance_from_env(post_message_kwargs["blocks"])
@@ -141,18 +143,16 @@ def enhance_from_env(blocks):
             text = f"*Workflow:* {workflow_url}"
     if workflow_name:
         if text:
-            text += f' ({workflow_name})'
+            text += f" ({workflow_name})"
     if text:
-        blocks.append({"type": "section", "fields": [{"type": "mrkdwn", "text": text}]})
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": text}})
 
     workflow_comment = os.environ.get("WORKFLOW_COMMENT", "").strip()
     if workflow_comment:
         blocks.append(
             {
                 "type": "section",
-                "fields": [
-                    {"type": "mrkdwn", "text": f"*Comment:* {workflow_comment}"}
-                ],
+                "text": {"type": "mrkdwn", "text": f"*Comment:* {workflow_comment}"},
             }
         )
 
