@@ -1,0 +1,37 @@
+# These blocks will be placed in the beginning of the message
+header_blocks:
+- type: header
+  text:
+    type: plain_text
+    text: Test report
+
+# These blocks will be rendered as attachments
+attachment_blocks:
+- type: section
+  text:
+    type: mrkdwn
+    text: 'New request :+1:'
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *Type:*
+        Paid Time Off
+    - type: mrkdwn
+      text: |-
+        *Created by:*
+        <example.com|${USER}>
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *When:*
+        Aug 10 - Aug 13
+    - type: mrkdwn
+      text: |-
+        *Type:*
+        Paid time off
+- type: section
+  text:
+    type: mrkdwn
+    text: <https://example.com|View request>
