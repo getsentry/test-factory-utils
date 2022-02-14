@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -130,7 +130,7 @@ func runLoadStarter() {
 	writeReportToFile(runReport)
 	err := sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
 	if err != nil {
-		fmt.Printf("Failed to send Slack notification:\n%s", err)
+		fmt.Printf("Failed to store Slack message:\n%s", err)
 	}
 }
 
@@ -150,28 +150,20 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 	return reportUrl
 }
 
+// TODO: validate that this string has no tabs
+var template = `
+---
+asdf:
+- meow: yes
+  test: bla
+
+
+`
+
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
 func sendSlackNotification(startTime time.Time, endTime time.Time, config Config) error {
-	token := os.Getenv("SLACK_AUTH_TOKEN")
-	channelID := os.Getenv("SLACK_CHANNEL_ID")
-	workflowUrl := os.Getenv("WORKFLOW_URL")
-	workflowId := os.Getenv("WORKFLOW_ID")
-	workflowComment := strings.TrimSpace(os.Getenv("WORKFLOW_COMMENT"))
-
 	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
-	fmt.Printf("Dashboard link: %s\n", reportUrl)
-
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
-	if workflowUrl != "" {
-		reportText += fmt.Sprintf("\n<%s|View workflow details (Argo)>", workflowUrl)
-	}
-	if workflowId != "" {
-		reportText += fmt.Sprintf("\nWorkflow ID: %s", workflowId)
-	}
-
-	// Create a new client to slack by giving token
-	// Set debug to true while developing
-	client := slack.New(token)
 
 	// Only print number of users when the only testing stage is "static"
 	usersString := "varying"
@@ -181,65 +173,63 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	}
 	runDuration := config.getTotalDuration()
 
-	fields := []slack.AttachmentField{
-		{
-			Title: "Test start",
-			Value: startTime.Local().Format(SlackDateFormat),
-			Short: true,
-		},
-		{
-			Title: "Number of users",
-			Value: usersString,
-			Short: true,
-		},
-		{
-			Title: "Test end",
-			Value: endTime.Local().Format(SlackDateFormat),
-			Short: true,
-		},
-		{
-			Title: "Total duration",
-			Value: fmt.Sprintf("%s", runDuration),
-			Short: true,
-		},
-	}
+	jsonMessage := fmt.Sprintf(`
+	{
+		"header_blocks": [
+		  {
+			"type": "header",
+			"text": {
+			  "type": "plain_text",
+			  "text": "Test report"
+			}
+		  }
+		],
+		"attachment_blocks": [
+		  {
+			"type": "section",
+			"text": {
+			  "type": "mrkdwn",
+			  "text": "%s"
+			}
+		  },
+		  {
+			"type": "section",
+			"fields": [
+			  {
+				"type": "mrkdwn",
+				"text": "*Test start:*!n%s"
+			  },
+			  {
+				"type": "mrkdwn",
+				"text": "*Number of users:*!n%s"
+			  }
+			]
+		  },
+		  {
+			"type": "section",
+			"fields": [
+			  {
+				"type": "mrkdwn",
+				"text": "*Test end:*!n%s"
+			  },
+			  {
+				"type": "mrkdwn",
+				"text": "*Total duration:*!n%s"
+			  }
+			]
+		  }
+		]
+	  }
+	`, reportText, startTime.Local().Format(SlackDateFormat), usersString, endTime.Local().Format(SlackDateFormat), runDuration)
 
-	if workflowComment != "" {
-		fields = append(fields, slack.AttachmentField{
-			Title: "Comment",
-			Value: workflowComment,
-			Short: false,
-		})
-	}
+	jsonMessageBytes := bytes.Replace([]byte(jsonMessage), []byte("\n"), []byte(" "), -1)
 
-	attachment := slack.Attachment{
-		Pretext: "Here's your test report",
-		Text:    reportText,
-		// Color Styles the Text, making it possible to have like Warnings etc.
-		Color:   "#36a64f",
-		Fields:  fields,
-		Actions: []slack.AttachmentAction{{URL: reportUrl}},
-	}
+	var testJsonObj map[string]interface{}
+	fmt.Println("Validating the message...")
+	err := json.Unmarshal(jsonMessageBytes, &testJsonObj)
+	check(err)
 
-	message := slack.MsgOptionAttachments(attachment)
-
-	fmt.Println("Sending the report to Slack...")
-
-	if Params.dryRun {
-		fmt.Printf("[dry-run] Message: %#v\n", attachment)
-	} else {
-		_, _, err := client.PostMessage(
-			channelID,
-			message,
-		)
-
-		if err != nil {
-			fmt.Printf("Failed to send to Slack: %s\n", err)
-			return err
-		}
-	}
-
-	fmt.Println("\nDone!")
+	fmt.Println(string(jsonMessageBytes))
 	return nil
 }
 
