@@ -76,38 +76,36 @@ def send_message(channel, text, token, level, message_file):
             rendered = string.Template(raw).substitute(os.environ)
             message = yaml.safe_load(rendered)
 
-        if 'level' in message:
-            level = message['level']
+        if "level" in message:
+            level = message["level"]
             if level not in COLORS:
                 raise ValueError(f'Invalid "level" value: {level}')
         color = COLORS[level]
 
-        header_blocks = message['header_blocks']
+        header_blocks = message["header_blocks"]
 
         attachments = [
             {
                 "color": color,
-                "blocks": message['attachment_blocks'],
+                "blocks": message["attachment_blocks"],
             }
         ]
 
         post_message_kwargs = {
-            'blocks': header_blocks,
-            'attachments': attachments,
+            "blocks": header_blocks,
+            "attachments": attachments,
         }
     else:
         # Send from CLI
         if not text:
             raise ValueError("No text specified!")
         post_message_kwargs = {
-            'text': text,
+            "text": text,
         }
 
     client = WebClient(token=token)
     try:
-        client.chat_postMessage(
-            channel=channel, **post_message_kwargs
-        )
+        client.chat_postMessage(channel=channel, **post_message_kwargs)
     except SlackApiError as e:
         print(f"Got an error: {e.response}")
 
