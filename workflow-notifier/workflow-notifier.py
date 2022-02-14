@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import string
 from enum import Enum, unique
@@ -64,10 +65,10 @@ COLORS = {
     help="Path to file with message in YAML format",
 )
 def main(text: str, channel: str, token: str, level: str, message_file: str):
-    send_message(channel, text, token, level, message_file)
+    send_slack_message(channel, text, token, level, message_file)
 
 
-def send_message(channel, text, token, level, message_file):
+def send_slack_message(channel, text, token, level, message_file):
     if message_file:
         # Send from file
         with open(message_file) as f:
@@ -75,6 +76,9 @@ def send_message(channel, text, token, level, message_file):
             # Replace environment variables
             rendered = string.Template(raw).substitute(os.environ)
             message = yaml.safe_load(rendered)
+
+        if not message:
+            raise ValueError("Empty message file?")
 
         if "level" in message:
             level = message["level"]
@@ -100,14 +104,57 @@ def send_message(channel, text, token, level, message_file):
         if not text:
             raise ValueError("No text specified!")
         post_message_kwargs = {
+            # "text" will be used as a fallback when rich content cannot be generated
             "text": text,
+            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": text}}],
         }
+
+    # Prepend a divider
+    post_message_kwargs["blocks"] = [{"type": "divider"}] + post_message_kwargs["blocks"]
+
+    # Add additional values from the environment
+    enhance_from_env(post_message_kwargs["blocks"])
 
     client = WebClient(token=token)
     try:
         client.chat_postMessage(channel=channel, **post_message_kwargs)
     except SlackApiError as e:
         print(f"Got an error: {e.response}")
+
+
+def enhance_from_env(blocks):
+    """
+    Take a few predefined value from environment and add the corresponding blocks
+    to the message.
+    """
+    workflow_name = os.environ.get("WORKFLOW_NAME", "").strip()
+    workflow_id = os.environ.get("WORKFLOW_ID", "").strip()
+    workflow_url = os.environ.get("WORKFLOW_URL", "").strip()
+    text = ""
+    if workflow_id:
+        if workflow_url:
+            text = f"*Workflow:* <{workflow_url}|{workflow_id}>"
+        else:
+            text = f"*Workflow:* {workflow_id}"
+    else:
+        if workflow_url:
+            text = f"*Workflow:* {workflow_url}"
+    if workflow_name:
+        if text:
+            text += f' ({workflow_name})'
+    if text:
+        blocks.append({"type": "section", "fields": [{"type": "mrkdwn", "text": text}]})
+
+    workflow_comment = os.environ.get("WORKFLOW_COMMENT", "").strip()
+    if workflow_comment:
+        blocks.append(
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Comment:* {workflow_comment}"}
+                ],
+            }
+        )
 
 
 if __name__ == "__main__":

@@ -1,9 +1,11 @@
+# These blocks will be placed in the beginning of the message
 header_blocks:
 - type: header
   text:
     type: plain_text
     text: Test report
 
+# These blocks will be rendered as attachments
 attachment_blocks:
 - type: section
   text:
@@ -33,4 +35,3 @@ attachment_blocks:
   text:
     type: mrkdwn
     text: <https://example.com|View request>
-- type: divider
