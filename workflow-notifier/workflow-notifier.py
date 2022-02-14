@@ -2,7 +2,6 @@
 import os
 import string
 from enum import Enum, unique
-from multiprocessing.sharedctypes import Value
 
 import click
 import yaml
@@ -54,9 +53,9 @@ COLORS = {
     "--level",
     "-l",
     envvar="NOTIFIER_MESSAGE_LEVEL",
-    help="Slack OAuth token",
     type=click.Choice(MessageLevel.values()),
     default=MessageLevel.SUCCESS.value,
+    help="Message severity level",
 )
 @click.option(
     "--message-file",
