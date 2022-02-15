@@ -210,11 +210,11 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 		runDuration,
 	)
 
-	var testJsonObj map[string]interface{}
+	var testObj map[string]interface{}
 
 	fmt.Println("Validating the message...")
 	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
-	err := yaml.Unmarshal([]byte(rawMessage), &testJsonObj)
+	err := yaml.Unmarshal([]byte(rawMessage), &testObj)
 	check(err)
 
 	if Params.dryRun {
