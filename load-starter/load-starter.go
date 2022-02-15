@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -16,20 +14,57 @@ const (
 	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
 	DefaultInfluxDbServer = "http://localhost:8086"
 	InfluxDateFormat      = "2006-01-02T15:04:05Z"
-	SlackDateFormat       = "Mon 02 Jan 06\n15:04:05 MST"
+	SlackDateFormat       = "Mon 02 Jan 06 15:04:05 MST"
 )
+
+const slackTemplate = `---
+# These blocks will be placed in the beginning of the message
+header_blocks:
+- type: header
+  text:
+    type: plain_text
+    text: Test report
+
+# These blocks will be rendered as attachments
+attachment_blocks:
+- type: section
+  text:
+    type: mrkdwn
+    text: %s
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *Test start:*
+        %s
+    - type: mrkdwn
+      text: |-
+        *Number of users:*
+        %s
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *Test end:*
+        %s
+    - type: mrkdwn
+      text: |-
+        *Total duration:*
+        %s
+`
 
 // Command line arguments
 type CliParams struct {
-	duration         *time.Duration
-	organisationId   *string
-	boardId          *string
-	numUsers         int64
-	locustServerName *string
-	influxServerName *string
-	dryRun           bool
-	configFilePath   *string
-	reportFilePath   *string
+	duration             *time.Duration
+	organisationId       *string
+	boardId              *string
+	numUsers             int64
+	locustServerName     *string
+	influxServerName     *string
+	dryRun               bool
+	configFilePath       *string
+	reportFilePath       *string
+	slackMessageFilePath *string
 }
 
 var Params CliParams
@@ -58,6 +93,8 @@ func cliSetup() *cobra.Command {
 	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
 
 	Params.reportFilePath = rootCmd.Flags().StringP("report", "r", "", "If provided: report will be written here")
+
+	Params.slackMessageFilePath = rootCmd.Flags().StringP("slack-message", "s", "", "If provided: notification report (simply put, a formatted Slack message) will be written here")
 
 	return rootCmd
 }
@@ -128,10 +165,7 @@ func runLoadStarter() {
 
 	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
 	writeReportToFile(runReport)
-	err := sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
-	if err != nil {
-		fmt.Printf("Failed to store Slack message:\n%s", err)
-	}
+	writeSlackMessage(runReport.StartTime, runReport.EndTime, config)
 }
 
 func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Duration) string {
@@ -150,18 +184,13 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 	return reportUrl
 }
 
-// TODO: validate that this string has no tabs
-var template = `
----
-asdf:
-- meow: yes
-  test: bla
-
-
-`
-
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
-func sendSlackNotification(startTime time.Time, endTime time.Time, config Config) error {
+func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
+	if *Params.slackMessageFilePath == "" {
+		fmt.Printf("No Slack message path provided, not writing it.\n")
+		return
+	}
+
 	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
 
@@ -173,64 +202,30 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	}
 	runDuration := config.getTotalDuration()
 
-	jsonMessage := fmt.Sprintf(`
-	{
-		"header_blocks": [
-		  {
-			"type": "header",
-			"text": {
-			  "type": "plain_text",
-			  "text": "Test report"
-			}
-		  }
-		],
-		"attachment_blocks": [
-		  {
-			"type": "section",
-			"text": {
-			  "type": "mrkdwn",
-			  "text": "%s"
-			}
-		  },
-		  {
-			"type": "section",
-			"fields": [
-			  {
-				"type": "mrkdwn",
-				"text": "*Test start:*!n%s"
-			  },
-			  {
-				"type": "mrkdwn",
-				"text": "*Number of users:*!n%s"
-			  }
-			]
-		  },
-		  {
-			"type": "section",
-			"fields": [
-			  {
-				"type": "mrkdwn",
-				"text": "*Test end:*!n%s"
-			  },
-			  {
-				"type": "mrkdwn",
-				"text": "*Total duration:*!n%s"
-			  }
-			]
-		  }
-		]
-	  }
-	`, reportText, startTime.Local().Format(SlackDateFormat), usersString, endTime.Local().Format(SlackDateFormat), runDuration)
-
-	jsonMessageBytes := bytes.Replace([]byte(jsonMessage), []byte("\n"), []byte(" "), -1)
+	rawMessage := fmt.Sprintf(slackTemplate,
+		reportText,
+		startTime.Local().Format(SlackDateFormat),
+		usersString,
+		endTime.Local().Format(SlackDateFormat),
+		runDuration,
+	)
 
 	var testJsonObj map[string]interface{}
+
 	fmt.Println("Validating the message...")
-	err := json.Unmarshal(jsonMessageBytes, &testJsonObj)
+	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
+	err := yaml.Unmarshal([]byte(rawMessage), &testJsonObj)
 	check(err)
 
-	fmt.Println(string(jsonMessageBytes))
-	return nil
+	if Params.dryRun {
+		fmt.Printf("[dry-run] Would write the following Slack yaml to %s:\n~~~\n%s~~~\n", *Params.slackMessageFilePath, rawMessage)
+	} else {
+		err = os.WriteFile(*Params.slackMessageFilePath, []byte(rawMessage), 0644)
+		check(err)
+	}
+	fmt.Printf("Wrote Slack message to: %s\n", *Params.slackMessageFilePath)
+
+	return
 }
 
 func main() {
