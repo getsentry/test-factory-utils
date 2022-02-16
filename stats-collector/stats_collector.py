@@ -165,8 +165,8 @@ def get_stages_from_report(multi_report_file_name: str) -> List[Stage]:
                 end_time = parser.parse(end_time)
             users = step.get("users")
             if end_time - start_time > timedelta(minutes=2):
-                end_time = end_time - timedelta(minutes=1)
-                start_time = start_time + timedelta(minutes=1)
+                end_time = end_time - timedelta(seconds=30)
+                start_time = start_time + timedelta(seconds=30)
 
             stage_step = StageStep(
                 start_time=start_time, end_time=end_time, users=users, metrics=[]
