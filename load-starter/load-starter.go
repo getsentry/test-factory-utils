@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -16,20 +14,57 @@ const (
 	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
 	DefaultInfluxDbServer = "http://localhost:8086"
 	InfluxDateFormat      = "2006-01-02T15:04:05Z"
-	SlackDateFormat       = "Mon 02 Jan 06\n15:04:05 MST"
+	SlackDateFormat       = "Mon 02 Jan 06 15:04:05 MST"
 )
+
+const slackTemplate = `---
+# These blocks will be placed in the beginning of the message
+header_blocks:
+- type: header
+  text:
+    type: plain_text
+    text: Test report
+
+# These blocks will be rendered as attachments
+attachment_blocks:
+- type: section
+  text:
+    type: mrkdwn
+    text: %s
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *Test start:*
+        %s
+    - type: mrkdwn
+      text: |-
+        *Number of users:*
+        %s
+- type: section
+  fields:
+    - type: mrkdwn
+      text: |-
+        *Test end:*
+        %s
+    - type: mrkdwn
+      text: |-
+        *Total duration:*
+        %s
+`
 
 // Command line arguments
 type CliParams struct {
-	duration         *time.Duration
-	organisationId   *string
-	boardId          *string
-	numUsers         int64
-	locustServerName *string
-	influxServerName *string
-	dryRun           bool
-	configFilePath   *string
-	reportFilePath   *string
+	duration             *time.Duration
+	organisationId       *string
+	boardId              *string
+	numUsers             int64
+	locustServerName     *string
+	influxServerName     *string
+	dryRun               bool
+	configFilePath       *string
+	reportFilePath       *string
+	slackMessageFilePath *string
 }
 
 var Params CliParams
@@ -58,6 +93,8 @@ func cliSetup() *cobra.Command {
 	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
 
 	Params.reportFilePath = rootCmd.Flags().StringP("report", "r", "", "If provided: report will be written here")
+
+	Params.slackMessageFilePath = rootCmd.Flags().StringP("slack-message", "s", "", "If provided: notification report (simply put, a formatted Slack message) will be written here")
 
 	return rootCmd
 }
@@ -128,10 +165,7 @@ func runLoadStarter() {
 
 	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
 	writeReportToFile(runReport)
-	err := sendSlackNotification(runReport.StartTime, runReport.EndTime, config)
-	if err != nil {
-		fmt.Printf("Failed to send Slack notification:\n%s", err)
-	}
+	writeSlackMessage(runReport.StartTime, runReport.EndTime, config)
 }
 
 func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Duration) string {
@@ -151,27 +185,14 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 }
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
-func sendSlackNotification(startTime time.Time, endTime time.Time, config Config) error {
-	token := os.Getenv("SLACK_AUTH_TOKEN")
-	channelID := os.Getenv("SLACK_CHANNEL_ID")
-	workflowUrl := os.Getenv("WORKFLOW_URL")
-	workflowId := os.Getenv("WORKFLOW_ID")
-	workflowComment := strings.TrimSpace(os.Getenv("WORKFLOW_COMMENT"))
+func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
+	if *Params.slackMessageFilePath == "" {
+		fmt.Printf("No Slack message path provided, not writing it.\n")
+		return
+	}
 
 	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
-	fmt.Printf("Dashboard link: %s\n", reportUrl)
-
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
-	if workflowUrl != "" {
-		reportText += fmt.Sprintf("\n<%s|View workflow details (Argo)>", workflowUrl)
-	}
-	if workflowId != "" {
-		reportText += fmt.Sprintf("\nWorkflow ID: %s", workflowId)
-	}
-
-	// Create a new client to slack by giving token
-	// Set debug to true while developing
-	client := slack.New(token)
 
 	// Only print number of users when the only testing stage is "static"
 	usersString := "varying"
@@ -181,66 +202,30 @@ func sendSlackNotification(startTime time.Time, endTime time.Time, config Config
 	}
 	runDuration := config.getTotalDuration()
 
-	fields := []slack.AttachmentField{
-		{
-			Title: "Test start",
-			Value: startTime.Local().Format(SlackDateFormat),
-			Short: true,
-		},
-		{
-			Title: "Number of users",
-			Value: usersString,
-			Short: true,
-		},
-		{
-			Title: "Test end",
-			Value: endTime.Local().Format(SlackDateFormat),
-			Short: true,
-		},
-		{
-			Title: "Total duration",
-			Value: fmt.Sprintf("%s", runDuration),
-			Short: true,
-		},
-	}
+	rawMessage := fmt.Sprintf(slackTemplate,
+		reportText,
+		startTime.Local().Format(SlackDateFormat),
+		usersString,
+		endTime.Local().Format(SlackDateFormat),
+		runDuration,
+	)
 
-	if workflowComment != "" {
-		fields = append(fields, slack.AttachmentField{
-			Title: "Comment",
-			Value: workflowComment,
-			Short: false,
-		})
-	}
+	var testObj map[string]interface{}
 
-	attachment := slack.Attachment{
-		Pretext: "Here's your test report",
-		Text:    reportText,
-		// Color Styles the Text, making it possible to have like Warnings etc.
-		Color:   "#36a64f",
-		Fields:  fields,
-		Actions: []slack.AttachmentAction{{URL: reportUrl}},
-	}
-
-	message := slack.MsgOptionAttachments(attachment)
-
-	fmt.Println("Sending the report to Slack...")
+	fmt.Println("Validating the message...")
+	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
+	err := yaml.Unmarshal([]byte(rawMessage), &testObj)
+	check(err)
 
 	if Params.dryRun {
-		fmt.Printf("[dry-run] Message: %#v\n", attachment)
+		fmt.Printf("[dry-run] Would write the following Slack yaml to %s:\n~~~\n%s~~~\n", *Params.slackMessageFilePath, rawMessage)
 	} else {
-		_, _, err := client.PostMessage(
-			channelID,
-			message,
-		)
-
-		if err != nil {
-			fmt.Printf("Failed to send to Slack: %s\n", err)
-			return err
-		}
+		err = os.WriteFile(*Params.slackMessageFilePath, []byte(rawMessage), 0644)
+		check(err)
 	}
+	fmt.Printf("Wrote Slack message to: %s\n", *Params.slackMessageFilePath)
 
-	fmt.Println("\nDone!")
-	return nil
+	return
 }
 
 func main() {
