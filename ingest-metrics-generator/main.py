@@ -75,7 +75,7 @@ def main(**kwargs):
 
     producer = get_kafka_producer(settings)
 
-    print("Sending data...")
+    print("Sending data...", flush=True)
     send_metrics(producer, settings)
 
     print("Done!")
