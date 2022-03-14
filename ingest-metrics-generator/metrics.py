@@ -3,7 +3,7 @@ import random
 
 
 def generate_metric(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
-    metric_type = _get_metric_type(idx, settings)
+    metric_type = _get_metric_type(idx, settings) or ""
     generator = _get_metric_generator(metric_type)
 
     return generator(idx, settings)
@@ -103,23 +103,51 @@ def _get_distribution(idx: int, settings: Mapping[str, Any]) -> List[float]:
         return [random.random() * 999 for i in range(num_elms)]
 
 
+def _get_tag_num_with_unique_rate(
+    idx: int, settings: Mapping[str, Any], num_predefined: int, unique_rate: float
+) -> int:
+    assert 0.0 <= unique_rate <= 1.0
+
+    tag_num = 0
+
+    # Shift to distinguish between unique and predefined values
+    shift = 1000 + num_predefined
+
+    if unique_rate > 0:
+        if is_repeatable(settings):
+            scale_param = 1000
+            if idx % scale_param + 1 <= scale_param * unique_rate:
+                tag_num = idx + shift
+        else:
+            if random.random() < unique_rate:
+                tag_num = idx + shift
+
+    # This is the case if rate is 0, or if sampling didn't succeed
+    if tag_num == 0:
+        if is_repeatable(settings):
+            tag_num = idx % num_predefined + 1
+        else:
+            tag_num = random.randint(1, num_predefined)
+
+    return tag_num
+
+
 def _get_release(idx: int, settings: Mapping[str, Any]) -> str:
     releases = settings["releases"]
+    rate = settings["releases_unique_rate"]
 
-    if is_repeatable(settings):
-        rel_num = idx % releases + 1
-    else:
-        rel_num = random.randint(1, releases)
+    rel_num = _get_tag_num_with_unique_rate(idx, settings, releases, rate)
+
     return f"v{rel_num}.1.1"
 
 
 def _get_environment(idx: int, settings: Mapping[str, Any]) -> str:
     environments = settings["environments"]
-    if is_repeatable(settings):
-        rel_num = idx % environments + 1
-    else:
-        rel_num = random.randint(1, environments)
-    return f"env-{rel_num}"
+    rate = settings["environments_unique_rate"]
+
+    env_num = _get_tag_num_with_unique_rate(idx, settings, environments, rate)
+
+    return f"env-{env_num}"
 
 
 def _get_tags(idx: int, settings: Mapping[str, Any]) -> Mapping[str, str]:
