@@ -28,7 +28,7 @@ from util import parse_timedelta
     "--broker",
     "-b",
     default=None,
-    help="the kafka broker address and port (e.g. localhost:9092)",
+    help="Kafka broker address and port (e.g. localhost:9092)",
 )
 @click.option(
     "--repeatable",
@@ -48,7 +48,30 @@ from util import parse_timedelta
 )
 @click.option("--org", "-o", type=int, help="organisation id")
 @click.option("--project", "-p", type=int, help="project id")
-@click.option("--releases", default="", help="number of releases to generate")
+@click.option(
+    "--releases",
+    type=int,
+    default=0,
+    help="Number of releases to generate. If --releases-unique-rate is provided, this parameter defines the number of fallback (non-unique) releases.",
+)
+@click.option(
+    "--releases-unique-rate",
+    type=click.FloatRange(0, 1),
+    default=0,
+    help="Ratio of unique releases to generate",
+)
+@click.option(
+    "--environments",
+    type=int,
+    default=0,
+    help="Number of environments to generate. If --environments-unique-rate is provided, this parameter defines the number of fallback (non-unique) environments.",
+)
+@click.option(
+    "--environments-unique-rate",
+    type=click.FloatRange(0, 1),
+    default=0,
+    help="Ratio of unique environments to generate",
+)
 @click.option(
     "--col-min",
     type=int,
@@ -59,7 +82,6 @@ from util import parse_timedelta
     type=int,
     help="max number of items in collections (sets & distributions)",
 )
-@click.option("--environments", default="", help="number of environments to generate")
 @click.option("--dry-run", is_flag=True, help="if set only prints the settings")
 def main(**kwargs):
     """
@@ -108,10 +130,12 @@ def get_settings(
     timestamp: Optional[int],
     spread: Optional[str],
     releases: Optional[str],
+    releases_unique_rate: Optional[str],
     environments: Optional[str],
+    environments_unique_rate: Optional[str],
     col_min: Optional[int],
     col_max: Optional[int],
-    dry_run: bool
+    dry_run: bool,
 ):
     # default settings
     settings = {
@@ -120,7 +144,9 @@ def get_settings(
         "repeatable": False,
         "spread": "2m",
         "releases": 1,
+        "releases_unique_rate": 0,
         "environments": 1,
+        "environments_unique_rate": 0,
         "col_min": 1,
         "col_max": 1,
         "kafka": {},
@@ -171,12 +197,30 @@ def get_settings(
 
     # num_messages, environment and releases may be set to a string value (when started from kubernetes) like 'default'
     # if set in the command line to anything that can't be converted to an integer just ignore it
-    for name, value in (("num_messages", num_messages), ("releases", releases), ("environments", environments)):
+    for name, value in (
+        ("num_messages", num_messages),
+        ("releases", releases),
+        ("environments", environments),
+    ):
         if value is not None:
             try:
                 settings[name] = int(value)
             except ValueError:
                 pass  # ignore non integer command line args
+
+    if releases_unique_rate is not None:
+        settings["releases_unique_rate"] = float(releases_unique_rate)
+        if not (0 <= settings["releases_unique_rate"] <= 1):
+            raise ValueError(
+                "Invalid 'releases_unique_rate': should be between 0.0 and 1.0"
+            )
+
+    if environments_unique_rate is not None:
+        settings["environments_unique_rate"] = float(environments_unique_rate)
+        if not (0 <= settings["environments_unique_rate"] <= 1):
+            raise ValueError(
+                "Invalid 'environments_unique_rate': should be between 0.0 and 1.0"
+            )
 
     if col_min is not None:
         settings["col_min"] = col_min
