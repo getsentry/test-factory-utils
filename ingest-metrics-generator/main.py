@@ -51,25 +51,21 @@ from util import parse_timedelta
 @click.option(
     "--releases",
     type=int,
-    default=0,
     help="Number of releases to generate. If --releases-unique-rate is provided, this parameter defines the number of fallback (non-unique) releases.",
 )
 @click.option(
     "--releases-unique-rate",
     type=click.FloatRange(0, 1),
-    default=0,
     help="Ratio of unique releases to generate",
 )
 @click.option(
     "--environments",
     type=int,
-    default=0,
     help="Number of environments to generate. If --environments-unique-rate is provided, this parameter defines the number of fallback (non-unique) environments.",
 )
 @click.option(
     "--environments-unique-rate",
     type=click.FloatRange(0, 1),
-    default=0,
     help="Ratio of unique environments to generate",
 )
 @click.option(
