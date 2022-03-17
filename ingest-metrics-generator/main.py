@@ -28,7 +28,7 @@ from util import parse_timedelta
     "--broker",
     "-b",
     default=None,
-    help="the kafka broker address and port (e.g. localhost:9092)",
+    help="Kafka broker address and port (e.g. localhost:9092)",
 )
 @click.option(
     "--repeatable",
@@ -48,19 +48,29 @@ from util import parse_timedelta
 )
 @click.option("--org", "-o", type=int, help="organisation id")
 @click.option("--project", "-p", type=int, help="project id")
-@click.option("--releases", default="", help="number of releases to generate")
+@click.option(
+    "--releases",
+    type=int,
+    default=0,
+    help="Number of releases to generate. If --releases-unique-rate is provided, this parameter defines the number of fallback (non-unique) releases.",
+)
 @click.option(
     "--releases-unique-rate",
     type=click.FloatRange(0, 1),
     default=0,
-    help="ratio of unique releases to generate",
+    help="Ratio of unique releases to generate",
 )
-@click.option("--environments", default="", help="number of environments to generate")
+@click.option(
+    "--environments",
+    type=int,
+    default=0,
+    help="Number of environments to generate. If --environments-unique-rate is provided, this parameter defines the number of fallback (non-unique) environments.",
+)
 @click.option(
     "--environments-unique-rate",
     type=click.FloatRange(0, 1),
     default=0,
-    help="ratio of unique environments to generate",
+    help="Ratio of unique environments to generate",
 )
 @click.option(
     "--col-min",
@@ -133,9 +143,9 @@ def get_settings(
         "topic_name": "ingest-metrics",
         "repeatable": False,
         "spread": "2m",
-        "releases": 1,
+        "releases": 1000,
         "releases_unique_rate": 0,
-        "environments": 1,
+        "environments": 1000,
         "environments_unique_rate": 0,
         "col_min": 1,
         "col_max": 1,

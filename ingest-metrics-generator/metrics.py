@@ -106,7 +106,21 @@ def _get_distribution(idx: int, settings: Mapping[str, Any]) -> List[float]:
 def _get_tag_num_with_unique_rate(
     idx: int, settings: Mapping[str, Any], num_predefined: int, unique_rate: float
 ) -> int:
+    """
+    Return a tag number (id) based on the provided inputs.
+
+    If "unique_rate" is 0, we only return ids in the range specified by "num_predefined".
+
+    If "unique_rate" is a positive number between 0.0 and 1.0, it defines the sampling rate for
+    "unique ids per message", and "num_predefined" defines a space of "non-unique" messages and used
+    as a fallback.
+
+    For example: if "unique_rate" is 0.25 and "num_predefined" is 300, (approximately) every fourth returned
+    id will be a new, unique id never seen before. All other returned ids will be in the range [1, 300].
+
+    """
     assert 0.0 <= unique_rate <= 1.0
+    assert num_predefined > 0
 
     tag_num = 0
 
@@ -122,7 +136,8 @@ def _get_tag_num_with_unique_rate(
             if random.random() < unique_rate:
                 tag_num = idx + shift
 
-    # This is the case if rate is 0, or if sampling didn't succeed
+    # Process the case when the unique rate is 0 (i.e., no unique tags needed), or as a
+    # fallback if sampling didn't succeed.
     if tag_num == 0:
         if is_repeatable(settings):
             tag_num = idx % num_predefined + 1
