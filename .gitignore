@@ -26,3 +26,6 @@ logfiles/
 
 # Local env variables
 .env
+
+# Docker
+.dockervolumes

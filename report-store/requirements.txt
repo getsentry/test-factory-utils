@@ -1,0 +1,16 @@
+Flask==2.0.3
+certifi==2021.10.8
+click==8.0.4
+itsdangerous==2.1.0
+Jinja2==3.0.3
+MarkupSafe==2.1.0
+minio==7.1.4
+urllib3==1.26.8
+Werkzeug==2.0.3
+PyYAML==6.0
+pymongo==4.0.0
+mongoengine==0.24.0 # Requires pymongo==4.0.0, should be fixed in the next version
+sentry-sdk[flask]==1.5.7
+flask-mongoengine==1.0.0
+waitress==2.1.1
+requests==2.27.1
