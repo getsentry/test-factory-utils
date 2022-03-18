@@ -1,5 +1,7 @@
 package main
 
+// This file contains the parsing of legacy configuration files
+
 import (
 	"log"
 	"os"
@@ -13,11 +15,11 @@ type RawConfig struct {
 	Stages []interface{}
 }
 
-type Config struct {
-	Stages []TestStage
+type LegacyConfig struct {
+	Stages []LegacyTestStage
 }
 
-func (c Config) getTotalDuration() time.Duration {
+func (c LegacyConfig) getTotalDuration() time.Duration {
 	var duration time.Duration
 	for _, stage := range c.Stages {
 		duration += stage.getTotalDuration()
@@ -25,13 +27,25 @@ func (c Config) getTotalDuration() time.Duration {
 	return duration
 }
 
-func parseConfigFile(configPath string) Config {
+func parseConfigFile(configPath string) LegacyConfig {
 	data, err := os.ReadFile(configPath)
 	check(err)
 	return parseConfig(data)
 }
 
-func parseConfig(data []byte) Config {
+func parseLegacyConfigFile(configPath string) ([]TestConfig, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	return parseLegacyConfig(data)
+}
+
+func parseLegacyConfig(data []byte) ([]TestConfig, error) {
+	return nil, nil
+}
+
+func parseConfig(data []byte) LegacyConfig {
 	rawConfig := RawConfig{}
 
 	err := yaml.Unmarshal(data, &rawConfig)
@@ -40,8 +54,8 @@ func parseConfig(data []byte) Config {
 	}
 	// fmt.Printf("--- raw config:\n%v\n\n", rawConfig)
 
-	config := Config{}
-	config.Stages = make([]TestStage, 0)
+	config := LegacyConfig{}
+	config.Stages = make([]LegacyTestStage, 0)
 
 	for _, s := range rawConfig.Stages {
 		stageType := s.(map[interface{}]interface{})["type"]

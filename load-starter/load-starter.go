@@ -1,17 +1,24 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
 const (
 	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
+	DefaultLoadServer     = "http://ingest-load-tester.default.svc.cluster.local" // TODO set to Vegeta server
 	DefaultInfluxDbServer = "http://localhost:8086"
 	InfluxDateFormat      = "2006-01-02T15:04:05Z"
 	SlackDateFormat       = "Mon 02 Jan 06 15:04:05 MST"
@@ -49,7 +56,7 @@ attachment_blocks:
         %s
     - type: mrkdwn
       text: |-
-        *Total duration:*
+        *Total Duration:*
         %s
 `
 
@@ -60,11 +67,14 @@ type CliParams struct {
 	boardId              *string
 	numUsers             int64
 	locustServerName     *string
+	loadServerName       *string
 	influxServerName     *string
 	dryRun               bool
 	configFilePath       *string
 	reportFilePath       *string
 	slackMessageFilePath *string
+	logLevel             string
+	useColor             bool
 }
 
 var Params CliParams
@@ -72,13 +82,15 @@ var Params CliParams
 func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use: "app",
-		Run: func(cmd *cobra.Command, args []string) { runLoadStarter() },
+		Run: func(cmd *cobra.Command, args []string) { runLoadStarterLegacy() },
 	}
 	rootCmd.Flags()
 
-	Params.duration = rootCmd.Flags().DurationP("duration", "d", time.Millisecond*10000, "the duration to run the program")
+	Params.duration = rootCmd.Flags().DurationP("Duration", "d", time.Millisecond*10000, "the Duration to run the program")
 
-	Params.locustServerName = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint")
+	Params.locustServerName = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint (deprecated)")
+
+	Params.loadServerName = rootCmd.Flags().String("load-server", DefaultLoadServer, "Load server endpoint")
 
 	Params.influxServerName = rootCmd.Flags().StringP("influx", "i", DefaultInfluxDbServer, "InfluxDB dashboard base URL")
 
@@ -96,18 +108,137 @@ func cliSetup() *cobra.Command {
 
 	Params.slackMessageFilePath = rootCmd.Flags().StringP("slack-message", "s", "", "If provided: notification report (simply put, a formatted Slack message) will be written here")
 
+	rootCmd.PersistentFlags().StringVar(&Params.logLevel, "log", "error", "Log level: trace, info, warn, (error), fatal, panic")
+	rootCmd.PersistentFlags().BoolVar(&Params.useColor, "color", false, "Use color (only for console output).")
+
+	_ = rootCmd.Flags().MarkDeprecated("locust", "locust flag is deprecated, please use load-tester instead")
+	_ = rootCmd.Flags().MarkDeprecated("users", "users flag is deprecated, please use config file to specify options instead")
+
+	cobra.OnInitialize(initConfig)
 	return rootCmd
 }
 
+// initConfig call after Cobra has read the configuration, all the settings should be ready in Params
+func initConfig() {
+	//setup logging
+	var consoleWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: Params.useColor,
+		TimeFormat: "15:04:05"}
+	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Logger()
+
+	var logLevel zerolog.Level
+
+	switch strings.ToLower(Params.logLevel) {
+	case "t", "trc", "trace":
+		logLevel = zerolog.TraceLevel
+	case "i", "inf", "info":
+		logLevel = zerolog.InfoLevel
+	case "w", "warn", "warning":
+		logLevel = zerolog.WarnLevel
+	case "e", "err", "error":
+		logLevel = zerolog.ErrorLevel
+	case "f", "fatal":
+		logLevel = zerolog.FatalLevel
+	case "p", "panic":
+		logLevel = zerolog.PanicLevel
+	case "d", "dis", "disable", "disabled":
+		logLevel = zerolog.Disabled
+	default:
+		logLevel = zerolog.ErrorLevel
+	}
+
+	zerolog.SetGlobalLevel(logLevel)
+}
+
 func executeConfig(config Config) RunReport {
-	runReport := RunReport{}
+	var retVal = RunReport{
+		TestRuns: make([]TestRun, 0, len(config.TestConfigs)),
+	}
+
+	for _, config := range config.TestConfigs {
+		var run = TestRun{
+			TestConfig: config,
+			StartTime:  time.Now().UTC(),
+		}
+		retVal.TestRuns = append(retVal.TestRuns, run)
+		logTestDetails(run)
+		var err = runTest(config)
+		if err != nil {
+			log.Error().Msgf("Failed to run test:%s\n%v", config.Name, err)
+		}
+	}
+
+	return retVal
+}
+
+func logTestDetails(run TestRun) {
+	log.Info().Msgf("\n--- Test %s ---", run.Name)
+	log.Info().Msgf("\n-- duration: %#v\n", run.Duration)
+}
+
+func runTest(config TestConfig) error {
+	if Params.dryRun {
+		log.Info().Msgf("[dry-run] Sending start request to %s: %s\n", config.StartUrl, config.StartBody)
+		return nil
+	}
+
+	var err = sendHttpRequest(config.StartMethod, config.StartUrl, config.StartBody, config.StartHeaders)
+	if err != nil {
+		log.Error().Msgf("Failed to start run %s", config.Name)
+		return err
+	}
+
+	time.Sleep(config.Duration)
+
+	if len(config.StartUrl) == 0 {
+		return nil // nothing more to do
+	}
+
+	err = sendHttpRequest(config.StopMethod, config.StopUrl, config.StopBody, config.StopHeaders)
+	if err != nil {
+		log.Error().Msgf("Failed to stop run %s", config.Name)
+		return err
+	}
+
+	return nil
+}
+
+func sendHttpRequest(method string, url string, body string, headers map[string]string) error {
+	var bodyData io.Reader
+	if len(body) > 0 {
+		bodyData = bytes.NewReader([]byte(body))
+	}
+	req, err := http.NewRequest(method, url, bodyData)
+	if err != nil {
+		return err
+	}
+	for key, val := range headers {
+		req.Header.Add(key, val)
+	}
+	if err != nil {
+		return err
+	}
+
+	var client = GetDefaultHttpClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Error().Msgf(" error sending command to client '%s': \n%s", url, err)
+		return err
+	}
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	return nil
+}
+
+func executeConfigLegacy(config LegacyConfig) LegacyRunReport {
+	runReport := LegacyRunReport{}
 
 	runReport.StartTime = time.Now().UTC()
 	for i, stage := range config.Stages {
 		stageNum := i + 1
 		fmt.Printf("\n--- Stage %d ---\n", stageNum)
 		fmt.Printf("Stage config: %#v\n", stage)
-		fmt.Printf("Planned stage duration: %v\n", stage.getTotalDuration())
+		fmt.Printf("Planned stage Duration: %v\n", stage.getTotalDuration())
 		report, err := stage.execute()
 		check(err)
 		fmt.Printf("Stage report: %#v\n", report)
@@ -118,7 +249,7 @@ func executeConfig(config Config) RunReport {
 	return runReport
 }
 
-func writeReportToFile(report RunReport) {
+func writeReportToFile(report LegacyRunReport) {
 	if *Params.reportFilePath == "" {
 		fmt.Printf("No report file path provided, not writing the report to file.\n")
 		return
@@ -136,20 +267,20 @@ func writeReportToFile(report RunReport) {
 	fmt.Printf("Wrote run report to: %s\n", *Params.reportFilePath)
 }
 
-func runLoadStarter() {
+func runLoadStarterLegacy() {
 	if Params.dryRun {
 		fmt.Println("NOTE: Dry-run mode is ON")
 	}
 
-	var config Config
+	var config LegacyConfig
 
 	fmt.Printf("\n--- Prepare ---\nInitializing the run...\n")
 
 	// Here we decide: do we use the config file or command line args?
 	if *Params.configFilePath == "" {
 		// Use the CLI args
-		stages := []TestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
-		config = Config{Stages: stages}
+		stages := []LegacyTestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
+		config = LegacyConfig{Stages: stages}
 	} else {
 		// Use the config file
 		config = parseConfigFile(*Params.configFilePath)
@@ -161,7 +292,7 @@ func runLoadStarter() {
 	fmt.Printf("Total estimated running time: %s\n", totalDuration)
 	fmt.Printf("Esimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
 
-	runReport := executeConfig(config)
+	runReport := executeConfigLegacy(config)
 
 	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
 	writeReportToFile(runReport)
@@ -185,7 +316,7 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 }
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
-func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
+func writeSlackMessage(startTime time.Time, endTime time.Time, config LegacyConfig) {
 	if *Params.slackMessageFilePath == "" {
 		fmt.Printf("No Slack message path provided, not writing it.\n")
 		return

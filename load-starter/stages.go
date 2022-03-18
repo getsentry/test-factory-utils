@@ -11,7 +11,7 @@ const (
 )
 
 // Interfaces
-type TestStage interface {
+type LegacyTestStage interface {
 	getType() string
 	validate() error
 	getTotalDuration() time.Duration
@@ -29,12 +29,12 @@ type StepReport struct {
 // Report per stage
 type StageReport struct {
 	StepReports []StepReport `yaml:"steps"`
-	StageName   string       `yaml:"name"`
+	StageName   string       `yaml:"Name"`
 	StageType   string       `yaml:"stageType"`
 }
 
 // Top level report for the entire run
-type RunReport struct {
+type LegacyRunReport struct {
 	StageReports []StageReport `yaml:"stageReports"`
 	StartTime    time.Time     `yaml:"startTime"`
 	EndTime      time.Time     `yaml:"endTime"`
@@ -126,7 +126,7 @@ func (t StageGradual) validate() error {
 		return fmt.Errorf("Invalid target number of users: %d", t.EndUsers)
 	}
 	if t.StepDuration.Seconds() == 0.0 {
-		return fmt.Errorf("Step duration cannot be zero/empty for stage: %#v", t)
+		return fmt.Errorf("Step Duration cannot be zero/empty for stage: %#v", t)
 	}
 	if (t.StartUsers < t.EndUsers && t.Step <= 0) || (t.StartUsers > t.EndUsers && t.Step >= 0) {
 		return fmt.Errorf("Invalid combination of step and start/end users: %#v", t)
