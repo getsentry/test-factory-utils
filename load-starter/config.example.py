@@ -1,43 +1,76 @@
-# type TestRun struct {
-#     name             string
-# duration         time.Duration
-# startCommand     string
-# startCommandVerb string // GET,POST...
-#     startBody        string
-# stopCommand      string
-# stopCommandVerb  string // GET, POST...
-#     stopBody         string
-# }
+# Example configuration file
+# CONFIG_VERSION = "X.X.X" # sym version currently not used
+#
+# set_load_tester_url( url:str) # use to set the base url for the subsequent tests
+# set_load_tester_url can be called multiple times, the last one called before any
+# add_XXX_test will be used (
 
-# def add_load_test("name", start_command, start_body, start_verb="POST", end_command=None, end_body=NONE, end_verb="POST")
 
-startCommand = "https://the-server/start"
-endCommand = "https://theServer/stop"
-start_verb = "POST"
-end_verb = "GET"
+CONFIG_VERSION = "1.0.0"
+LOCUST_URL = "http://locust_server"
+VEGETA_URL = "http://vegeta_server"
 
-def locust_start_body(users):
-    spawn_rate= users/4
-    return "user_count=%s&spawn_rate=%s" % (users, spawn_rate)
 
-def add_locust_test(users,duration, name="", description=""):
-    start_body = locust_start_body(users)
-    add_load_test(
-        duration= duration,
-        name = name,
-        description = description,
-        start_command = startCommand,
-        start_verb = start_verb,
-        start_body = start_body,
-        end_command = endCommand,
-        end_verb = end_verb
+def add_locust_tests():
+    add_locust_test(
+        duration=duration("10m"),
+        users=30,
+        spawn_rate=None,
+        name="warmup"
+    )
+    add_locust_test(
+        duration="11m",
+        users=40,
+        spawn_rate=4,
+        name="second",
+        description="duration passed as string"
+    )
+    add_locust_test(
+        duration="12m",
+        users=50,
+        name="third",
+        description="override the load tester server",
+        url="http://special_locust_server"
     )
 
-# we need a function if we want to use loops
-def main():
-    for users in range(10,31,5):
-        add_locust_test(users, '60s')
-    add_locust_test(40, "100s")
-    for users in range(30, 19, -2):
-        add_locust_test(users, '60s')
-main()
+    add_locust_test("10m5s", 22, description="positional params")
+
+    for num_users in range(20, 100, 20):
+        add_locust_test(
+            url=LOCUST_URL,
+            users=num_users,
+            duration=duration("10m"),
+            name="a lot of releases with %d users" % num_users
+        )
+
+
+def add_vegeta_tests():
+    add_vegeta_test(
+        duration=duration("5m1s"),
+        freq=22,
+        per=duration("1s"),
+        config={
+            "startedRange": "1m",
+            "durationRange": "2m",
+            "numReleases": 3,
+            "numEnvironments": 4,
+            "numUsers": 5,
+            "okWeight": 6,
+            "exitedWeight": 7,
+            "erroredWeight": 8,
+            "crashedWeight": 9,
+            "abnormalWeight": 10
+        },
+        name="vegeta test",
+        description="vegeta test description"
+
+    )
+
+
+# setup some locust tests
+set_load_tester_url(LOCUST_URL)
+add_locust_tests()
+
+# setup some vegeta tests
+set_load_tester_url(VEGETA_URL)
+add_vegeta_tests()

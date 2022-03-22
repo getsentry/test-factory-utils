@@ -82,7 +82,7 @@ var Params CliParams
 func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use: "app",
-		Run: func(cmd *cobra.Command, args []string) { runLoadStarterLegacy() },
+		Run: func(cmd *cobra.Command, args []string) { runLoadStarter() },
 	}
 	rootCmd.Flags()
 
@@ -153,7 +153,6 @@ func executeConfig(config Config) RunReport {
 	var retVal = RunReport{
 		TestRuns: make([]TestRun, 0, len(config.TestConfigs)),
 	}
-
 	for _, config := range config.TestConfigs {
 		var run = TestRun{
 			TestConfig: config,
@@ -171,8 +170,8 @@ func executeConfig(config Config) RunReport {
 }
 
 func logTestDetails(run TestRun) {
-	log.Info().Msgf("\n--- Test %s ---", run.Name)
-	log.Info().Msgf("\n-- duration: %#v\n", run.Duration)
+	log.Info().Msgf("--- Test %s ---", run.Name)
+	log.Info().Msgf("-- duration: %#v", run.Duration)
 }
 
 func runTest(config TestConfig) error {
@@ -291,6 +290,7 @@ func runLoadStarter() {
 	}
 
 	var report = executeConfig(config)
+
 	//TODO finish this fix this
 	log.Info().Msgf("Data:\n%v", report)
 

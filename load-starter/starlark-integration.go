@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 	"time"
@@ -15,24 +16,27 @@ type LoadTestEnv struct {
 
 func LoadStarlarkConfig(configPath string) (Config, error) {
 	thread := &starlark.Thread{Name: "Starlark execution"}
+	var tests LoadTestEnv
+
 	var env = starlark.StringDict{
-		"duration": starlark.NewBuiltin("duration", newDuration),
-		//		"register_test": starlark.NewBuiltin("register_test", registerTest),
-		"Nanosecond":  StarlarkDuration{val: time.Nanosecond, frozen: true},
-		"Microsecond": StarlarkDuration{val: time.Microsecond, frozen: true},
-		"Millisecond": StarlarkDuration{val: time.Millisecond, frozen: true},
-		"Second":      StarlarkDuration{val: time.Second, frozen: true},
-		"Minute":      StarlarkDuration{val: time.Minute, frozen: true},
-		"Hour":        StarlarkDuration{val: time.Hour, frozen: true},
-		"Day":         StarlarkDuration{val: time.Hour * 24, frozen: true},
+		"duration":            starlark.NewBuiltin("duration", newDuration),
+		"set_load_tester_url": starlark.NewBuiltin("set_load_tester_url", tests.setLoadTesterUrl),
+		"add_locust_test":     starlark.NewBuiltin("add_locust_test", tests.addLocustTestBuiltin),
+		"add_vegeta_test":     starlark.NewBuiltin("add_vegeta_test", tests.addVegetaTestBuiltin),
+		"Nanosecond":          StarlarkDuration{val: time.Nanosecond, frozen: true},
+		"Microsecond":         StarlarkDuration{val: time.Microsecond, frozen: true},
+		"Millisecond":         StarlarkDuration{val: time.Millisecond, frozen: true},
+		"Second":              StarlarkDuration{val: time.Second, frozen: true},
+		"Minute":              StarlarkDuration{val: time.Minute, frozen: true},
+		"Hour":                StarlarkDuration{val: time.Hour, frozen: true},
+		"Day":                 StarlarkDuration{val: time.Hour * 24, frozen: true},
 	}
 	_, err := starlark.ExecFile(thread, configPath, nil, env)
 	if err != nil {
 		fmt.Printf("exec file error\n%s", err)
 		return Config{}, err
 	}
-	// TODO fix this
-	return Config{}, nil
+	return Config{TestConfigs: tests.LoadTests}, nil
 }
 
 // StarlarkDuration type for working with Durations in Starlark
@@ -338,6 +342,42 @@ func convertItem(item starlark.Tuple) (string, interface{}, error) {
 	}
 
 	return key, val, nil
+}
+
+// setLoadTesterUrl implements the builtin set_load_tester_url(url=None) which sets the default URL for any test.
+// A test can override the default URL by specifying a different URL.
+// If there is no default URL set at the time when a test is added and the test does not specify a URL the add
+// test operation will fail.
+//
+// setLoadTesterUrl can be called multiple times, the URL used for a test is set when the test is added (the
+// addXXXTest operation) either to the URL specified in the addXXXTest call or to the last setLoadTesterUrl call.
+//
+// To remove the default load test Url, call it without a parameter or with None ( set_load_tester_url() )
+func (env *LoadTestEnv) setLoadTesterUrl(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+
+	var url starlark.Value
+	retVal = starlark.None
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "url?", &url); err != nil {
+		return // error
+	}
+	if url == starlark.None {
+		env.LoadTesterUrl = ""
+		return // ok
+	}
+
+	urlStr, ok := url.(starlark.String)
+
+	if !ok {
+		err = fmt.Errorf("set_load_tester_url called with invalid type: %s", url.Type())
+		return // error
+	}
+
+	env.LoadTesterUrl = urlStr.GoString()
+
+	log.Trace().Msgf("Load tester Url set to %s\n", env.LoadTesterUrl)
+
+	return // ok
 }
 
 // addLocustTestBuiltin implements the builtin add_locust_test(duration:str|duration, users:int,  spawn_rate:int|None=None,
