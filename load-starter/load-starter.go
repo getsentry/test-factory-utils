@@ -267,6 +267,56 @@ func writeReportToFile(report LegacyRunReport) {
 	fmt.Printf("Wrote run report to: %s\n", *Params.reportFilePath)
 }
 
+func runLoadStarter() {
+	if Params.dryRun {
+		log.Info().Msg("NOTE: Dry-run mode is ON")
+	}
+
+	var config Config
+	var err error
+
+	log.Info().Msg("\n--- Prepare ---\nInitializing the run...\n")
+
+	//TODO add legacy support
+	var configPath = *Params.configFilePath
+	if configPath != "" {
+		if IsStarlarkConfig(configPath) {
+			config, err = LoadStarlarkConfig(configPath)
+		}
+		if err != nil {
+			log.Error().Msgf("Failed to load config file from: %s \n%s\n", configPath, err)
+			return
+		}
+
+	}
+
+	var report = executeConfig(config)
+	//TODO finish this fix this
+	log.Info().Msgf("Data:\n%v", report)
+
+	//// Here we decide: do we use the config file or command line args?
+	//if *Params.configFilePath == "" {
+	//	// Use the CLI args
+	//	stages := []LegacyTestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
+	//	config = LegacyConfig{Stages: stages}
+	//} else {
+	//	// Use the config file
+	//	config = parseConfigFile(*Params.configFilePath)
+	//}
+	//
+	//fmt.Printf("Configuration: %#v\n", config)
+	//
+	//totalDuration := config.getTotalDuration()
+	//fmt.Printf("Total estimated running time: %s\n", totalDuration)
+	//fmt.Printf("Esimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
+	//
+	//runReport := executeConfigLegacy(config)
+	//
+	//fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
+	//writeReportToFile(runReport)
+	//writeSlackMessage(runReport.StartTime, runReport.EndTime, config)
+}
+
 func runLoadStarterLegacy() {
 	if Params.dryRun {
 		fmt.Println("NOTE: Dry-run mode is ON")
