@@ -1,11 +1,17 @@
+// Implements the Locust load tester integration.
+// Note: there some Locust specific code in addLocustTestBuiltin starlark builtin.
+// It needs to be there since it has more to do with starlark than Locust
+
 package main
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -15,6 +21,7 @@ const (
 )
 
 // Starts a locust load task by calling the spawn endpoint
+// TODO remove, it is obsolete
 func startLocust(users int64, spawnRate int64) error {
 	fmt.Printf("Preparing to start Locust; users: %d: spawnRate: %d\n", users, spawnRate)
 
@@ -44,6 +51,7 @@ func startLocust(users int64, spawnRate int64) error {
 }
 
 // Starts a locust load testing by calling the stop endpoint
+// TODO remove, it is obsolete
 func stopLocust() error {
 	stopUrl := fmt.Sprintf("%s%s", *Params.locustServerName, StopLocustUrl)
 
@@ -75,4 +83,38 @@ func resetLocustStats() error {
 	}
 	defer response.Body.Close()
 	return nil
+}
+
+func CreateLocustTestConfig(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64) TestConfig {
+
+	log.Trace().Msgf(`duration=%v
+name=%v
+description=%v
+loadTesterUrl=%v
+users=%v
+spawnRate=%v`,
+		duration, name, description, loadTesterUrl, users, spawnRate)
+
+	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
+
+	startRequest := url.Values{}
+	startRequest.Add("user_count", strconv.FormatInt(users, 10))
+	startRequest.Add("spawn_rate", strconv.FormatInt(spawnRate, 10))
+	startBody := startRequest.Encode()
+
+	return TestConfig{
+		Duration:    duration,
+		Name:        name,
+		Description: description,
+
+		StartUrl:    fmt.Sprintf("%s%s", loadTesterUrl, StartLocustUrl),
+		StartMethod: "POST",
+		StartBody:   startBody,
+		StartHeaders: map[string]string{
+			"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+		},
+
+		StopUrl:    fmt.Sprintf("%s%s", loadTesterUrl, StopLocustUrl),
+		StopMethod: "GET",
+	}
 }

@@ -13,7 +13,6 @@ import (
 type TestConfig struct {
 	Name        string
 	Description string
-	Id          string
 	Duration    time.Duration
 
 	StartUrl     string

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -13,7 +14,6 @@ type LoadTestEnv struct {
 }
 
 func LoadStarlarkConfig(configPath string) (Config, error) {
-	//	config, registerTest := registerTestGenerator()
 	thread := &starlark.Thread{Name: "Starlark execution"}
 	var env = starlark.StringDict{
 		"duration": starlark.NewBuiltin("duration", newDuration),
@@ -35,54 +35,6 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 	return Config{}, nil
 }
 
-/*
-func registerTestGenerator() (*Config, func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)) {
-	var config Config
-	// registerTest adds a test spec to the list of tests that will be run, it is added as the `register_test(time,freq,per,params)` builtin
-	var registerTest = func(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		var name starlark.String
-		var description starlark.String
-		var id starlark.String
-		var duration starlark.Value
-
-		var startUrl starlark.String
-		var startMethod starlark.String
-		var startBody starlark.String
-		var startHeaders starlark.Dict
-
-		var endUrl starlark.String
-		var endMethod starlark.String
-		var endBody starlark.String
-		var endHeaders starlark.Dict
-
-		if err := starlark.UnpackArgs(b.Name(), args, kwargs, "time", &time, "freq", &freq, "per", &per, "params", &params); err != nil {
-			return nil, err
-		}
-
-		var time starlark.Value
-		var freq starlark.Int
-		var per starlark.Value
-		//var params starlark.Dict
-		var params starlark.Value
-		if err := starlark.UnpackArgs(b.Name(), args, kwargs, "time", &time, "freq", &freq, "per", &per, "params", &params); err != nil {
-			return nil, err
-		}
-
-		fmt.Println("register_test called")
-		fmt.Printf("time=%v\n", time)
-		fmt.Printf("freq=%v\n", freq)
-		fmt.Printf("per=%v\n", per)
-		fmt.Printf("params=%v\n", params)
-
-		//if err != nil {
-		//	return nil, err
-		//}
-		return starlark.None, nil
-
-	}
-	return &config, registerTest
-}
-*/
 // StarlarkDuration type for working with Durations in Starlark
 type StarlarkDuration struct {
 	val    time.Duration
@@ -204,4 +156,300 @@ func newDuration(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}
 	return StarlarkDuration{duration, false}, nil
 
+}
+
+// toDuration tries to convert a starlark Value to Duration, it supports strings ( which parses into a time.Duration) or
+// StarlarkDuration which unwraps into a native time.Duration
+func toDuration(val starlark.Value) (time.Duration, error) {
+	switch val.(type) {
+	case starlark.String:
+		return time.ParseDuration(val.(starlark.String).GoString())
+	case StarlarkDuration:
+		return val.(StarlarkDuration).val, nil
+	}
+	return 0, fmt.Errorf("cannot convert %T to duration", val)
+}
+
+func toInt(val starlark.Value) (int64, error) {
+	intVal, ok := val.(starlark.Int)
+	if !ok {
+		return 0, fmt.Errorf("could not convert %v to int", val)
+	}
+	retVal, ok := intVal.Int64()
+	if !ok {
+		return 0, fmt.Errorf("could not convert %v to int64", intVal)
+	}
+	return retVal, nil
+}
+
+func toFloat(val starlark.Value) (float64, error) {
+	floatVal, ok := val.(starlark.Float)
+	if !ok {
+		return 0, fmt.Errorf("could not convert %v to float", val)
+	}
+	return float64(floatVal), nil
+}
+
+func toString(rawVal starlark.Value) string {
+	if rawVal == nil || rawVal == starlark.None {
+		return ""
+	}
+	stringVal, ok := rawVal.(starlark.String)
+	if ok {
+		// starlark strings convert to string by wrapping in "<val>" the value, we don't need this
+		return stringVal.GoString()
+	}
+	// if it is not a starlark string just use the String() representation
+	return rawVal.String()
+}
+
+func toDict(rawVal starlark.Value) (map[string]interface{}, error) {
+
+	if rawVal == nil || rawVal == starlark.None {
+		return nil, nil
+	}
+
+	dictVal, ok := rawVal.(*starlark.Dict)
+
+	if !ok {
+		return nil, fmt.Errorf("could not convert value of type %T to dictionary", rawVal)
+	}
+	var retVal = make(map[string]interface{})
+
+	for _, item := range dictVal.Items() {
+		key, val, err := convertItem(item)
+		if err != nil {
+			return nil, err
+		} else {
+			retVal[key] = val
+		}
+	}
+
+	return retVal, nil
+}
+
+func toArray(rawVal starlark.Value) ([]interface{}, error) {
+	if rawVal == nil || rawVal == starlark.None {
+		return nil, nil
+	}
+	var length int
+	var values starlark.Iterator
+	switch rawVal.(type) {
+	case *starlark.List:
+		values = rawVal.(*starlark.List).Iterate()
+		length = rawVal.(*starlark.List).Len()
+	case starlark.Tuple:
+		values = rawVal.(starlark.Tuple).Iterate()
+		length = rawVal.(starlark.Tuple).Len()
+	case *starlark.Set:
+		values = rawVal.(*starlark.Set).Iterate()
+		length = rawVal.(*starlark.Set).Len()
+	default:
+		return nil, fmt.Errorf("invalid array type %s", rawVal.Type())
+	}
+	var retVal = make([]interface{}, 0, length)
+	defer values.Done()
+	var rawChild starlark.Value
+	for values.Next(&rawChild) {
+		val, err := convertValue(rawChild)
+		if err != nil {
+			return nil, err
+		}
+		retVal = append(retVal, val)
+	}
+	return retVal, nil
+}
+
+func convertValue(rawVal starlark.Value) (interface{}, error) {
+	if rawVal == nil {
+		return nil, nil
+	}
+	switch rawVal.(type) {
+	case starlark.NoneType:
+		return nil, nil
+	case starlark.Int:
+		val, err := toInt(rawVal)
+		if err == nil {
+			return val, nil
+		} else {
+			return nil, fmt.Errorf("could not convert to int %v\n err:%v", rawVal, err)
+		}
+	case starlark.Float:
+		val, err := toFloat(rawVal)
+		if err == nil {
+			return val, nil
+		} else {
+			return nil, fmt.Errorf("could not convert to float64 %v\n err:%v", rawVal, err)
+		}
+	case starlark.String:
+		val := rawVal.(starlark.String)
+		return val.GoString(), nil
+	case *starlark.Dict:
+		val, err := toDict(rawVal)
+		if err != nil {
+			return nil, err
+		} else {
+			return val, nil
+		}
+	case *starlark.List, starlark.Tuple, *starlark.Set:
+		val, err := toArray(rawVal)
+		if err != nil {
+			return nil, err
+		} else {
+			return val, nil
+		}
+	case StarlarkDuration:
+		val := rawVal.(StarlarkDuration).String() // convert duration to string (so we can serialize it easily)
+		return val, nil
+	default:
+		return nil, fmt.Errorf("%s unsupported type in dict", rawVal.Type())
+	}
+}
+
+// convertItem converts a dictionary item which is a Tuple of length 2 into a string->value go tuple
+// that can be inserted into
+// a map[string] interface{}, the basic types of values are:
+// * int
+// * float
+// * string
+// * nil
+// * []Value
+// * map[string]Value
+func convertItem(item starlark.Tuple) (string, interface{}, error) {
+	if item == nil {
+		return "", nil, errors.New("invalid nil item")
+	}
+	if len(item) != 2 {
+		return "", nil, fmt.Errorf("invalid item len=%d expected 2", len(item))
+	}
+	var rawKey = item.Index(0)
+	var rawVal = item.Index(1)
+
+	rawKeyVal, ok := rawKey.(starlark.String)
+	if !ok {
+		return "", nil, fmt.Errorf("invalid key type=%s expected string", rawKey.Type())
+	}
+	var key = rawKeyVal.GoString()
+
+	val, err := convertValue(rawVal)
+
+	if err != nil {
+		return "", nil, err
+	}
+
+	return key, val, nil
+}
+
+// addLocustTestBuiltin implements the builtin add_locust_test(duration:str|duration, users:int,  spawn_rate:int|None=None,
+// name:str|None=None,description:str|None, url:str|None, id:str|None=None)
+func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+	var duration starlark.Value
+	var users starlark.Int
+	var spawnRate starlark.Value
+	var name starlark.Value
+	var description starlark.Value
+	var url starlark.Value
+
+	retVal = starlark.None
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "users", &users,
+		"spawn_rate?", &spawnRate, "name?", &name, "description?", &description, "url?", &url); err != nil {
+		return
+	}
+
+	var usersVal int64
+	usersVal, err = toInt(users)
+	if err != nil {
+		return
+	}
+
+	var durationVal time.Duration
+	durationVal, err = toDuration(duration)
+	if err != nil {
+		return
+	}
+
+	var spawnRateVal int64
+	spawnRateVal, err = toInt(spawnRate)
+	if err != nil {
+		//use default
+		spawnRateVal = usersVal / 4
+	}
+
+	var nameVal = toString(name)
+	var descriptionVal = toString(description)
+	var urlVal = toString(url)
+
+	if len(urlVal) == 0 {
+		urlVal = env.LoadTesterUrl
+	}
+
+	var testConfig = CreateLocustTestConfig(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
+	env.LoadTests = append(env.LoadTests, testConfig)
+
+	err = nil
+	return
+}
+
+// addLocustTestBuiltin implements the builtin add_locust_test(duration:str|duration, users:int,  spawn_rate:int|None=None,
+// name:str|None=None,description:str|None, url:str|None, id:str|None=None)
+func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+	var duration starlark.Value
+	var freq starlark.Int
+	var per starlark.Value
+	var config *starlark.Dict
+	var name starlark.Value
+	var description starlark.Value
+	var url starlark.Value
+
+	retVal = starlark.None
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "freq", &freq,
+		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
+		return
+	}
+
+	var durationVal time.Duration
+	durationVal, err = toDuration(duration)
+	if err != nil {
+		return
+	}
+
+	var freqVal int64
+	freqVal, err = toInt(freq)
+	if err != nil {
+		return
+	}
+
+	var perVal time.Duration
+	perVal, err = toDuration(per)
+	if err != nil {
+		return
+	}
+
+	var configVal map[string]interface{}
+
+	configVal, err = toDict(config)
+	if err != nil {
+		return
+	}
+
+	var nameVal = toString(name)
+	var descriptionVal = toString(description)
+	var urlVal = toString(url)
+
+	if len(urlVal) == 0 {
+		urlVal = env.LoadTesterUrl
+	}
+
+	var testConfig TestConfig
+	testConfig, err = CreateVegetaTestConfig(durationVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+
+	if err != nil {
+		return
+	}
+
+	env.LoadTests = append(env.LoadTests, testConfig)
+
+	return
 }
