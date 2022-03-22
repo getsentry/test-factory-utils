@@ -58,10 +58,8 @@ attachment_blocks:
 
 // Command line arguments
 type CliParams struct {
-	duration             *time.Duration
 	organisationId       *string
 	boardId              *string
-	numUsers             int64
 	locustServerName     *string
 	loadServerName       *string
 	influxServerName     *string
@@ -82,15 +80,11 @@ func cliSetup() *cobra.Command {
 	}
 	rootCmd.Flags()
 
-	Params.duration = rootCmd.Flags().DurationP("Duration", "d", time.Millisecond*10000, "the Duration to run the program")
-
 	Params.locustServerName = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint (deprecated)")
 
 	Params.loadServerName = rootCmd.Flags().String("load-server", DefaultLoadServer, "Load server endpoint")
 
 	Params.influxServerName = rootCmd.Flags().StringP("influx", "i", DefaultInfluxDbServer, "InfluxDB dashboard base URL")
-
-	rootCmd.Flags().Int64VarP(&Params.numUsers, "users", "u", 5, "number of simulated users")
 
 	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
 
@@ -108,7 +102,6 @@ func cliSetup() *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&Params.useColor, "color", false, "Use color (only for console output).")
 
 	_ = rootCmd.Flags().MarkDeprecated("locust", "locust flag is deprecated, please use load-tester instead")
-	_ = rootCmd.Flags().MarkDeprecated("users", "users flag is deprecated, please use config file to specify options instead")
 
 	cobra.OnInitialize(initConfig)
 	return rootCmd
