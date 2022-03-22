@@ -44,10 +44,6 @@ attachment_blocks:
       text: |-
         *Test start:*
         %s
-    - type: mrkdwn
-      text: |-
-        *Number of users:*
-        %s
 - type: section
   fields:
     - type: mrkdwn
@@ -151,7 +147,8 @@ func initConfig() {
 
 func executeConfig(config Config) RunReport {
 	var retVal = RunReport{
-		TestRuns: make([]TestRun, 0, len(config.TestConfigs)),
+		StartTime: time.Now().UTC(),
+		TestRuns:  make([]TestRun, 0, len(config.TestConfigs)),
 	}
 	for _, config := range config.TestConfigs {
 		var run = TestRun{
@@ -165,7 +162,7 @@ func executeConfig(config Config) RunReport {
 			log.Error().Msgf("Failed to run test:%s\n%v", config.Name, err)
 		}
 	}
-
+	retVal.EndTime = time.Now().UTC()
 	return retVal
 }
 
@@ -229,28 +226,9 @@ func sendHttpRequest(method string, url string, body string, headers map[string]
 	return nil
 }
 
-func executeConfigLegacy(config LegacyConfig) LegacyRunReport {
-	runReport := LegacyRunReport{}
-
-	runReport.StartTime = time.Now().UTC()
-	for i, stage := range config.Stages {
-		stageNum := i + 1
-		fmt.Printf("\n--- Stage %d ---\n", stageNum)
-		fmt.Printf("Stage config: %#v\n", stage)
-		fmt.Printf("Planned stage Duration: %v\n", stage.getTotalDuration())
-		report, err := stage.execute()
-		check(err)
-		fmt.Printf("Stage report: %#v\n", report)
-		runReport.StageReports = append(runReport.StageReports, report)
-	}
-	runReport.EndTime = time.Now().UTC()
-	runReport.DashboardURL = buildDashboardLink(runReport.StartTime, runReport.EndTime, 30)
-	return runReport
-}
-
-func writeReportToFile(report LegacyRunReport) {
+func writeReportToFile(report RunReport) {
 	if *Params.reportFilePath == "" {
-		fmt.Printf("No report file path provided, not writing the report to file.\n")
+		log.Info().Msgf("No report file path provided, not writing the report to file.\n")
 		return
 	}
 
@@ -258,12 +236,12 @@ func writeReportToFile(report LegacyRunReport) {
 	check(err)
 
 	if Params.dryRun {
-		fmt.Printf("[dry-run] Would write the following report to %s:\n~~~\n%s~~~\n", *Params.reportFilePath, reportData)
+		log.Info().Msgf("[dry-run] Would write the following report to %s:\n~~~\n%s~~~\n", *Params.reportFilePath, reportData)
 	} else {
 		err = os.WriteFile(*Params.reportFilePath, reportData, 0644)
 		check(err)
 	}
-	fmt.Printf("Wrote run report to: %s\n", *Params.reportFilePath)
+	log.Info().Msgf("Wrote run report to: %s\n", *Params.reportFilePath)
 }
 
 func runLoadStarter() {
@@ -276,7 +254,6 @@ func runLoadStarter() {
 
 	log.Info().Msg("\n--- Prepare ---\nInitializing the run...\n")
 
-	//TODO add legacy support
 	var configPath = *Params.configFilePath
 	if configPath != "" {
 		if IsStarlarkConfig(configPath) {
@@ -288,65 +265,13 @@ func runLoadStarter() {
 		}
 
 	}
-
+	var totalDuration = config.GetDuration()
+	log.Info().Msgf("Total estimated running time: %s\n", totalDuration)
+	log.Info().Msgf("Estimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
 	var report = executeConfig(config)
-
-	//TODO finish this fix this
-	log.Info().Msgf("Data:\n%v", report)
-
-	//// Here we decide: do we use the config file or command line args?
-	//if *Params.configFilePath == "" {
-	//	// Use the CLI args
-	//	stages := []LegacyTestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
-	//	config = LegacyConfig{Stages: stages}
-	//} else {
-	//	// Use the config file
-	//	config = parseConfigFile(*Params.configFilePath)
-	//}
-	//
-	//fmt.Printf("Configuration: %#v\n", config)
-	//
-	//totalDuration := config.getTotalDuration()
-	//fmt.Printf("Total estimated running time: %s\n", totalDuration)
-	//fmt.Printf("Esimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
-	//
-	//runReport := executeConfigLegacy(config)
-	//
-	//fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
-	//writeReportToFile(runReport)
-	//writeSlackMessage(runReport.StartTime, runReport.EndTime, config)
-}
-
-func runLoadStarterLegacy() {
-	if Params.dryRun {
-		fmt.Println("NOTE: Dry-run mode is ON")
-	}
-
-	var config LegacyConfig
-
-	fmt.Printf("\n--- Prepare ---\nInitializing the run...\n")
-
-	// Here we decide: do we use the config file or command line args?
-	if *Params.configFilePath == "" {
-		// Use the CLI args
-		stages := []LegacyTestStage{StageStatic{Users: Params.numUsers, Duration: *Params.duration}}
-		config = LegacyConfig{Stages: stages}
-	} else {
-		// Use the config file
-		config = parseConfigFile(*Params.configFilePath)
-	}
-
-	fmt.Printf("Configuration: %#v\n", config)
-
-	totalDuration := config.getTotalDuration()
-	fmt.Printf("Total estimated running time: %s\n", totalDuration)
-	fmt.Printf("Esimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
-
-	runReport := executeConfigLegacy(config)
-
-	fmt.Printf("\n--- Report ---\nFinished the run, preparing the report...\n")
-	writeReportToFile(runReport)
-	writeSlackMessage(runReport.StartTime, runReport.EndTime, config)
+	log.Info().Msgf("\n--- Report ---\nFinished the run, preparing the report...\n")
+	writeReportToFile(report)
+	writeSlackMessage(report.StartTime, report.EndTime, config)
 }
 
 func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Duration) string {
@@ -366,7 +291,7 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 }
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
-func writeSlackMessage(startTime time.Time, endTime time.Time, config LegacyConfig) {
+func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 	if *Params.slackMessageFilePath == "" {
 		fmt.Printf("No Slack message path provided, not writing it.\n")
 		return
@@ -376,17 +301,11 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config LegacyConf
 	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
 
 	// Only print number of users when the only testing stage is "static"
-	usersString := "varying"
-	if len(config.Stages) == 1 && config.Stages[0].getType() == StageStaticName {
-		users := config.Stages[0].(StageStatic).Users
-		usersString = fmt.Sprintf("%d", users)
-	}
-	runDuration := config.getTotalDuration()
+	runDuration := config.GetDuration()
 
 	rawMessage := fmt.Sprintf(slackTemplate,
 		reportText,
 		startTime.Local().Format(SlackDateFormat),
-		usersString,
 		endTime.Local().Format(SlackDateFormat),
 		runDuration,
 	)

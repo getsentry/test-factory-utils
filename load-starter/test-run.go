@@ -33,7 +33,9 @@ type TestRun struct {
 }
 
 type RunReport struct {
-	TestRuns []TestRun
+	TestRuns  []TestRun
+	StartTime time.Time
+	EndTime   time.Time
 }
 
 type Config struct {
