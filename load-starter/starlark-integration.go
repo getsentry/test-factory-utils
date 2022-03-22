@@ -431,8 +431,8 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 	return
 }
 
-// addLocustTestBuiltin implements the builtin add_locust_test(duration:str|duration, users:int,  spawn_rate:int|None=None,
-// name:str|None=None,description:str|None, url:str|None, id:str|None=None)
+// addVegetaTestBuiltin implements the builtin add_vegeta_test(duration:str|duration, freq:int, per:str|duration,
+//        config:dict, name:str|None=None, description:str|None=None)
 func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	var duration starlark.Value
 	var freq starlark.Int
@@ -441,10 +441,11 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	var name starlark.Value
 	var description starlark.Value
 	var url starlark.Value
+	var testType starlark.String
 
 	retVal = starlark.None
 
-	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "freq", &freq,
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "test_type", &testType, "duration", &duration, "freq", &freq,
 		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
 		return
 	}
@@ -477,13 +478,14 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	var nameVal = toString(name)
 	var descriptionVal = toString(description)
 	var urlVal = toString(url)
+	var testTypeVal = toString(testType)
 
 	if len(urlVal) == 0 {
 		urlVal = env.LoadTesterUrl
 	}
 
 	var testConfig TestConfig
-	testConfig, err = CreateVegetaTestConfig(durationVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+	testConfig, err = CreateVegetaTestConfig(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
 
 	if err != nil {
 		return

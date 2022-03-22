@@ -18,7 +18,7 @@ const (
 )
 
 // CreateVegetaTestConfig creates a TestConfig for a Vegeta attack
-func CreateVegetaTestConfig(duration time.Duration, freq int64, per string, config map[string]interface{}, name string, description string, loadTesterUrl string) (TestConfig, error) {
+func CreateVegetaTestConfig(duration time.Duration, testType string, freq int64, per string, config map[string]interface{}, name string, description string, loadTesterUrl string) (TestConfig, error) {
 
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 
@@ -30,6 +30,7 @@ func CreateVegetaTestConfig(duration time.Duration, freq int64, per string, conf
 		"numMessages":    freq,
 		"per":            per,
 		"params":         config,
+		"testType":       testType,
 	}
 	if len(name) > 0 {
 		startRequest["name"] = name
