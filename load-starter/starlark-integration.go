@@ -445,7 +445,7 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 
 	retVal = starlark.None
 
-	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "test_type", &testType, "duration", &duration, "freq", &freq,
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
 		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
 		return
 	}

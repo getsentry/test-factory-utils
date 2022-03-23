@@ -103,10 +103,16 @@ spawnRate=%v`,
 	startBody := startRequest.Encode()
 
 	return TestConfig{
-		Duration:    duration,
-		Name:        name,
-		Description: description,
-
+		TestInfo: TestInfo{
+			Duration:    duration,
+			Name:        name,
+			Description: description,
+			Runner:      "locust",
+			Spec: map[string]interface{}{
+				"userCount": users,
+				"spawnRate": spawnRate,
+			},
+		},
 		StartUrl:    fmt.Sprintf("%s%s", loadTesterUrl, StartLocustUrl),
 		StartMethod: "POST",
 		StartBody:   startBody,

@@ -11,9 +11,7 @@ import (
 // A TestConfig has a start command and an optional stop command, if the stop command
 // is the empty string it will not be sent
 type TestConfig struct {
-	Name        string
-	Description string
-	Duration    time.Duration
+	TestInfo
 
 	StartUrl     string
 	StartMethod  string // GET,POST...
@@ -26,16 +24,25 @@ type TestConfig struct {
 	StopHeaders map[string]string
 }
 
+type TestInfo struct {
+	Name        string
+	Description string
+	Duration    time.Duration
+	Runner      string
+	Spec        map[string]any
+}
+
 // TestRun represents the result of running a TestConfig
 type TestRun struct {
-	TestConfig
-	StartTime time.Time
+	TestInfo  `yaml:"testInfo" json:"testInfo"`
+	StartTime time.Time `yaml:"startTime" json:"startTime"`
+	EndTime   time.Time `yaml:"endTime" json:"endTime"`
 }
 
 type RunReport struct {
-	TestRuns  []TestRun
-	StartTime time.Time
-	EndTime   time.Time
+	TestRuns  []TestRun `yaml:"testRuns" json:"testRuns"`
+	StartTime time.Time `yaml:"startTime" json:"startTime"`
+	EndTime   time.Time `yaml:"endTime" json:"endTime"`
 }
 
 type Config struct {

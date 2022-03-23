@@ -20,47 +20,15 @@
 
 
 CONFIG_VERSION = "1.0.0"
-LOCUST_URL = "http://locust_server"
-VEGETA_URL = "http://vegeta_server"
-
-
-def add_locust_tests():
-    add_locust_test(
-        duration=duration("10m"),
-        users=30,
-        spawn_rate=None,
-        name="warmup"
-    )
-    add_locust_test(
-        duration="11m",
-        users=40,
-        spawn_rate=4,
-        name="second",
-        description="duration passed as string"
-    )
-    add_locust_test(
-        duration="12m",
-        users=50,
-        name="third",
-        description="override the load tester server",
-        url="http://special_locust_server"
-    )
-
-    add_locust_test("10m5s", 22, description="positional params")
-
-    for num_users in range(20, 100, 20):
-        add_locust_test(
-            url=LOCUST_URL,
-            users=num_users,
-            duration=duration("10m"),
-            name="a lot of releases with %d users" % num_users
-        )
-
+LOCUST_URL = "http://0.0.0.0:8089"
+VEGETA_URL = "http://localhost:7770"
 
 def add_vegeta_tests():
     add_vegeta_test(
-        duration=duration("5m1s"),
-        test_type = "session",
+        duration=duration("30s"),
+        test_type="session",
+        name="The test",
+        description="Some test description",
         freq=22,
         per=duration("1s"),
         config={
@@ -75,10 +43,18 @@ def add_vegeta_tests():
             "crashedWeight": 9,
             "abnormalWeight": 10
         },
-        name="session",
-        description="vegeta test description"
 
     )
+
+def add_locust_tests():
+    for users in range( 20, 61, 20):
+        add_locust_test(
+            duration=duration("10s"),
+            users=users,
+            spawn_rate=None,
+            name="test with:%d users" % users,
+            description="Some detailed description for test with %d users" % users,
+        )
 
 
 # setup some locust tests

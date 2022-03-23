@@ -45,10 +45,20 @@ func CreateVegetaTestConfig(duration time.Duration, testType string, freq int64,
 		return TestConfig{}, err
 	}
 
+	// put the startRequest also in the spec (for reporting), remove duplicate info
+	// tracked in the TestInfo
+	delete(startRequest, "attackDuration")
+	delete(startRequest, "name")
+	delete(startRequest, "description")
+
 	return TestConfig{
-		Name:        name,
-		Description: description,
-		Duration:    duration,
+		TestInfo: TestInfo{
+			Name:        name,
+			Description: description,
+			Duration:    duration,
+			Spec:        startRequest,
+			Runner:      "vegeta",
+		},
 
 		StartUrl:    fmt.Sprintf("%s%s", loadTesterUrl, StartVegetaUrl),
 		StartMethod: "POST",

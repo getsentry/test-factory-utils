@@ -145,12 +145,13 @@ func executeConfig(config Config) RunReport {
 	}
 	for _, config := range config.TestConfigs {
 		var run = TestRun{
-			TestConfig: config,
-			StartTime:  time.Now().UTC(),
+			TestInfo:  config.TestInfo,
+			StartTime: time.Now().UTC(),
 		}
-		retVal.TestRuns = append(retVal.TestRuns, run)
 		logTestDetails(run)
 		var err = runTest(config)
+		run.EndTime = time.Now().UTC()
+		retVal.TestRuns = append(retVal.TestRuns, run)
 		if err != nil {
 			log.Error().Msgf("Failed to run test:%s\n%v", config.Name, err)
 		}
@@ -161,7 +162,7 @@ func executeConfig(config Config) RunReport {
 
 func logTestDetails(run TestRun) {
 	log.Info().Msgf("--- Test %s ---", run.Name)
-	log.Info().Msgf("-- duration: %#v", run.Duration)
+	log.Info().Msgf("-- duration: %s", run.Duration)
 }
 
 func runTest(config TestConfig) error {
@@ -286,7 +287,7 @@ func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Dura
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
 func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 	if *Params.slackMessageFilePath == "" {
-		fmt.Printf("No Slack message path provided, not writing it.\n")
+		log.Info().Msg("No Slack message path provided, not writing it.")
 		return
 	}
 
@@ -305,13 +306,13 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 
 	var testObj map[string]interface{}
 
-	fmt.Println("Validating the message...")
+	log.Info().Msg("Validating the message...")
 	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
 	err := yaml.Unmarshal([]byte(rawMessage), &testObj)
 	check(err)
 
 	if Params.dryRun {
-		fmt.Printf("[dry-run] Would write the following Slack yaml to %s:\n~~~\n%s~~~\n", *Params.slackMessageFilePath, rawMessage)
+		log.Info().Msgf("[dry-run] Would write the following Slack yaml to %s:\n~~~\n%s~~~\n", *Params.slackMessageFilePath, rawMessage)
 	} else {
 		err = os.WriteFile(*Params.slackMessageFilePath, []byte(rawMessage), 0644)
 		check(err)
