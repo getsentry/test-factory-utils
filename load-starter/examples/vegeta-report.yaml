@@ -1,0 +1,25 @@
+testRuns:
+- testInfo:
+    name: Test title
+    description: Some test
+    duration: 30s
+    runner: vegeta
+    spec:
+      numMessages: 22
+      params:
+        abnormalWeight: 10
+        crashedWeight: 9
+        durationRange: 2m
+        erroredWeight: 8
+        exitedWeight: 7
+        numEnvironments: 4
+        numReleases: 3
+        numUsers: 5
+        okWeight: 6
+        startedRange: 1m
+      per: 1s
+      testType: session
+  startTime: 2022-03-23T16:58:46.075655Z
+  endTime: 2022-03-23T16:59:16.081789Z
+startTime: 2022-03-23T16:58:46.075653Z
+endTime: 2022-03-23T16:59:16.081789Z
