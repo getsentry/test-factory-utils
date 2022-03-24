@@ -18,7 +18,7 @@ import (
 
 const (
 	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
-	DefaultLoadServer     = "http://ingest-load-tester.default.svc.cluster.local" // TODO set to Vegeta server
+	DefaultLoadServer     = "http://go-load-tester.default.svc.cluster.local"
 	DefaultInfluxDbServer = "http://localhost:8086"
 	InfluxDateFormat      = "2006-01-02T15:04:05Z"
 	SlackDateFormat       = "Mon 02 Jan 06 15:04:05 MST"
