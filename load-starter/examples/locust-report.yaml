@@ -1,0 +1,33 @@
+testRuns:
+- testInfo:
+    name: test with:20 users
+    description: Some detailed description for test with 20 users
+    duration: 10s
+    runner: locust
+    spec:
+      spawnRate: 5
+      userCount: 20
+  startTime: 2022-03-23T16:40:10.253384Z
+  endTime: 2022-03-23T16:40:20.282339Z
+- testInfo:
+    name: test with:40 users
+    description: Some detailed description for test with 40 users
+    duration: 10s
+    runner: locust
+    spec:
+      spawnRate: 10
+      userCount: 40
+  startTime: 2022-03-23T16:40:20.28234Z
+  endTime: 2022-03-23T16:40:30.317707Z
+- testInfo:
+    name: test with:60 users
+    description: Some detailed description for test with 60 users
+    duration: 10s
+    runner: locust
+    spec:
+      spawnRate: 15
+      userCount: 60
+  startTime: 2022-03-23T16:40:30.317707Z
+  endTime: 2022-03-23T16:40:40.322789Z
+startTime: 2022-03-23T16:40:10.253382Z
+endTime: 2022-03-23T16:40:40.32279Z
