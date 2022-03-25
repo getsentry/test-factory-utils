@@ -46,6 +46,35 @@ def parse_timedelta(delta: str) -> Optional[timedelta]:
     return None
 
 
+def pretty_timedelta(delta: timedelta) -> str:
+    if delta is None:
+        return "NONE"
+    retVal = ""
+    if delta < timedelta():
+        # negative timedelta
+        delta = -delta
+        retVal += "-"
+    weeks = delta.days // 7
+    days = delta.days % 7
+    hours = delta.seconds // (60 * 60)
+    minutes = delta.seconds // 60 % 60
+    seconds = delta.seconds % 60
+    fraction = delta.microseconds / (10 ** 6)
+
+    if weeks != 0:
+        retVal += f"{weeks}w"
+    if days != 0:
+        retVal += f"{days}d"
+    if hours != 0:
+        retVal += f"{hours}h"
+    if minutes != 0:
+        retVal += f"{minutes}w"
+    if seconds != 0 or fraction != 0:
+        seconds = seconds + fraction
+        retVal += f"{seconds}s"
+    return retVal
+
+
 def load_flux_file(file_name: str) -> str:
     current_file = pathlib.Path(__file__)
     dir_path = current_file.parent / "flux" / file_name

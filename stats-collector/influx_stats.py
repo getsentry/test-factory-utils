@@ -1,9 +1,9 @@
-from typing import Generator, List, Sequence, Callable, Any, Optional
-from datetime import datetime
+from typing import Generator, List, Sequence, Callable, Any, Optional, Dict
+from datetime import datetime, timedelta
 from functools import partial
 
 from influxdb_client import QueryApi, InfluxDBClient
-from util import load_flux_file, to_flux_datetime, to_optional_datetime
+from util import load_flux_file, to_flux_datetime, to_optional_datetime, pretty_timedelta
 from dataclasses import dataclass
 from enum import Enum, unique
 
@@ -50,46 +50,46 @@ class MetricSummary:
 
 
 @dataclass
-class StageStep:
-    users: Optional[int]
+class TestRun:
     start_time: datetime
     end_time: datetime
+    name: Optional[str]
+    description: Optional[str]
+    duration: timedelta
+    runner: Optional[str]
+    spec: Dict[str, Any]
     metrics: List[MetricSummary]
 
     def to_dict(self):
-
-        return {
-            "users": self.users,
+        ret_val = {
             "startTime": to_optional_datetime(self.start_time),
             "endTime": to_optional_datetime(self.end_time),
+            "duration": pretty_timedelta(self.duration),
             "metrics": [metric.to_dict() for metric in self.metrics],
+            "spec": self.spec,
         }
 
+        if self.name:
+            ret_val["name"] = self.name
+        if self.description:
+            ret_val["description"] = self.name
+        if self.runner:
+            ret_val["runner"] = self.runner
 
-class StageType(Enum):
-    static = "static"
-    gradual = "gradual"
-    undefined = None
-
-    @staticmethod
-    def from_str(v: str) -> "StageType":
-        for val in StageType:
-            if val.value == v:
-                return val
-        return StageType.undefined
+        return ret_val
 
 
 @dataclass
-class Stage:
-    steps: List[StageStep]
-    type: StageType
-    name: Optional[str]
+class Report:
+    start_time: datetime
+    end_time: datetime
+    test_runs: List[TestRun]
 
     def to_dict(self):
         return {
-            "steps": [step.to_dict() for step in self.steps],
-            "type": self.type.value,
-            "name": self.name,
+            "startTime": to_optional_datetime(self.start_time),
+            "endTime": to_optional_datetime(self.end_time),
+            "testRuns": [test_run.to_dict() for test_run in self.test_runs]
         }
 
 
@@ -322,8 +322,8 @@ TEST_PROFILES = {
 
 
 def get_stats(
-    stages: List[Stage], url: str, token: str, org: str, profile: str
-) -> List[Stage]:
+    report: Report, url: str, token: str, org: str, profile: str
+) -> Report:
     if profile not in TEST_PROFILES:
         raise ValueError(f"No stats found for the profile: {profile}", profile)
 
@@ -332,16 +332,15 @@ def get_stats(
     client = InfluxDBClient(url=url, token=token, org=org)
     query_api = client.query_api()
 
-    for stage in stages:
-        for step in stage.steps:
-            start = to_flux_datetime(step.start_time)
-            stop = to_flux_datetime(step.end_time)
+    for test_run in report.test_runs:
+        start = to_flux_datetime(test_run.start_time)
+        stop = to_flux_datetime(test_run.end_time)
 
-            metrics = []
-            for metric_name, generator in stats_functions:
-                summary = MetricSummary(name=metric_name, values=[])
-                metrics.append(summary)
-                for result in generator(start=start, stop=stop, query_api=query_api):
-                    summary.values.append(result)
-            step.metrics = metrics
-    return stages
+        metrics = []
+        for metric_name, generator in stats_functions:
+            summary = MetricSummary(name=metric_name, values=[])
+            metrics.append(summary)
+            for result in generator(start=start, stop=stop, query_api=query_api):
+                summary.values.append(result)
+        test_run.metrics = metrics
+    return report
