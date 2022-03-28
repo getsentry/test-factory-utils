@@ -1,2 +1,6 @@
-# test-result-browser
-Browser for test factory results
+# Overivew
+
+Browser for test-factory result
+
+https://getsentry.github.io/test-result-browser
+
