@@ -10,8 +10,8 @@ export function Search() {
     const search = useSearch<ResultBrowserLocation>()
 
     console.log("Search is", search)
-    let initial_p1 = search?.labels?.p1??""
-    const [value, setValue] = useState<{p1?:string}>({p1:initial_p1});
+
+    const [value, setValue] = useState<{ [key: string]: string }>(search?.labels??{});
     const navigate = useNavigate()
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,13 +21,16 @@ export function Search() {
 
     };
 
-    const onKeyDown: KeyboardEventHandler<HTMLDivElement> = (e)=>{
-        if ( e.key === "Enter"){
-            console.log("From on key down", e,  value)
+    const onKeyDown: (label: string) => KeyboardEventHandler<HTMLDivElement> = (label: string) => (e) => {
+        if (e.key === "Enter") {
+            console.log("From on key down", e, value)
+
             navigate({
-                search: (old:SearchParams|null|undefined) => ({
-                   ...old,labels:{p1: value.p1??""}
-                })
+                search: (old: SearchParams | null | undefined) => {
+                    let labels = old?.labels ?? {}
+                    labels[label] = value[label]
+                    return {...old, labels}
+                }
                 ,
                 replace: true
             })
@@ -38,11 +41,12 @@ export function Search() {
         <Box>This is the search page</Box>
         <Box>The search params:</Box>
         <TextField
-        label="p1"
-        value={value.p1??""}
-        onChange={handleChange}
-        onKeyDown={onKeyDown}
-        variant="standard"
+            id="p1"
+            label="p1"
+            value={value.p1 ?? ""}
+            onChange={handleChange}
+            onKeyDown={onKeyDown("p1")}
+            variant="standard"
         />
 
         <pre>
