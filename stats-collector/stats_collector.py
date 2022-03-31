@@ -65,7 +65,7 @@ class OutputFormat(Enum):
     required=True,
     help="Testing profile",
 )
-def main(start, end, duration, token, url, org, report_file, format, out, profile):
+def main(start, end, duration, token, url, org, report_file_input, format, out, profile):
     start_time = None
     if start is not None:
         start_time = parser.parse(start)
@@ -74,7 +74,7 @@ def main(start, end, duration, token, url, org, report_file, format, out, profil
     if end is not None:
         end_time = parser.parse(end)
 
-    if report_file is None:
+    if report_file_input is None:
         if start_time is None and end_time is None:
             raise click.UsageError(MIN_REQUIREMENTS_MESSAGE)
 
@@ -105,7 +105,7 @@ def main(start, end, duration, token, url, org, report_file, format, out, profil
             ]
         )
     else:
-        report = load_report(report_file)
+        report = load_report(report_file_input)
 
     if token is None:
         token = os.getenv("INFLUX_TOKEN")
