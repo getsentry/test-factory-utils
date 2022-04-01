@@ -22,7 +22,13 @@ function App() {
         {
             //The search root
             path: "/search",
-            element: <Search/>
+            element: <Search/>,
+            loader: ()=>(
+                {
+                    x: 22,
+                    y: 44,
+                }
+            )
         },
         {
             path: "detail/:runId",

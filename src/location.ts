@@ -18,6 +18,12 @@ export type SearchParams = {
 
 // LoaderData contains data loaded by react-location on navigation
 export type LoaderData = {
+    x: number,
+    y:number,
+    z: {
+        a?: number,
+        b: string,
+    },
 }
 
 
