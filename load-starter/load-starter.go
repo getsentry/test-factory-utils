@@ -98,7 +98,7 @@ func cliSetup() *cobra.Command {
 
 	Params.slackMessageFilePath = rootCmd.Flags().StringP("slack-message", "s", "", "If provided: notification report (simply put, a formatted Slack message) will be written here")
 
-	rootCmd.PersistentFlags().StringVar(&Params.logLevel, "log", "error", "Log level: trace, info, warn, (error), fatal, panic")
+	rootCmd.PersistentFlags().StringVar(&Params.logLevel, "log", "info", "Log level: trace, debug, (info), warn, error, fatal, panic")
 	rootCmd.PersistentFlags().BoolVar(&Params.useColor, "color", false, "Use color (only for console output).")
 
 	_ = rootCmd.Flags().MarkDeprecated("locust", "locust flag is deprecated, please use load-tester instead")
@@ -119,6 +119,8 @@ func initConfig() {
 	switch strings.ToLower(Params.logLevel) {
 	case "t", "trc", "trace":
 		logLevel = zerolog.TraceLevel
+	case "d", "dbg", "debug":
+		logLevel = zerolog.DebugLevel
 	case "i", "inf", "info":
 		logLevel = zerolog.InfoLevel
 	case "w", "warn", "warning":
@@ -129,7 +131,7 @@ func initConfig() {
 		logLevel = zerolog.FatalLevel
 	case "p", "panic":
 		logLevel = zerolog.PanicLevel
-	case "d", "dis", "disable", "disabled":
+	case "dis", "disable", "disabled":
 		logLevel = zerolog.Disabled
 	default:
 		logLevel = zerolog.ErrorLevel
