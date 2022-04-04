@@ -10,4 +10,4 @@ RUN pip install -r requirements.txt --no-cache-dir
 
 COPY . ./
 
-ENTRYPOINT ["waitress-serve", "--listen", "127.0.0.1:8080", "--call", "app:get_app"]
+ENTRYPOINT ["waitress-serve", "--listen", "0.0.0.0:8080", "--call", "app:get_app"]

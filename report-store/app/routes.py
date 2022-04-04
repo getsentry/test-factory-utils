@@ -15,6 +15,11 @@ client = Minio(
 )
 
 
+@app.route("/healthz", methods=["GET"])
+def healthcheck():
+    return "ok\n"
+
+
 @app.route("/api/report", methods=["POST"])
 def store_report():
     print(request)
