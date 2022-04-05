@@ -330,6 +330,8 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 func main() {
 	var rootCmd = cliSetup()
 	err := rootCmd.Execute()
-	// fall back on printf (not sure if log is initialized)
-	fmt.Printf("Could not execute command %s", err)
+	if err != nil {
+		// fall back on printf (not sure if log is initialized)
+		fmt.Printf("Could not execute command %s", err)
+	}
 }
