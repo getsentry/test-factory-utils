@@ -112,7 +112,7 @@ func initConfig() {
 	//setup logging
 	var consoleWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: Params.useColor,
 		TimeFormat: "15:04:05"}
-	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Logger()
+	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
 
 	var logLevel zerolog.Level
 
@@ -155,7 +155,7 @@ func executeConfig(config Config) RunReport {
 		run.EndTime = time.Now().UTC()
 		retVal.TestRuns = append(retVal.TestRuns, run)
 		if err != nil {
-			log.Error().Msgf("Failed to run test:%s\n%v", config.Name, err)
+			log.Error().Err(err).Msgf("Failed to run test:%s", config.Name)
 		}
 	}
 	retVal.EndTime = time.Now().UTC()
@@ -175,19 +175,19 @@ func runTest(config TestConfig) error {
 
 	var err = sendHttpRequest(config.StartMethod, config.StartUrl, config.StartBody, config.StartHeaders)
 	if err != nil {
-		log.Error().Msgf("Failed to start run %s", config.Name)
+		log.Error().Err(err).Msgf("Failed to start run %s", config.Name)
 		return err
 	}
 
 	time.Sleep(config.Duration)
 
-	if len(config.StartUrl) == 0 {
+	if len(config.StopUrl) == 0 {
 		return nil // nothing more to do
 	}
 
 	err = sendHttpRequest(config.StopMethod, config.StopUrl, config.StopBody, config.StopHeaders)
 	if err != nil {
-		log.Error().Msgf("Failed to stop run %s", config.Name)
+		log.Error().Err(err).Msgf("Failed to stop run %s", config.Name)
 		return err
 	}
 
@@ -213,11 +213,14 @@ func sendHttpRequest(method string, url string, body string, headers map[string]
 	var client = GetDefaultHttpClient()
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error().Msgf(" error sending command to client '%s': \n%s", url, err)
+		log.Error().Err(err).Msgf(" error sending command to client '%s': ", url)
 		return err
 	}
 	if resp != nil {
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("could not close response body")
+		}
 	}
 	return nil
 }
@@ -256,7 +259,7 @@ func runLoadStarter() {
 			config, err = LoadStarlarkConfig(configPath)
 		}
 		if err != nil {
-			log.Error().Msgf("Failed to load config file from: %s \n%s\n", configPath, err)
+			log.Error().Err(err).Msgf("Failed to load config file from: %s", configPath)
 			return
 		}
 
@@ -326,5 +329,9 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 
 func main() {
 	var rootCmd = cliSetup()
-	rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		// fall back on printf (not sure if log is initialized)
+		fmt.Printf("Could not execute command %s", err)
+	}
 }
