@@ -5,6 +5,12 @@ import Grid from "@mui/material/Grid"
 import AdapterDateFns from '@mui/lab/AdapterDateFns';
 import LocalizationProvider from '@mui/lab/LocalizationProvider';
 import DateTimePicker from '@mui/lab/DateTimePicker';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+//import Checkbox from '@mui/material/Checkbox';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormLabel from '@mui/material/FormLabel';
 
 
 import React, {FocusEventHandler, KeyboardEventHandler, useState} from "react"
@@ -18,6 +24,52 @@ type SearchAction = {
     fieldName: string
 }
 
+interface ControlledBooleanChoiceProps {
+    fieldName: string
+    label: string
+    value?: boolean | null
+    setValue: (val: boolean | null | undefined) => void
+}
+
+export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
+    const toVal = (val: boolean | null | undefined) =>  val === true ? "yes" : val === false ? "no" : "any"
+
+    const setVal = (event: React.ChangeEvent<HTMLInputElement>) => {
+        switch (event.target.value) {
+            case "yes":
+                props.setValue(true)
+                break
+            case "no":
+                props.setValue(false)
+                break
+            default:
+                props.setValue(null)
+        }
+    }
+    return <FormControl>
+        <RadioGroup
+            aria-labelledby={`${props.fieldName}`}
+            name={`${props.fieldName}`}
+            value={toVal(props.value)}
+            onChange={setVal}
+        >
+            <Grid container>
+                <Grid item>
+                    <FormLabel sx={{p:2}} id={`${props.fieldName}`}>{props.label}</FormLabel>
+                </Grid>
+                <Grid item>
+                    <FormControlLabel value="yes" control={<Radio/>} label="Yes"/>
+                </Grid>
+                <Grid item>
+                    <FormControlLabel value="no" control={<Radio/>} label="No"/>
+                </Grid>
+                <Grid item>
+                    <FormControlLabel value="any" control={<Radio/>} label="Any"/>
+                </Grid>
+            </Grid>
+        </RadioGroup>
+    </FormControl>
+}
 
 interface ControlledTextBoxProps {
     fieldName: string
@@ -102,7 +154,7 @@ export function Search() {
                 let labels = old?.labels ?? {}
                 if (value) {
                     labels[label] = value
-                } else{
+                } else {
                     delete labels[label]
                 }
                 return {...old, labels}
@@ -112,15 +164,46 @@ export function Search() {
         })
     }
 
+    const initialBoolVal = (name: string): boolean | null | undefined => {
+        const val = search?.labels?.[name]
+        switch (val) {
+            case "true":
+                return true
+            case "false":
+                return false
+            default:
+                return null
+        }
+    }
+
+    const updateBoolLabel = (label: string) => (value: boolean | null | undefined): void => {
+        navigate({
+            search: (old: SearchParams | null | undefined) => {
+                let labels = old?.labels ?? {}
+                switch (value) {
+                    case true:
+                    case false:
+                        labels[label] = `${value}`
+                        break
+                    default:
+                        delete labels[label]
+                }
+                return {...old, labels}
+            },
+            replace: true,
+        })
+
+    }
+
     const initialVal = (name: string): string => search?.labels?.[name] ?? ""
     const toDate = search?.to ?? null
     const fromDate = search?.from ?? null
     const setToDate = (val: Date | null) => navigate({
-        search: (old: SearchParams | null | undefined) => ({...old, to: val??undefined}) ,
+        search: (old: SearchParams | null | undefined) => ({...old, to: val ?? undefined}),
         replace: true
     })
     const setFromDate = (val: Date | null) => navigate({
-        search: (old: SearchParams | null | undefined) => ({...old, from: val??undefined}),
+        search: (old: SearchParams | null | undefined) => ({...old, from: val ?? undefined}),
         replace: true
     })
     return (
@@ -140,6 +223,10 @@ export function Search() {
             </Box>
             <Box>
                 <ControlledRangePicker {...{toDate, fromDate, setToDate, setFromDate}}/>
+            </Box>
+            <Box>
+                <ControlledBooleanChoice fieldName="theBool" label="The boolean" value={initialBoolVal("theBool")}
+                                         setValue={updateBoolLabel("theBool")}/>
             </Box>
             <Box>
                 <pre>
