@@ -82,7 +82,6 @@ export function ControlledTextBox(props: ControlledTextBoxProps) {
     const [value, setValue] = useState<string | null>(props.value);
 
     function handleChange(event: React.ChangeEvent<HTMLInputElement>): void {
-        console.log(event)
         let val = event.target.value
         setValue(val)
     }

@@ -39,7 +39,6 @@ function App() {
             element: <Compare/>
         }
     ]
-    console.log(data)
     return (
         <Router location={location} routes={routes}>
             <div className="App">
