@@ -104,10 +104,10 @@ export function ControlledTextBox(props: ControlledTextBoxProps) {
 }
 
 interface ControlledRangePickerProps {
-    toDate: Date | null;
-    fromDate: Date | null;
-    setToDate: (val: Date | null) => void;
-    setFromDate: (val: Date | null) => void;
+    toDate: Date | null
+    fromDate: Date | null
+    setToDate: (val: Date | null) => void
+    setFromDate: (val: Date | null) => void
 
 }
 
