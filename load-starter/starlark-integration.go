@@ -3,10 +3,15 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os/exec"
+	"reflect"
+
+	// "os/exec"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
-	"time"
 )
 
 type LoadTestEnv struct {
@@ -23,6 +28,7 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 		"set_load_tester_url": starlark.NewBuiltin("set_load_tester_url", tests.setLoadTesterUrl),
 		"add_locust_test":     starlark.NewBuiltin("add_locust_test", tests.addLocustTestBuiltin),
 		"add_vegeta_test":     starlark.NewBuiltin("add_vegeta_test", tests.addVegetaTestBuiltin),
+		"run_external":        starlark.NewBuiltin("run_external", tests.runExternalBuiltin),
 		"Nanosecond":          StarlarkDuration{val: time.Nanosecond, frozen: true},
 		"Microsecond":         StarlarkDuration{val: time.Microsecond, frozen: true},
 		"Millisecond":         StarlarkDuration{val: time.Millisecond, frozen: true},
@@ -494,4 +500,109 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	env.LoadTests = append(env.LoadTests, testConfig)
 
 	return
+}
+
+// runExternalBuiltin implements the builtin run_external(command:str, arg1:str, arg2:str,...)
+func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+	retVal = starlark.None
+
+	var starlarkCmd *starlark.List
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "cmd", &starlarkCmd); err != nil {
+		return
+	}
+
+	if len(kwargs) > 0 {
+		err = errors.New("run_external: redundant kwargs")
+		return
+	}
+
+	rawCmd, err := toArray(starlarkCmd)
+	processedCmd := make([]string, 0, len(rawCmd))
+
+	for _, val := range rawCmd {
+		if reflect.TypeOf(val).Kind() == reflect.String {
+			processedCmd = append(processedCmd, val.(string))
+		} else {
+			err = fmt.Errorf("run_external: invalid argument: %v", val)
+			return
+		}
+	}
+
+	command := exec.Command(processedCmd[0], processedCmd[1:]...)
+
+	if Params.dryRun {
+		log.Info().Msgf("[dry-run] Not running the external command: `%v`", command)
+	} else {
+		log.Info().Msgf("Running external command: `%v`", command)
+		err = command.Run()
+	}
+
+	if err != nil {
+		return
+	}
+
+	err = nil
+	return
+
+	// var duration starlark.Value
+	// var freq starlark.Int
+	// var per starlark.Value
+	// var config *starlark.Dict
+	// var name starlark.Value
+	// var description starlark.Value
+	// var url starlark.Value
+	// var testType starlark.String
+
+	// retVal = starlark.None
+
+	// if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
+	// 	"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
+	// 	return
+	// }
+
+	// var durationVal time.Duration
+	// durationVal, err = toDuration(duration)
+	// if err != nil {
+	// 	return
+	// }
+
+	// var freqVal int64
+	// freqVal, err = toInt(freq)
+	// if err != nil {
+	// 	return
+	// }
+
+	// var perVal time.Duration
+	// perVal, err = toDuration(per)
+	// if err != nil {
+	// 	return
+	// }
+
+	// var configVal map[string]interface{}
+
+	// configVal, err = toDict(config)
+	// if err != nil {
+	// 	return
+	// }
+
+	// var nameVal = toString(name)
+	// var descriptionVal = toString(description)
+	// var urlVal = toString(url)
+	// var testTypeVal = toString(testType)
+
+	// if len(urlVal) == 0 {
+	// 	urlVal = env.LoadTesterUrl
+	// }
+
+	// var testConfig TestConfig
+	// testConfig, err = CreateVegetaTestConfig(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+
+	// if err != nil {
+	// 	return
+	// }
+
+	// env.LoadTests = append(env.LoadTests, testConfig)
+
+	// return
 }

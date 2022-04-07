@@ -164,7 +164,7 @@ func executeConfig(config Config) RunReport {
 
 func logTestDetails(run TestRun) {
 	log.Info().Msgf("--- Test %s ---", run.Name)
-	log.Info().Msgf("-- duration: %s", run.Duration)
+	log.Info().Msgf("duration: %s", run.Duration)
 }
 
 func runTest(config TestConfig) error {
@@ -240,7 +240,7 @@ func writeReportToFile(report RunReport) {
 		err = os.WriteFile(*Params.reportFilePath, reportData, 0644)
 		check(err)
 	}
-	log.Info().Msgf("Wrote run report to: %s\n", *Params.reportFilePath)
+	log.Info().Msgf("Wrote run report to: %s", *Params.reportFilePath)
 }
 
 func runLoadStarter() {
@@ -251,7 +251,9 @@ func runLoadStarter() {
 	var config Config
 	var err error
 
-	log.Info().Msg("\n--- Prepare ---\nInitializing the run...\n")
+	log.Info().Msg("")
+	log.Info().Msg("--- Prepare ---")
+	log.Info().Msg("Initializing the run...")
 
 	var configPath = *Params.configFilePath
 	if configPath != "" {
@@ -265,10 +267,13 @@ func runLoadStarter() {
 
 	}
 	var totalDuration = config.GetDuration()
-	log.Info().Msgf("Total estimated running time: %s\n", totalDuration)
-	log.Info().Msgf("Estimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
+	log.Info().Msgf("Total estimated running time: %s", totalDuration)
+	log.Info().Msgf("Estimated completion time: %s", time.Now().UTC().Add(totalDuration))
 	var report = executeConfig(config)
-	log.Info().Msgf("\n--- Report ---\nFinished the run, preparing the report...\n")
+
+	log.Info().Msgf("")
+	log.Info().Msgf("--- Report ---")
+	log.Info().Msgf("Finished the run, preparing the report...")
 	writeReportToFile(report)
 	writeSlackMessage(report.StartTime, report.EndTime, config)
 }
