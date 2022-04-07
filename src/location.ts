@@ -1,7 +1,7 @@
 import {MakeGenerics} from "@tanstack/react-location";
 
 export type RunId = string
-export type Labels = { [key:string]: string}
+export type Labels = { [key:string]: string|null}
 
 // SearchParams contains all keys used in searches.
 // If another search param is needed just add it here, prefer flatter structures (ideally scalar types directly

@@ -7,7 +7,6 @@ import LocalizationProvider from '@mui/lab/LocalizationProvider';
 import DateTimePicker from '@mui/lab/DateTimePicker';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
-//import Checkbox from '@mui/material/Checkbox';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormLabel from '@mui/material/FormLabel';
@@ -16,6 +15,7 @@ import FormLabel from '@mui/material/FormLabel';
 import React, {FocusEventHandler, KeyboardEventHandler, useState} from "react"
 import {ResultBrowserLocation, SearchParams} from "./location";
 import {MultipleSelectChip} from "./FilterSelector"
+import {cleanEmpty} from "./utils";
 
 type SearchActionType = "setLabel" | "setField"
 
@@ -32,7 +32,7 @@ interface ControlledBooleanChoiceProps {
 }
 
 export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
-    const toVal = (val: boolean | null | undefined) =>  val === true ? "yes" : val === false ? "no" : "any"
+    const toVal = (val: boolean | null | undefined) => val === true ? "yes" : val === false ? "no" : "any"
 
     const setVal = (event: React.ChangeEvent<HTMLInputElement>) => {
         switch (event.target.value) {
@@ -55,7 +55,7 @@ export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
         >
             <Grid container>
                 <Grid item>
-                    <FormLabel sx={{p:2}} id={`${props.fieldName}`}>{props.label}</FormLabel>
+                    <FormLabel sx={{p: 2}} id={`${props.fieldName}`}>{props.label}</FormLabel>
                 </Grid>
                 <Grid item>
                     <FormControlLabel value="yes" control={<Radio/>} label="Yes"/>
@@ -141,7 +141,6 @@ function ControlledRangePicker(props: ControlledRangePickerProps) {
             </Grid>
         </LocalizationProvider>
     </Box>)
-
 }
 
 export function Search() {
@@ -157,7 +156,7 @@ export function Search() {
                 } else {
                     delete labels[label]
                 }
-                return {...old, labels}
+                return cleanEmpty({...old, labels})
             }
             ,
             replace: true
@@ -188,7 +187,7 @@ export function Search() {
                     default:
                         delete labels[label]
                 }
-                return {...old, labels}
+                return cleanEmpty({...old, labels})
             },
             replace: true,
         })
