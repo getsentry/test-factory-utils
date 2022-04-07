@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"reflect"
-
-	// "os/exec"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -544,65 +542,4 @@ func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.
 
 	err = nil
 	return
-
-	// var duration starlark.Value
-	// var freq starlark.Int
-	// var per starlark.Value
-	// var config *starlark.Dict
-	// var name starlark.Value
-	// var description starlark.Value
-	// var url starlark.Value
-	// var testType starlark.String
-
-	// retVal = starlark.None
-
-	// if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
-	// 	"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
-	// 	return
-	// }
-
-	// var durationVal time.Duration
-	// durationVal, err = toDuration(duration)
-	// if err != nil {
-	// 	return
-	// }
-
-	// var freqVal int64
-	// freqVal, err = toInt(freq)
-	// if err != nil {
-	// 	return
-	// }
-
-	// var perVal time.Duration
-	// perVal, err = toDuration(per)
-	// if err != nil {
-	// 	return
-	// }
-
-	// var configVal map[string]interface{}
-
-	// configVal, err = toDict(config)
-	// if err != nil {
-	// 	return
-	// }
-
-	// var nameVal = toString(name)
-	// var descriptionVal = toString(description)
-	// var urlVal = toString(url)
-	// var testTypeVal = toString(testType)
-
-	// if len(urlVal) == 0 {
-	// 	urlVal = env.LoadTesterUrl
-	// }
-
-	// var testConfig TestConfig
-	// testConfig, err = CreateVegetaTestConfig(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
-
-	// if err != nil {
-	// 	return
-	// }
-
-	// env.LoadTests = append(env.LoadTests, testConfig)
-
-	// return
 }
