@@ -7,9 +7,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -46,13 +47,13 @@ func CreateVegetaTestConfig(duration time.Duration, testType string, freq int64,
 	}
 
 	// put the startRequest also in the spec (for reporting), remove duplicate info
-	// tracked in the TestInfo
+	// tracked in the RunInfo
 	delete(startRequest, "attackDuration")
 	delete(startRequest, "name")
 	delete(startRequest, "description")
 
 	return TestConfig{
-		TestInfo: TestInfo{
+		RunInfo: RunInfo{
 			Name:        name,
 			Description: description,
 			Duration:    duration,

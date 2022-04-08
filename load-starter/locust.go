@@ -6,11 +6,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -37,7 +38,7 @@ spawnRate=%v`,
 	startBody := startRequest.Encode()
 
 	return TestConfig{
-		TestInfo: TestInfo{
+		RunInfo: RunInfo{
 			Duration:    duration,
 			Name:        name,
 			Description: description,

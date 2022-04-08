@@ -4,6 +4,19 @@ import (
 	"time"
 )
 
+type RunAction interface {
+	Run()
+	GetDuration()
+}
+
+type RunInfo struct {
+	Name        string
+	Description string
+	Duration    time.Duration
+	Runner      string
+	Spec        map[string]any
+}
+
 // TestConfig definitions
 // A TestConfig is a distinct experiment that the load starter performs
 // A TestConfig has a Duration and configuration parameters
@@ -11,7 +24,7 @@ import (
 // A TestConfig has a start command and an optional stop command, if the stop command
 // is the empty string it will not be sent
 type TestConfig struct {
-	TestInfo
+	RunInfo
 
 	StartUrl     string
 	StartMethod  string // GET,POST...
@@ -24,20 +37,14 @@ type TestConfig struct {
 	StopHeaders map[string]string
 }
 
-type TestInfo struct {
-	Name        string
-	Description string
-	Duration    time.Duration
-	Runner      string
-	Spec        map[string]any
-}
+// Represents a list of actions that are executed in one execution
 type Config struct {
 	TestConfigs []TestConfig
 }
 
 // RunReport represents the result of running one test step/run (one TestConfig)
 type RunReport struct {
-	TestInfo  `yaml:"testInfo" json:"testInfo"`
+	RunInfo   `yaml:"runInfo" json:"runInfo"`
 	StartTime time.Time `yaml:"startTime" json:"startTime"`
 	EndTime   time.Time `yaml:"endTime" json:"endTime"`
 }

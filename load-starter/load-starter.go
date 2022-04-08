@@ -147,7 +147,7 @@ func executeConfig(config Config) CombinedReport {
 	}
 	for _, config := range config.TestConfigs {
 		var run = RunReport{
-			TestInfo:  config.TestInfo,
+			RunInfo:   config.RunInfo,
 			StartTime: time.Now().UTC(),
 		}
 		logTestDetails(run)
