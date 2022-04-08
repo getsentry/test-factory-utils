@@ -107,10 +107,12 @@ func startLocust(locustUrl string, specParams map[string]interface{}) error {
 		return nil
 	}
 
+	headers := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+	}
+
 	err := SendHttpRequest(
-		"POST", startUrl, startBody, map[string]string{
-			"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-		},
+		"POST", startUrl, startBody, headers,
 	)
 	return err
 }
