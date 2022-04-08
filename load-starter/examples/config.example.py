@@ -21,7 +21,7 @@
 #   Adds a test to be run by a vegeta load tester (not the default vegeta load tester
 #   but our (Sentry) webservice wrapper.
 #
-# run_external(cmd:str[])
+# run_external(command:str, arg1:str, arg2:str, ...)
 #
 #   Runs an external script
 #

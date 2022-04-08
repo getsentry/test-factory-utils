@@ -6,9 +6,12 @@ import (
 
 // Rerpresents one action that can be run as part of the test
 type RunAction interface {
+	// Runs the action logic
 	Run() error
 	GetDuration() time.Duration
 	GetName() string
+	// For test actions returns all test attributes
+	// For non-test actions returns "nil"
 	GetTestInfo() *TestInfo
 }
 

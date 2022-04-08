@@ -499,6 +499,7 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 }
 
 // runExternalBuiltin implements the builtin run_external(command:str, arg1:str, arg2:str,...)
+// WARNING: this lets users run arbitrary code on the server, which might be a security issue.
 func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	retVal = starlark.None
 
