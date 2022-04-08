@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -143,86 +140,40 @@ func initConfig() {
 func executeConfig(config Config) CombinedReport {
 	var retVal = CombinedReport{
 		StartTime: time.Now().UTC(),
-		TestRuns:  make([]RunReport, 0, len(config.TestConfigs)),
+		TestRuns:  make([]RunReport, 0, len(config.RunActionList)),
 	}
-	for _, config := range config.TestConfigs {
-		var run = RunReport{
-			RunInfo:   config.RunInfo,
-			StartTime: time.Now().UTC(),
+
+	for _, action := range config.RunActionList {
+		testInfo := action.GetTestInfo()
+
+		if testInfo == nil {
+			// Non-test action
+			log.Info().Msgf("--- Action '%s' ---", action.GetName())
+			log.Info().Msgf("Duration: %s", action.GetDuration())
+			var err = action.Run()
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to run a non-test action: %s", action.GetName())
+			}
+		} else {
+			// Test action
+			var run = RunReport{
+				TestInfo:  *testInfo,
+				StartTime: time.Now().UTC(),
+			}
+			log.Info().Msgf("--- Test '%s' ---", run.Name)
+			log.Info().Msgf("duration: %s", run.Duration)
+
+			var err = action.Run()
+			run.EndTime = time.Now().UTC()
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to run a test action: %s", action.GetName())
+			}
+			retVal.TestRuns = append(retVal.TestRuns, run)
 		}
-		logTestDetails(run)
-		var err = runTest(config)
-		run.EndTime = time.Now().UTC()
-		retVal.TestRuns = append(retVal.TestRuns, run)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to run test:%s", config.Name)
-		}
+
 	}
 	retVal.EndTime = time.Now().UTC()
 	return retVal
-}
-
-func logTestDetails(run RunReport) {
-	log.Info().Msgf("--- Test %s ---", run.Name)
-	log.Info().Msgf("duration: %s", run.Duration)
-}
-
-func runTest(config TestConfig) error {
-	if Params.dryRun {
-		log.Info().Msgf("[dry-run] Sending start request to %s: %s\n", config.StartUrl, config.StartBody)
-		return nil
-	}
-
-	var err = sendHttpRequest(config.StartMethod, config.StartUrl, config.StartBody, config.StartHeaders)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to start run %s", config.Name)
-		return err
-	}
-
-	time.Sleep(config.Duration)
-
-	if len(config.StopUrl) == 0 {
-		return nil // nothing more to do
-	}
-
-	err = sendHttpRequest(config.StopMethod, config.StopUrl, config.StopBody, config.StopHeaders)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to stop run %s", config.Name)
-		return err
-	}
-
-	return nil
-}
-
-func sendHttpRequest(method string, url string, body string, headers map[string]string) error {
-	var bodyData io.Reader
-	if len(body) > 0 {
-		bodyData = bytes.NewReader([]byte(body))
-	}
-	req, err := http.NewRequest(method, url, bodyData)
-	if err != nil {
-		return err
-	}
-	for key, val := range headers {
-		req.Header.Add(key, val)
-	}
-	if err != nil {
-		return err
-	}
-
-	var client = GetDefaultHttpClient()
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msgf(" error sending command to client '%s': ", url)
-		return err
-	}
-	if resp != nil {
-		err = resp.Body.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("could not close response body")
-		}
-	}
-	return nil
 }
 
 func writeReportToFile(report CombinedReport) {
@@ -273,7 +224,7 @@ func runLoadStarter() {
 
 	log.Info().Msgf("")
 	log.Info().Msgf("--- Report ---")
-	log.Info().Msgf("Finished the run, preparing the report...")
+	log.Info().Msgf("Finished all test steps, preparing the report...")
 	writeReportToFile(report)
 	writeSlackMessage(report.StartTime, report.EndTime, config)
 }
