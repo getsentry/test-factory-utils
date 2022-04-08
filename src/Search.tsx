@@ -10,12 +10,12 @@ import FormControl from '@mui/material/FormControl';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormLabel from '@mui/material/FormLabel';
-
+import * as R from "rambda"
 
 import React, {FocusEventHandler, KeyboardEventHandler, useState} from "react"
 import {ResultBrowserLocation, SearchParams} from "./location";
 import {MultipleSelectChip} from "./FilterSelector"
-import {cleanEmpty, getBoolValue, getValue} from "./utils";
+import {getValue, setValue} from "./utils";
 
 type SearchActionType = "setLabel" | "setField"
 
@@ -27,12 +27,26 @@ type SearchAction = {
 interface ControlledBooleanChoiceProps {
     fieldName: string
     label: string
-    value?: boolean | null
+    value?: boolean | string | undefined | null
     setValue: (val: boolean | null | undefined) => void
 }
 
 export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
-    const toVal = (val: boolean | null | undefined) => val === true ? "yes" : val === false ? "no" : "any"
+    const toVal = (val: boolean | string | null | undefined) => {
+        //val === true ? "yes" : val === false ? "no" : "any"
+        switch (val) {
+            case "true":
+            case "yes":
+            case true:
+                return "yes"
+            case "false":
+            case "no":
+            case false:
+                return "no"
+            default:
+                return "any"
+        }
+    }
 
     const setVal = (event: React.ChangeEvent<HTMLInputElement>) => {
         switch (event.target.value) {
@@ -113,8 +127,8 @@ interface ControlledRangePickerProps {
 
 function ControlledRangePicker(props: ControlledRangePickerProps) {
     //override undefined (otherwise DateTimePicker sets it to now)
-    const fromDate = props.fromDate === undefined ? null: props.fromDate
-    const toDate = props.toDate === undefined ? null: props.toDate
+    const fromDate = props.fromDate === undefined ? null : props.fromDate
+    const toDate = props.toDate === undefined ? null : props.toDate
 
     return (<Box sx={{p: 2}}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -150,72 +164,41 @@ export function Search() {
     const search = useSearch<ResultBrowserLocation>()
     const navigate = useNavigate()
 
-    const updateLabel = (label: string) => (value: string | null): void => {
+    const updatePath = (path: R.Path) => (value: any): void => {
         navigate({
             search: (old: SearchParams | null | undefined) => {
-                let labels = old?.labels ?? {}
-                if (value) {
-                    labels[label] = value
-                } else {
-                    delete labels[label]
-                }
-                return cleanEmpty({...old, labels})
-            }
-            ,
+                return setValue(path, value, old ?? {})
+            },
             replace: true
         })
     }
-
-    const updateBoolLabel = (label: string) => (value: boolean | null | undefined): void => {
-        navigate({
-            search: (old: SearchParams | null | undefined) => {
-                let labels = old?.labels ?? {}
-                switch (value) {
-                    case true:
-                    case false:
-                        labels[label] = `${value}`
-                        break
-                    default:
-                        delete labels[label]
-                }
-                return cleanEmpty({...old, labels})
-            },
-            replace: true,
-        })
-
-    }
-
-    const toDate = search?.to ?? null
-    const fromDate = search?.from ?? null
-    const setToDate = (val: Date | null) => navigate({
-        search: (old: SearchParams | null | undefined) => ({...old, to: val ?? undefined}),
-        replace: true
-    })
-    const setFromDate = (val: Date | null) => navigate({
-        search: (old: SearchParams | null | undefined) => ({...old, from: val ?? undefined}),
-        replace: true
-    })
     return (
         <>
             <MultipleSelectChip/>
             <Box sx={{p: 2}}>
                 <ControlledTextBox fieldName="p11" label="P11 field" value={getValue("labels.p11", search)}
-                                   setValue={updateLabel("p11")}/>
+                                   setValue={updatePath("labels.p11")}/>
             </Box>
             <Box sx={{p: 2}}>
                 <ControlledTextBox fieldName="p12" label="P12 field" value={getValue("labels.p12", search)}
-                                   setValue={updateLabel("p12")}/>
+                                   setValue={updatePath("labels.p12")}/>
             </Box>
             <Box sx={{p: 2}}>
                 <ControlledTextBox fieldName="p13" label="P13 field" value={getValue("labels.p13", search)}
-                                   setValue={updateLabel("p13")}/>
+                                   setValue={updatePath("labels.p13")}/>
             </Box>
             <Box>
-                <ControlledRangePicker {...{toDate:getValue("to", search), fromDate:getValue("from", search), setToDate, setFromDate}}/>
+                <ControlledRangePicker {...{
+                    toDate: getValue("to", search),
+                    fromDate: getValue("from", search),
+                    setToDate: updatePath("to"),
+                    setFromDate: updatePath("from")
+                }}/>
             </Box>
             <Box>
-                <ControlledBooleanChoice fieldName="theBool" label="The boolean" value={getBoolValue("labels.theBool", search)}
-                                         setValue={updateBoolLabel("theBool")}/>
+                <ControlledBooleanChoice fieldName="theBool" label="The boolean"
+                                         value={getValue("labels.theBool", search)}
+                                         setValue={updatePath("labels.theBool")}/>
             </Box>
             <Box>
                 <pre>
