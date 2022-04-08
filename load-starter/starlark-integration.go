@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 	"reflect"
 	"time"
 
@@ -518,6 +517,7 @@ func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.
 	rawCmd, err := toArray(starlarkCmd)
 	processedCmd := make([]string, 0, len(rawCmd))
 
+	// Check that we're dealing with strings
 	for _, val := range rawCmd {
 		if reflect.TypeOf(val).Kind() == reflect.String {
 			processedCmd = append(processedCmd, val.(string))
@@ -527,19 +527,7 @@ func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.
 		}
 	}
 
-	command := exec.Command(processedCmd[0], processedCmd[1:]...)
+	env.LoadTestActions = append(env.LoadTestActions, RunExternalAction{cmd: processedCmd})
 
-	if Params.dryRun {
-		log.Info().Msgf("[dry-run] Not running the external command: `%v`", command)
-	} else {
-		log.Info().Msgf("Running external command: `%v`", command)
-		err = command.Run()
-	}
-
-	if err != nil {
-		return
-	}
-
-	err = nil
 	return
 }

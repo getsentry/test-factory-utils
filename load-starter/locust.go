@@ -75,13 +75,13 @@ func (action LocustTestAction) GetTestInfo() *TestInfo {
 func (action LocustTestAction) Run() error {
 	err := resetLocustStats(action.LoadTesterUrl)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to reset locust stats in '%s'", action.Name)
+		log.Error().Msgf("Failed to reset locust stats in '%s'", action.Name)
 		return err
 	}
 
 	err = startLocust(action.LoadTesterUrl, action.UserCount, action.SpawnRate)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to start run in '%s'", action.Name)
+		log.Error().Msgf("Failed to start run in '%s'", action.Name)
 		return err
 	}
 
@@ -94,7 +94,7 @@ func (action LocustTestAction) Run() error {
 
 	err = stopLocust(action.LoadTesterUrl)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to stop run in '%s'", action.Name)
+		log.Error().Msgf("Failed to stop run in '%s'", action.Name)
 		return err
 	}
 
@@ -145,7 +145,7 @@ func resetLocustStats(locustUrl string) error {
 	err := SendHttpRequest("GET", resetUrl, "", map[string]string{})
 
 	if err != nil {
-		return fmt.Errorf("Failed to reset the stats: %v", err)
+		return fmt.Errorf("failed to reset the stats: %v", err)
 	}
 	return nil
 }

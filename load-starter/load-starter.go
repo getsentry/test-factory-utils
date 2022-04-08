@@ -148,8 +148,9 @@ func executeConfig(config Config) CombinedReport {
 
 		if testInfo == nil {
 			// Non-test action
+			log.Info().Msgf("")
 			log.Info().Msgf("--- Action '%s' ---", action.GetName())
-			log.Info().Msgf("Duration: %s", action.GetDuration())
+			log.Info().Msgf("Planned duration: %s", action.GetDuration())
 			var err = action.Run()
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to run a non-test action: %s", action.GetName())
@@ -160,8 +161,9 @@ func executeConfig(config Config) CombinedReport {
 				TestInfo:  *testInfo,
 				StartTime: time.Now().UTC(),
 			}
+			log.Info().Msgf("")
 			log.Info().Msgf("--- Test '%s' ---", run.Name)
-			log.Info().Msgf("duration: %s", run.Duration)
+			log.Info().Msgf("Planned duration: %s", run.Duration)
 
 			var err = action.Run()
 			run.EndTime = time.Now().UTC()
