@@ -15,7 +15,7 @@ import FormLabel from '@mui/material/FormLabel';
 import React, {FocusEventHandler, KeyboardEventHandler, useState} from "react"
 import {ResultBrowserLocation, SearchParams} from "./location";
 import {MultipleSelectChip} from "./FilterSelector"
-import {cleanEmpty} from "./utils";
+import {cleanEmpty, getBoolValue, getValue} from "./utils";
 
 type SearchActionType = "setLabel" | "setField"
 
@@ -112,6 +112,10 @@ interface ControlledRangePickerProps {
 }
 
 function ControlledRangePicker(props: ControlledRangePickerProps) {
+    //override undefined (otherwise DateTimePicker sets it to now)
+    const fromDate = props.fromDate === undefined ? null: props.fromDate
+    const toDate = props.toDate === undefined ? null: props.toDate
+
     return (<Box sx={{p: 2}}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
             <Grid container columnSpacing={3}>
@@ -120,7 +124,7 @@ function ControlledRangePicker(props: ControlledRangePickerProps) {
                         <DateTimePicker
                             renderInput={(props: any) => <TextField {...props}/>}
                             label="from"
-                            value={props.fromDate}
+                            value={fromDate}
                             onChange={props.setFromDate}
                         />
                     </Box>
@@ -131,7 +135,7 @@ function ControlledRangePicker(props: ControlledRangePickerProps) {
                         <DateTimePicker
                             renderInput={(props: any) => <TextField {...props}/>}
                             label="to"
-                            value={props.toDate}
+                            value={toDate}
                             onChange={props.setToDate}
                         />
                     </Box>
@@ -162,18 +166,6 @@ export function Search() {
         })
     }
 
-    const initialBoolVal = (name: string): boolean | null | undefined => {
-        const val = search?.labels?.[name]
-        switch (val) {
-            case "true":
-                return true
-            case "false":
-                return false
-            default:
-                return null
-        }
-    }
-
     const updateBoolLabel = (label: string) => (value: boolean | null | undefined): void => {
         navigate({
             search: (old: SearchParams | null | undefined) => {
@@ -193,7 +185,6 @@ export function Search() {
 
     }
 
-    const initialVal = (name: string): string => search?.labels?.[name] ?? ""
     const toDate = search?.to ?? null
     const fromDate = search?.from ?? null
     const setToDate = (val: Date | null) => navigate({
@@ -208,22 +199,22 @@ export function Search() {
         <>
             <MultipleSelectChip/>
             <Box sx={{p: 2}}>
-                <ControlledTextBox fieldName="p11" label="P11 field" value={initialVal("p11")}
+                <ControlledTextBox fieldName="p11" label="P11 field" value={getValue("labels.p11", search)}
                                    setValue={updateLabel("p11")}/>
             </Box>
             <Box sx={{p: 2}}>
-                <ControlledTextBox fieldName="p12" label="P12 field" value={initialVal("p12")}
+                <ControlledTextBox fieldName="p12" label="P12 field" value={getValue("labels.p12", search)}
                                    setValue={updateLabel("p12")}/>
             </Box>
             <Box sx={{p: 2}}>
-                <ControlledTextBox fieldName="p13" label="P13 field" value={initialVal("p13")}
+                <ControlledTextBox fieldName="p13" label="P13 field" value={getValue("labels.p13", search)}
                                    setValue={updateLabel("p13")}/>
             </Box>
             <Box>
-                <ControlledRangePicker {...{toDate, fromDate, setToDate, setFromDate}}/>
+                <ControlledRangePicker {...{toDate:getValue("to", search), fromDate:getValue("from", search), setToDate, setFromDate}}/>
             </Box>
             <Box>
-                <ControlledBooleanChoice fieldName="theBool" label="The boolean" value={initialBoolVal("theBool")}
+                <ControlledBooleanChoice fieldName="theBool" label="The boolean" value={getBoolValue("labels.theBool", search)}
                                          setValue={updateBoolLabel("theBool")}/>
             </Box>
             <Box>

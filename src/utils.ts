@@ -17,4 +17,22 @@ export function cleanEmpty(val: any): any {
 }
 
 
+// Just a pass through to R.path (so we have a symmetric API with getBoolValue)
+export function getValue(path:R.Path, val: any):any{
+    return R.path(path, val)
+}
 
+export function getBoolValue(path:R.Path, val:any):boolean|null{
+    const v = R.path(path,val)
+    switch (v) {
+        case "true":
+        case true:
+            return true
+        case "false":
+        case false:
+            return false
+        default:
+            return null
+    }
+
+}
