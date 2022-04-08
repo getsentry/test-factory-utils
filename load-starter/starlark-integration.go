@@ -427,7 +427,7 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 		urlVal = env.LoadTesterUrl
 	}
 
-	var locustAction = CreateLocustTestConfig(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
+	var locustAction = CreateLocustTestAction(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
 	env.LoadTestActions = append(env.LoadTestActions, locustAction)
 
 	err = nil
@@ -437,64 +437,63 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 // addVegetaTestBuiltin implements the builtin add_vegeta_test(duration:str|duration, freq:int, per:str|duration,
 //        config:dict, name:str|None=None, description:str|None=None)
 func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
-	// var duration starlark.Value
-	// var freq starlark.Int
-	// var per starlark.Value
-	// var config *starlark.Dict
-	// var name starlark.Value
-	// var description starlark.Value
-	// var url starlark.Value
-	// var testType starlark.String
+	var duration starlark.Value
+	var freq starlark.Int
+	var per starlark.Value
+	var config *starlark.Dict
+	var name starlark.Value
+	var description starlark.Value
+	var url starlark.Value
+	var testType starlark.String
 
 	retVal = starlark.None
 
-	// if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
-	// 	"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
-	// 	return
-	// }
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
+		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
+		return
+	}
 
-	// var durationVal time.Duration
-	// durationVal, err = toDuration(duration)
-	// if err != nil {
-	// 	return
-	// }
+	var durationVal time.Duration
+	durationVal, err = toDuration(duration)
+	if err != nil {
+		return
+	}
 
-	// var freqVal int64
-	// freqVal, err = toInt(freq)
-	// if err != nil {
-	// 	return
-	// }
+	var freqVal int64
+	freqVal, err = toInt(freq)
+	if err != nil {
+		return
+	}
 
-	// var perVal time.Duration
-	// perVal, err = toDuration(per)
-	// if err != nil {
-	// 	return
-	// }
+	var perVal time.Duration
+	perVal, err = toDuration(per)
+	if err != nil {
+		return
+	}
 
-	// var configVal map[string]interface{}
+	var configVal map[string]interface{}
 
-	// configVal, err = toDict(config)
-	// if err != nil {
-	// 	return
-	// }
+	configVal, err = toDict(config)
+	if err != nil {
+		return
+	}
 
-	// var nameVal = toString(name)
-	// var descriptionVal = toString(description)
-	// var urlVal = toString(url)
-	// var testTypeVal = toString(testType)
+	var nameVal = toString(name)
+	var descriptionVal = toString(description)
+	var urlVal = toString(url)
+	var testTypeVal = toString(testType)
 
-	// if len(urlVal) == 0 {
-	// 	urlVal = env.LoadTesterUrl
-	// }
+	if len(urlVal) == 0 {
+		urlVal = env.LoadTesterUrl
+	}
 
-	// var testConfig TestConfig
-	// testConfig, err = CreateVegetaTestConfig(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+	var vegetaAction VegetaTestAction
+	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+	if err != nil {
+		return
+	}
 
-	// if err != nil {
-	// 	return
-	// }
-
-	// env.LoadTestActions = append(env.LoadTestActions, testConfig)
+	env.LoadTestActions = append(env.LoadTestActions, vegetaAction)
 
 	return
 }

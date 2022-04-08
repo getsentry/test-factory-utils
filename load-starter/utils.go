@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,4 +88,10 @@ func SendHttpRequest(method string, url string, body string, headers map[string]
 		}
 	}
 	return nil
+}
+
+// DeepCopy deepcopies a to b using json marshaling
+func DeepCopy(a, b interface{}) {
+	byt, _ := json.Marshal(a)
+	json.Unmarshal(byt, b)
 }

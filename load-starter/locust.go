@@ -20,18 +20,13 @@ const (
 	ResetLocustUrl = "/stats/reset"
 )
 
-// TODO: we can probably reuse TestInfo here
 type LocustTestAction struct {
-	Name        string
-	Description string
-	Duration    time.Duration
+	TestInfo
 
 	LoadTesterUrl string
-	UserCount     int64
-	SpawnRate     int64
 }
 
-func CreateLocustTestConfig(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64) LocustTestAction {
+func CreateLocustTestAction(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64) LocustTestAction {
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 
 	log.Trace().Msgf("duration=%v\nname=%v\ndescription=%v\nloadTesterUrl=%v\nusers=%v\nspawnRate=%v",
@@ -41,14 +36,19 @@ func CreateLocustTestConfig(duration time.Duration, name string, description str
 		spawnRate = users / 4
 	}
 
-	return LocustTestAction{
-		Duration:      duration,
-		Name:          name,
-		Description:   description,
-		UserCount:     users,
-		SpawnRate:     spawnRate,
-		LoadTesterUrl: loadTesterUrl,
+	var specParams = map[string]interface{}{
+		"users":     users,
+		"spawnRate": spawnRate,
 	}
+
+	return LocustTestAction{
+		TestInfo: TestInfo{
+			Duration:    duration,
+			Name:        name,
+			Description: description,
+			Runner:      "locust",
+			Spec:        specParams,
+		}, LoadTesterUrl: loadTesterUrl}
 }
 
 func (action LocustTestAction) GetDuration() time.Duration {
@@ -60,16 +60,7 @@ func (action LocustTestAction) GetName() string {
 }
 
 func (action LocustTestAction) GetTestInfo() *TestInfo {
-	return &TestInfo{
-		Duration:    action.Duration,
-		Name:        action.Name,
-		Description: action.Description,
-		Runner:      "locust",
-		Spec: map[string]interface{}{
-			"userCount": action.UserCount,
-			"spawnRate": action.SpawnRate,
-		},
-	}
+	return &action.TestInfo
 }
 
 func (action LocustTestAction) Run() error {
@@ -79,7 +70,7 @@ func (action LocustTestAction) Run() error {
 		return err
 	}
 
-	err = startLocust(action.LoadTesterUrl, action.UserCount, action.SpawnRate)
+	err = startLocust(action.LoadTesterUrl, action.Spec)
 	if err != nil {
 		log.Error().Msgf("Failed to start run in '%s'", action.Name)
 		return err
@@ -101,12 +92,14 @@ func (action LocustTestAction) Run() error {
 	return nil
 }
 
-func startLocust(locustUrl string, users int64, spawnRate int64) error {
+func startLocust(locustUrl string, specParams map[string]interface{}) error {
 	startUrl := fmt.Sprintf("%s%s", locustUrl, StartLocustUrl)
 
 	startRequest := url.Values{}
-	startRequest.Add("user_count", strconv.FormatInt(users, 10))
-	startRequest.Add("spawn_rate", strconv.FormatInt(spawnRate, 10))
+	var users string = strconv.FormatInt(specParams["users"].(int64), 10)
+	startRequest.Add("user_count", users)
+	var spawnRate string = strconv.FormatInt(specParams["spawnRate"].(int64), 10)
+	startRequest.Add("spawn_rate", spawnRate)
 	startBody := startRequest.Encode()
 
 	if Params.dryRun {
