@@ -140,13 +140,13 @@ func initConfig() {
 	zerolog.SetGlobalLevel(logLevel)
 }
 
-func executeConfig(config Config) RunReport {
-	var retVal = RunReport{
+func executeConfig(config Config) CombinedReport {
+	var retVal = CombinedReport{
 		StartTime: time.Now().UTC(),
-		TestRuns:  make([]TestRun, 0, len(config.TestConfigs)),
+		TestRuns:  make([]RunReport, 0, len(config.TestConfigs)),
 	}
 	for _, config := range config.TestConfigs {
-		var run = TestRun{
+		var run = RunReport{
 			TestInfo:  config.TestInfo,
 			StartTime: time.Now().UTC(),
 		}
@@ -162,7 +162,7 @@ func executeConfig(config Config) RunReport {
 	return retVal
 }
 
-func logTestDetails(run TestRun) {
+func logTestDetails(run RunReport) {
 	log.Info().Msgf("--- Test %s ---", run.Name)
 	log.Info().Msgf("duration: %s", run.Duration)
 }
@@ -225,7 +225,7 @@ func sendHttpRequest(method string, url string, body string, headers map[string]
 	return nil
 }
 
-func writeReportToFile(report RunReport) {
+func writeReportToFile(report CombinedReport) {
 	if *Params.reportFilePath == "" {
 		log.Info().Msgf("No report file path provided, not writing the report to file.\n")
 		return

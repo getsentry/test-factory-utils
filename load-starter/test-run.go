@@ -31,35 +31,27 @@ type TestInfo struct {
 	Runner      string
 	Spec        map[string]any
 }
+type Config struct {
+	TestConfigs []TestConfig
+}
 
-// TestRun represents the result of running a TestConfig
-type TestRun struct {
+// RunReport represents the result of running one test step/run (one TestConfig)
+type RunReport struct {
 	TestInfo  `yaml:"testInfo" json:"testInfo"`
 	StartTime time.Time `yaml:"startTime" json:"startTime"`
 	EndTime   time.Time `yaml:"endTime" json:"endTime"`
 }
 
-type RunReport struct {
-	TestRuns  []TestRun `yaml:"testRuns" json:"testRuns"`
-	StartTime time.Time `yaml:"startTime" json:"startTime"`
-	EndTime   time.Time `yaml:"endTime" json:"endTime"`
-}
-
-type Config struct {
-	TestConfigs []TestConfig
+// CombinedReport represents the aggregated results of all test runs
+type CombinedReport struct {
+	TestRuns  []RunReport `yaml:"testRuns" json:"testRuns"`
+	StartTime time.Time   `yaml:"startTime" json:"startTime"`
+	EndTime   time.Time   `yaml:"endTime" json:"endTime"`
 }
 
 func (cfg Config) GetDuration() time.Duration {
 	var retVal time.Duration
 	for _, testRun := range cfg.TestConfigs {
-		retVal += testRun.Duration
-	}
-	return retVal
-}
-
-func (cfg RunReport) GetDuration() time.Duration {
-	var retVal time.Duration
-	for _, testRun := range cfg.TestRuns {
 		retVal += testRun.Duration
 	}
 	return retVal
