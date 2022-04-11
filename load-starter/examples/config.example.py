@@ -21,9 +21,9 @@
 #   Adds a test to be run by a vegeta load tester (not the default vegeta load tester
 #   but our (Sentry) webservice wrapper.
 #
-# run_external(command:str, arg1:str, arg2:str, ...)
+# add_run_external(command:str, arg1:str, arg2:str, ...)
 #
-#   Runs an external script
+#   Adds a shell command to be run as an external script by the load-starter.
 #
 
 
@@ -64,7 +64,7 @@ def add_locust_tests():
             name="test with:%d users" % users,
             description="Some detailed description for test with %d users" % users,
         )
-        run_external(["/bin/bash", "restart_relay.sh"])
+        add_run_external(["/bin/bash", "restart_relay.sh"])
 
 
 # setup some locust tests

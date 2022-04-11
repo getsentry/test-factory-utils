@@ -25,7 +25,7 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 		"set_load_tester_url": starlark.NewBuiltin("set_load_tester_url", tests.setLoadTesterUrl),
 		"add_locust_test":     starlark.NewBuiltin("add_locust_test", tests.addLocustTestBuiltin),
 		"add_vegeta_test":     starlark.NewBuiltin("add_vegeta_test", tests.addVegetaTestBuiltin),
-		"run_external":        starlark.NewBuiltin("run_external", tests.runExternalBuiltin),
+		"add_run_external":    starlark.NewBuiltin("add_run_external", tests.addRunExternalBuiltin),
 		"Nanosecond":          StarlarkDuration{val: time.Nanosecond, frozen: true},
 		"Microsecond":         StarlarkDuration{val: time.Microsecond, frozen: true},
 		"Millisecond":         StarlarkDuration{val: time.Millisecond, frozen: true},
@@ -498,9 +498,9 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	return
 }
 
-// runExternalBuiltin implements the builtin run_external(command:str, arg1:str, arg2:str,...)
+// addRunExternalBuiltin implements the builtin add_run_external(command:str, arg1:str, arg2:str,...)
 // WARNING: this lets users run arbitrary code on the server, which might be a security issue.
-func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+func (env *LoadTestEnv) addRunExternalBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	retVal = starlark.None
 
 	var starlarkCmd *starlark.List
@@ -510,7 +510,7 @@ func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.
 	}
 
 	if len(kwargs) > 0 {
-		err = errors.New("run_external: redundant kwargs")
+		err = errors.New("add_run_external: redundant kwargs")
 		return
 	}
 
@@ -522,7 +522,7 @@ func (env *LoadTestEnv) runExternalBuiltin(thread *starlark.Thread, b *starlark.
 		if reflect.TypeOf(val).Kind() == reflect.String {
 			processedCmd = append(processedCmd, val.(string))
 		} else {
-			err = fmt.Errorf("run_external: invalid argument: %v", val)
+			err = fmt.Errorf("add_run_external: invalid argument: %v", val)
 			return
 		}
 	}
