@@ -153,7 +153,7 @@ def load_report(file_name: str) -> Report:
     test_runs = []
 
     for raw_test_run in doc["testRuns"]:
-        test_info = raw_test_run["testInfo"]
+        test_info = raw_test_run["runInfo"]
         name = test_info.get("name")
         description = test_info.get("description")
         runner = test_info.get("runner")
