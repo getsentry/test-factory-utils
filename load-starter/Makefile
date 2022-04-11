@@ -1,4 +1,4 @@
-build:
+build: lint
 	go mod download && go build
 .PHONY: build
 
@@ -13,3 +13,7 @@ test:
 fmt:
 	go fmt .
 .PHONY: fmt
+
+lint:
+	go vet .
+.PHONY: lint

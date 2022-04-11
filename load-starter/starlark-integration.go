@@ -106,7 +106,7 @@ func (d StarlarkDuration) Binary(op syntax.Token, y starlark.Value, side starlar
 		if ok {
 			int64Val, ok := intVal.Int64()
 			if !ok {
-				return nil, fmt.Errorf("could not convert int to int64 %v, intVal")
+				return nil, fmt.Errorf("could not convert int to int64 %v", intVal)
 			}
 			return StarlarkDuration{time.Duration(int64(d.val) / int64Val), false}, nil
 		}
@@ -123,7 +123,7 @@ func (d StarlarkDuration) Binary(op syntax.Token, y starlark.Value, side starlar
 		if ok {
 			int64Val, ok := intVal.Int64()
 			if !ok {
-				return nil, fmt.Errorf("could not convert int to int64 %v, intVal")
+				return nil, fmt.Errorf("could not convert int to int64 %v", intVal)
 			}
 			return StarlarkDuration{time.Duration(int64(d.val) * int64Val), false}, nil
 		}
