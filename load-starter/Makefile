@@ -3,7 +3,7 @@ build:
 .PHONY: build
 
 dry-run:
-	go run . --dry-run --config config.example.yaml --report report.yaml
+	go run . --dry-run --config ./examples/config.example.py --report report.yaml
 .PHONY: dry-run
 
 test:

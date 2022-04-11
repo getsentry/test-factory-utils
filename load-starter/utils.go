@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 func check(e error) {
@@ -52,4 +57,41 @@ func IsStarlarkConfig(filePath string) bool {
 		}
 	}
 	return false
+}
+
+func SendHttpRequest(method string, url string, body string, headers map[string]string) error {
+	var bodyData io.Reader
+	if len(body) > 0 {
+		bodyData = bytes.NewReader([]byte(body))
+	}
+	req, err := http.NewRequest(method, url, bodyData)
+	if err != nil {
+		return err
+	}
+	for key, val := range headers {
+		req.Header.Add(key, val)
+	}
+	if err != nil {
+		return err
+	}
+
+	var client = GetDefaultHttpClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error sending command to client '%s': ", url)
+		return err
+	}
+	if resp != nil {
+		err = resp.Body.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Could not close response body")
+		}
+	}
+	return nil
+}
+
+// DeepCopy deepcopies a to b using json marshaling
+func DeepCopy(a, b interface{}) {
+	byt, _ := json.Marshal(a)
+	json.Unmarshal(byt, b)
 }

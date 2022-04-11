@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -140,94 +137,50 @@ func initConfig() {
 	zerolog.SetGlobalLevel(logLevel)
 }
 
-func executeConfig(config Config) RunReport {
-	var retVal = RunReport{
+func executeConfig(config Config) CombinedReport {
+	var retVal = CombinedReport{
 		StartTime: time.Now().UTC(),
-		TestRuns:  make([]TestRun, 0, len(config.TestConfigs)),
+		TestRuns:  make([]RunReport, 0, len(config.RunActionList)),
 	}
-	for _, config := range config.TestConfigs {
-		var run = TestRun{
-			TestInfo:  config.TestInfo,
-			StartTime: time.Now().UTC(),
+
+	for _, action := range config.RunActionList {
+		testInfo := action.GetTestInfo()
+
+		if testInfo == nil {
+			// Non-test action
+			log.Info().Msg("")
+			log.Info().Msgf("--- Action '%s' ---", action.GetName())
+			log.Info().Msgf("Planned duration: %s", action.GetDuration())
+			var err = action.Run()
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to run a non-test action: %s", action.GetName())
+			}
+		} else {
+			// Test action
+			var run = RunReport{
+				TestInfo:  *testInfo,
+				StartTime: time.Now().UTC(),
+			}
+			log.Info().Msg("")
+			log.Info().Msgf("--- Test '%s' ---", run.Name)
+			log.Info().Msgf("Planned duration: %s", run.Duration)
+
+			var err = action.Run()
+			run.EndTime = time.Now().UTC()
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to run a test action: %s", action.GetName())
+			}
+			retVal.TestRuns = append(retVal.TestRuns, run)
 		}
-		logTestDetails(run)
-		var err = runTest(config)
-		run.EndTime = time.Now().UTC()
-		retVal.TestRuns = append(retVal.TestRuns, run)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to run test:%s", config.Name)
-		}
+
 	}
 	retVal.EndTime = time.Now().UTC()
 	return retVal
 }
 
-func logTestDetails(run TestRun) {
-	log.Info().Msgf("--- Test %s ---", run.Name)
-	log.Info().Msgf("-- duration: %s", run.Duration)
-}
-
-func runTest(config TestConfig) error {
-	if Params.dryRun {
-		log.Info().Msgf("[dry-run] Sending start request to %s: %s\n", config.StartUrl, config.StartBody)
-		return nil
-	}
-
-	var err = sendHttpRequest(config.StartMethod, config.StartUrl, config.StartBody, config.StartHeaders)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to start run %s", config.Name)
-		return err
-	}
-
-	time.Sleep(config.Duration)
-
-	if len(config.StopUrl) == 0 {
-		return nil // nothing more to do
-	}
-
-	err = sendHttpRequest(config.StopMethod, config.StopUrl, config.StopBody, config.StopHeaders)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to stop run %s", config.Name)
-		return err
-	}
-
-	return nil
-}
-
-func sendHttpRequest(method string, url string, body string, headers map[string]string) error {
-	var bodyData io.Reader
-	if len(body) > 0 {
-		bodyData = bytes.NewReader([]byte(body))
-	}
-	req, err := http.NewRequest(method, url, bodyData)
-	if err != nil {
-		return err
-	}
-	for key, val := range headers {
-		req.Header.Add(key, val)
-	}
-	if err != nil {
-		return err
-	}
-
-	var client = GetDefaultHttpClient()
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msgf(" error sending command to client '%s': ", url)
-		return err
-	}
-	if resp != nil {
-		err = resp.Body.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("could not close response body")
-		}
-	}
-	return nil
-}
-
-func writeReportToFile(report RunReport) {
+func writeReportToFile(report CombinedReport) {
 	if *Params.reportFilePath == "" {
-		log.Info().Msgf("No report file path provided, not writing the report to file.\n")
+		log.Info().Msg("No report file path provided, not writing the report to file.\n")
 		return
 	}
 
@@ -240,7 +193,7 @@ func writeReportToFile(report RunReport) {
 		err = os.WriteFile(*Params.reportFilePath, reportData, 0644)
 		check(err)
 	}
-	log.Info().Msgf("Wrote run report to: %s\n", *Params.reportFilePath)
+	log.Info().Msgf("Wrote run report to: %s", *Params.reportFilePath)
 }
 
 func runLoadStarter() {
@@ -251,7 +204,9 @@ func runLoadStarter() {
 	var config Config
 	var err error
 
-	log.Info().Msg("\n--- Prepare ---\nInitializing the run...\n")
+	log.Info().Msg("")
+	log.Info().Msg("--- Prepare ---")
+	log.Info().Msg("Initializing the run...")
 
 	var configPath = *Params.configFilePath
 	if configPath != "" {
@@ -265,10 +220,13 @@ func runLoadStarter() {
 
 	}
 	var totalDuration = config.GetDuration()
-	log.Info().Msgf("Total estimated running time: %s\n", totalDuration)
-	log.Info().Msgf("Estimated completion time: %s\n", time.Now().UTC().Add(totalDuration))
+	log.Info().Msgf("Total estimated running time: %s", totalDuration)
+	log.Info().Msgf("Estimated completion time: %s", time.Now().UTC().Add(totalDuration))
 	var report = executeConfig(config)
-	log.Info().Msgf("\n--- Report ---\nFinished the run, preparing the report...\n")
+
+	log.Info().Msg("")
+	log.Info().Msg("--- Report ---")
+	log.Info().Msg("Finished all test steps, preparing the report...")
 	writeReportToFile(report)
 	writeSlackMessage(report.StartTime, report.EndTime, config)
 }

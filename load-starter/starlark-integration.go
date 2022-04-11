@@ -3,15 +3,17 @@ package main
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
-	"time"
 )
 
 type LoadTestEnv struct {
-	LoadTesterUrl string
-	LoadTests     []TestConfig
+	LoadTesterUrl   string
+	LoadTestActions []RunAction
 }
 
 func LoadStarlarkConfig(configPath string) (Config, error) {
@@ -23,6 +25,7 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 		"set_load_tester_url": starlark.NewBuiltin("set_load_tester_url", tests.setLoadTesterUrl),
 		"add_locust_test":     starlark.NewBuiltin("add_locust_test", tests.addLocustTestBuiltin),
 		"add_vegeta_test":     starlark.NewBuiltin("add_vegeta_test", tests.addVegetaTestBuiltin),
+		"add_run_external":    starlark.NewBuiltin("add_run_external", tests.addRunExternalBuiltin),
 		"Nanosecond":          StarlarkDuration{val: time.Nanosecond, frozen: true},
 		"Microsecond":         StarlarkDuration{val: time.Microsecond, frozen: true},
 		"Millisecond":         StarlarkDuration{val: time.Millisecond, frozen: true},
@@ -36,7 +39,7 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 		fmt.Printf("exec file error\n%s", err)
 		return Config{}, err
 	}
-	return Config{TestConfigs: tests.LoadTests}, nil
+	return Config{RunActionList: tests.LoadTestActions}, nil
 }
 
 // StarlarkDuration type for working with Durations in Starlark
@@ -424,8 +427,8 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 		urlVal = env.LoadTesterUrl
 	}
 
-	var testConfig = CreateLocustTestConfig(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
-	env.LoadTests = append(env.LoadTests, testConfig)
+	var locustAction = CreateLocustTestAction(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
+	env.LoadTestActions = append(env.LoadTestActions, locustAction)
 
 	err = nil
 	return
@@ -484,14 +487,47 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 		urlVal = env.LoadTesterUrl
 	}
 
-	var testConfig TestConfig
-	testConfig, err = CreateVegetaTestConfig(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
-
+	var vegetaAction VegetaTestAction
+	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
 	if err != nil {
 		return
 	}
 
-	env.LoadTests = append(env.LoadTests, testConfig)
+	env.LoadTestActions = append(env.LoadTestActions, vegetaAction)
+
+	return
+}
+
+// addRunExternalBuiltin implements the builtin add_run_external(command:str, arg1:str, arg2:str,...)
+// WARNING: this lets users run arbitrary code on the server, which might be a security issue.
+func (env *LoadTestEnv) addRunExternalBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+	retVal = starlark.None
+
+	var starlarkCmd *starlark.List
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "cmd", &starlarkCmd); err != nil {
+		return
+	}
+
+	if len(kwargs) > 0 {
+		err = errors.New("add_run_external: doesn't support named args (kwargs)")
+		return
+	}
+
+	rawCmd, err := toArray(starlarkCmd)
+	processedCmd := make([]string, 0, len(rawCmd))
+
+	// Check that we're dealing with strings
+	for _, val := range rawCmd {
+		if reflect.TypeOf(val).Kind() == reflect.String {
+			processedCmd = append(processedCmd, val.(string))
+		} else {
+			err = fmt.Errorf("add_run_external: invalid argument: %v", val)
+			return
+		}
+	}
+
+	env.LoadTestActions = append(env.LoadTestActions, RunExternalAction{cmd: processedCmd})
 
 	return
 }
