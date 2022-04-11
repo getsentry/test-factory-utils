@@ -148,7 +148,7 @@ func executeConfig(config Config) CombinedReport {
 
 		if testInfo == nil {
 			// Non-test action
-			log.Info().Msgf("")
+			log.Info().Msg("")
 			log.Info().Msgf("--- Action '%s' ---", action.GetName())
 			log.Info().Msgf("Planned duration: %s", action.GetDuration())
 			var err = action.Run()
@@ -161,7 +161,7 @@ func executeConfig(config Config) CombinedReport {
 				TestInfo:  *testInfo,
 				StartTime: time.Now().UTC(),
 			}
-			log.Info().Msgf("")
+			log.Info().Msg("")
 			log.Info().Msgf("--- Test '%s' ---", run.Name)
 			log.Info().Msgf("Planned duration: %s", run.Duration)
 
@@ -180,7 +180,7 @@ func executeConfig(config Config) CombinedReport {
 
 func writeReportToFile(report CombinedReport) {
 	if *Params.reportFilePath == "" {
-		log.Info().Msgf("No report file path provided, not writing the report to file.\n")
+		log.Info().Msg("No report file path provided, not writing the report to file.\n")
 		return
 	}
 
@@ -224,9 +224,9 @@ func runLoadStarter() {
 	log.Info().Msgf("Estimated completion time: %s", time.Now().UTC().Add(totalDuration))
 	var report = executeConfig(config)
 
-	log.Info().Msgf("")
-	log.Info().Msgf("--- Report ---")
-	log.Info().Msgf("Finished all test steps, preparing the report...")
+	log.Info().Msg("")
+	log.Info().Msg("--- Report ---")
+	log.Info().Msg("Finished all test steps, preparing the report...")
 	writeReportToFile(report)
 	writeSlackMessage(report.StartTime, report.EndTime, config)
 }
