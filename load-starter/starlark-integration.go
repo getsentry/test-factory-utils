@@ -510,7 +510,7 @@ func (env *LoadTestEnv) addRunExternalBuiltin(thread *starlark.Thread, b *starla
 	}
 
 	if len(kwargs) > 0 {
-		err = errors.New("add_run_external: redundant kwargs")
+		err = errors.New("add_run_external: doesn't support named args (kwargs)")
 		return
 	}
 
