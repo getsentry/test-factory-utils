@@ -318,8 +318,9 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 	var testObj map[string]interface{}
 
 	log.Info().Msg("Validating the message...")
-	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
 	log.Debug().Msgf("Raw message:\n%s", rawMessage)
+	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
+
 	err := yaml.Unmarshal([]byte(rawMessage), &testObj)
 	check(err)
 
