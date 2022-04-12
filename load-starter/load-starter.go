@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,11 +15,10 @@ import (
 )
 
 const (
-	DefaultLocustServer   = "http://ingest-load-tester.default.svc.cluster.local"
-	DefaultLoadServer     = "http://go-load-tester.default.svc.cluster.local"
-	DefaultInfluxDbServer = "http://localhost:8086"
-	InfluxDateFormat      = "2006-01-02T15:04:05Z"
-	SlackDateFormat       = "Mon 02 Jan 06 15:04:05 MST"
+	DefaultLocustServer = "http://ingest-load-tester.default.svc.cluster.local"
+	DefaultLoadServer   = "http://go-load-tester.default.svc.cluster.local"
+	InfluxDateFormat    = "2006-01-02T15:04:05Z"
+	SlackDateFormat     = "Mon 02 Jan 06 15:04:05 MST"
 )
 
 const slackTemplate = `---
@@ -34,7 +34,7 @@ attachment_blocks:
 - type: section
   text:
     type: mrkdwn
-    text: %s
+    text: "%s"
 - type: section
   fields:
     - type: mrkdwn
@@ -55,17 +55,29 @@ attachment_blocks:
 
 // Command line arguments
 type CliParams struct {
-	organisationId       *string
-	boardId              *string
+	// InfluxDB-specific params
+	influxServerName     *string
+	influxOrganisationId *string
+	influxBoardId        *string
+
+	// Grafana-specific params
+	grafanaServerName     *string
+	grafanaBoardId        *string
+	grafanaOrganisationId *string
+
 	locustServerName     *string
 	loadServerName       *string
-	influxServerName     *string
 	dryRun               bool
 	configFilePath       *string
 	reportFilePath       *string
 	slackMessageFilePath *string
 	logLevel             string
 	useColor             bool
+}
+
+type DashboardLink struct {
+	name string
+	url  string
 }
 
 var Params CliParams
@@ -81,11 +93,17 @@ func cliSetup() *cobra.Command {
 
 	Params.loadServerName = rootCmd.Flags().String("load-server", DefaultLoadServer, "Load server endpoint")
 
-	Params.influxServerName = rootCmd.Flags().StringP("influx", "i", DefaultInfluxDbServer, "InfluxDB dashboard base URL")
+	Params.influxServerName = rootCmd.Flags().String("influx-base", "", "InfluxDB dashboard base URL")
 
-	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "the InfluxDb organisation id")
+	Params.influxOrganisationId = rootCmd.Flags().String("influx-organisation", "", "InfluxDb organisation id")
 
-	Params.boardId = rootCmd.Flags().StringP("board", "b", "", "the InfluxDb board id")
+	Params.influxBoardId = rootCmd.Flags().String("influx-board", "", "InfluxDb board id")
+
+	Params.grafanaServerName = rootCmd.Flags().String("grafana-base", "", "Grafana base URL")
+
+	Params.grafanaBoardId = rootCmd.Flags().String("grafana-board", "", "Grafana board id")
+
+	Params.grafanaOrganisationId = rootCmd.Flags().String("grafana-organisation", "", "Grafana board id")
 
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
@@ -231,20 +249,41 @@ func runLoadStarter() {
 	writeSlackMessage(report.StartTime, report.EndTime, config)
 }
 
-func buildDashboardLink(startTime time.Time, endTime time.Time, buffer time.Duration) string {
-	queryString := url.Values{}
+func buildDashboardLinks(startTime time.Time, endTime time.Time, buffer time.Duration) []DashboardLink {
+	dashboardLinks := make([]DashboardLink, 0)
 
 	// Some buffer time to make sure we capture a little before and after the test
-	startTimeStamp := startTime.Add(-buffer).Format(InfluxDateFormat)
-	queryString.Add("lower", startTimeStamp)
+	startTimeStamp := startTime.Add(-buffer)
+	endTimeStamp := endTime.Add(buffer)
 
-	endTimeStamp := endTime.Add(buffer).Format(InfluxDateFormat)
-	queryString.Add("upper", endTimeStamp)
+	if *Params.influxServerName != "" {
+		queryString := url.Values{}
 
-	reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
-		*Params.influxServerName, *Params.organisationId, *Params.boardId, queryString.Encode(),
-	)
-	return reportUrl
+		queryString.Add("lower", startTimeStamp.Format(InfluxDateFormat))
+		queryString.Add("upper", endTimeStamp.Format(InfluxDateFormat))
+
+		reportUrl := fmt.Sprintf("%s/orgs/%s/dashboards/%s?%s",
+			*Params.influxServerName, *Params.influxOrganisationId, *Params.influxBoardId, queryString.Encode(),
+		)
+
+		dashboardLinks = append(dashboardLinks, DashboardLink{url: reportUrl, name: "InfluxDB"})
+	}
+
+	if *Params.grafanaServerName != "" {
+		queryString := url.Values{}
+
+		queryString.Add("orgId", *Params.grafanaOrganisationId)
+		queryString.Add("from", strconv.FormatInt(startTimeStamp.UnixMilli(), 10))
+		queryString.Add("to", strconv.FormatInt(endTimeStamp.UnixMilli(), 10))
+
+		reportUrl := fmt.Sprintf("%s/d/%s/?%s",
+			*Params.grafanaServerName, *Params.grafanaBoardId, queryString.Encode(),
+		)
+
+		dashboardLinks = append(dashboardLinks, DashboardLink{url: reportUrl, name: "Grafana"})
+	}
+
+	return dashboardLinks
 }
 
 // Constructs a Slack Notification with the URL of the influx db dashboard for the test
@@ -254,8 +293,17 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 		return
 	}
 
-	reportUrl := buildDashboardLink(startTime, endTime, 30*time.Second)
-	reportText := fmt.Sprintf("<%s|View data (InfluxDB)>", reportUrl)
+	reportUrls := buildDashboardLinks(startTime, endTime, 30*time.Second)
+
+	var reportText string
+	if len(reportUrls) == 0 {
+		reportText = "(no links to report)"
+	} else {
+		reportText = ""
+		for _, dashboardLink := range reportUrls {
+			reportText += fmt.Sprintf("<%s|View data (%s)>\\n", dashboardLink.url, dashboardLink.name)
+		}
+	}
 
 	// Only print number of users when the only testing stage is "static"
 	runDuration := config.GetDuration()
@@ -270,7 +318,9 @@ func writeSlackMessage(startTime time.Time, endTime time.Time, config Config) {
 	var testObj map[string]interface{}
 
 	log.Info().Msg("Validating the message...")
+	log.Debug().Msgf("Raw message:\n%s", rawMessage)
 	// This will check that the rendered message is actually a valid YAML, and e.g. that there are no tabs in it, among other things
+
 	err := yaml.Unmarshal([]byte(rawMessage), &testObj)
 	check(err)
 
