@@ -56,7 +56,7 @@ export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
             value={toVal(props.value)}
             onChange={setVal}
         >
-            <Grid container sx={{"alignItems":"center"}}>
+            <Grid container sx={{"alignItems": "center"}}>
                 <Grid item>
                     <FormLabel sx={{p: 2}} id={`${props.id}`}>{props.label}</FormLabel>
                 </Grid>
@@ -107,41 +107,77 @@ export function ControlledTextBox(props: ControlledTextBoxProps) {
 }
 
 export interface ControlledRangePickerProps {
-    label: string|null
-    toDate: Date | null
-    fromDate: Date | null
-    setToDate: (val: Date | null) => void
-    setFromDate: (val: Date | null) => void
+    label: string | null
+    toDate: string | null
+    fromDate: string | null
+    setToDate: (val: string | null) => void
+    setFromDate: (val: string | null) => void
 }
 
 export function ControlledRangePicker(props: ControlledRangePickerProps) {
     //override undefined (otherwise DateTimePicker sets it to now)
-    const fromDate = props.fromDate === undefined ? null : props.fromDate
-    const toDate = props.toDate === undefined ? null : props.toDate
+    const [fromDate, setLocalFromDate] = useState<string | null>(props.fromDate??null)
+    const [toDate, setLocalToDate] = useState<string | null>(props.toDate??null)
+
+    const updateFromDate = () => {
+        if (fromDate !== props.fromDate) {
+            props.setFromDate(fromDate)
+        }
+    }
+    const updateToDate = () => {
+        if (
+            (toDate !== props.toDate)) {
+            props.setToDate(toDate)
+        }
+    }
+    const onBlur = (update: ()=>void) => (e: any) => update()
+    const onKeyDown = (update: ()=>void) => (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter") {
+            update()
+        }
+    }
 
     return (<Box sx={{p: 2}}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Grid container columnSpacing={3}>
+            <Grid container sx={{"alignItems": "center", "justifyContent": "center", "columnSpacing": 3}}>
                 <Grid item>
                     <FormLabel>{props.label}</FormLabel>
                 </Grid>
                 <Grid item>
                     <Box sx={{p: 1}}>
                         <DateTimePicker
-                            renderInput={(props: any) => <TextField {...props}/>}
+                            renderInput={(inputProps: any) => <TextField
+                                {...inputProps}
+                                onBlur={onBlur(updateFromDate)}
+                                onKeyDown={onKeyDown(updateFromDate)}
+                            />}
                             label="from"
                             value={fromDate}
-                            onChange={props.setFromDate}
+                            onAccept={props.setFromDate}
+
+                            onChange={(val) => {
+                                const vAsString = val !== null ? (val as unknown as Date).toJSON() : null
+                                setLocalFromDate(vAsString)
+                            }}
                         />
                     </Box>
                 </Grid>
                 <Grid item>
                     <Box sx={{p: 1}}>
                         <DateTimePicker
-                            renderInput={(props: any) => <TextField {...props}/>}
+                            renderInput={(inputProps: any) => <TextField
+                                {...inputProps}
+                                onBlur={onBlur(updateToDate)}
+                                onKeyDown={onKeyDown(updateToDate)}
+                            />}
                             label="to"
                             value={toDate}
-                            onChange={props.setToDate}
+                            onAccept={props.setToDate}
+
+                            onChange={(val) => {
+                                const vAsString = val !== null ? (val as unknown as Date).toJSON() : null
+                                setLocalToDate(vAsString)
+                            }}
                         />
                     </Box>
                 </Grid>

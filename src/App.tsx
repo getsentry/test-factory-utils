@@ -7,8 +7,10 @@ import {Box} from "@mui/material";
 
 import './App.css';
 import {Search} from "./Search";
+import {SimpleSearch} from "./SimpeSearch";
 import {ResultBrowserLocation} from "./location";
-import React from "react";
+import React, {PropsWithChildren, FunctionComponent} from "react";
+
 
 const queryClient = new QueryClient();
 const location = new ReactLocation<ResultBrowserLocation>()
@@ -19,6 +21,11 @@ function getT1(): Promise<any> {
 
 function App() {
     const routes: Route[] = [
+        {
+            //The search root
+            path: "/",
+            element: <SimpleSearch/>,
+        },
         {
             //The search root
             path: "/search",
@@ -36,15 +43,23 @@ function App() {
     return (
         <Router location={location} routes={routes}>
             <QueryClientProvider client={queryClient}>
-                <div className="App">
-                    <header className="App-header">
+                <Box sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100vh",
+                    width: "100vw",
+                    boxSizing: "bored-box",
+                    m:0,
+                    p:0,
+                }}>
                         <Outlet/>
-                    </header>
-                </div>
+                </Box>
             </QueryClientProvider>
         </Router>
     )
 }
+
+
 
 export default App;
 

@@ -3,23 +3,27 @@
     {
       "kind": "String",
       "fieldPath": "labels.x",
-      "fieldName": "X"
+      "fieldName": "X",
+      "id": "X"
     },
     {
       "kind": "String",
       "fieldPath": "labels.y",
-      "fieldName": "yy"
+      "fieldName": "yy",
+      "id": "yy"
     },
     {
       "kind": "Boolean",
       "fieldPath": "labels.b1",
-      "fieldName": "The Bool"
+      "fieldName": "The Bool",
+      "id": "theBool"
     },
     {
       "kind": "DateRange",
       "fromPath": "from",
       "toPath": "to",
-      "fieldName": "Start time"
+      "fieldName": "Start time",
+      "id": "startTime"
     }
   ]
 }

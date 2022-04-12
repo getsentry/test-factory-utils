@@ -7,7 +7,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Chip from '@mui/material/Chip';
-import {FilterDef} from "./searchData";
+import {FilterDef, SearchFiltersDef} from "./searchData";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -20,28 +20,21 @@ const MenuProps = {
     },
 };
 
-const names = [
-    'date range',
-    'p1',
-    'p2',
-    'p3',
 
-];
-
-function getStyles(name: string, personName: readonly string[], theme: Theme) {
+function getStyles(id: string, selectedIds: readonly string[], theme: Theme) {
     return {
         fontWeight:
-            personName.indexOf(name) === -1
+            selectedIds.indexOf(id) === -1
                 ? theme.typography.fontWeightRegular
                 : theme.typography.fontWeightBold,
     };
 }
 
 export type FilterListProps = {
-    filters: FilterDef[]|null|undefined
-}
+    selectedIds: string[]
+} & Partial<SearchFiltersDef>
 
-export function FilterList() {
+export function FilterList(props: FilterListProps) {
     const theme = useTheme();
     const [filters, setFilters] = React.useState<string[]>([]);
 
@@ -49,6 +42,7 @@ export function FilterList() {
         const {
             target: { value },
         } = event;
+        console.log(value)
         setFilters(
             // On autofill we get a string field value.
             typeof value === 'string' ? value.split(',') : value,
@@ -65,7 +59,7 @@ export function FilterList() {
                     multiple
                     value={filters}
                     onChange={handleChange}
-                    input={<OutlinedInput id="select-filters-list" label="Chip" />}
+                    input={<OutlinedInput id="select-filters-list" label="Chipo" />}
                     renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {selected.map((value) => (
@@ -75,13 +69,13 @@ export function FilterList() {
                     )}
                     MenuProps={MenuProps}
                 >
-                    {names.map((name) => (
+                    {props.filters && props.filters.map((filter:FilterDef) => (
                         <MenuItem
-                            key={name}
-                            value={name}
-                            style={getStyles(name, filters, theme)}
+                            key={filter.fieldName}
+                            value={filter.id}
+                            style={getStyles(filter.id, filters, theme)}
                         >
-                            {name}
+                            {filter.fieldName}
                         </MenuItem>
                     ))}
                 </Select>

@@ -62,8 +62,6 @@ export function Search() {
         isSuccess,
         isLoading
     } = useQuery<SearchFiltersDef>(["search-config"], getSearchConfig, {retry: false})
-    const [open, setOpen] = React.useState(isError);
-    const [errorAck, setErrorAck] = React.useState(false)
 
     const updatePathOld = (path: R.Path) => (value: any): void => {
         navigate({
@@ -87,7 +85,7 @@ export function Search() {
     return (
         <>
             <OneTimeError isError={isError} message={"Error loading filters"}/>
-            <FilterList />
+            {/*<FilterList {...filters } selectedIds={[]} />*/}
             <Box>
                 {filters !== undefined && isSuccess && <Filters filters={filters.filters} getValue={getFromSearch} setValue={updatePath}/>}
                 {isError && <div>Error configuring the UI</div>}
@@ -95,7 +93,7 @@ export function Search() {
                     <CircularProgress/>
                 </Box>}
             </Box>
-            <Box>
+            <Box sx={{p:4}}>
                 <pre>
                     {JSON.stringify(search, null, 2)}
                 </pre>
@@ -114,27 +112,24 @@ function Filters(props: FiltersProps) {
     const toFilter = (filter: FilterDef) => {
         switch (filter.kind) {
             case "Boolean":
-                return <ControlledBooleanChoice id={filter.fieldPath} label={filter.fieldName}
+                return <ControlledBooleanChoice key={filter.id} id={filter.fieldPath} label={filter.fieldName}
                                                 value={props.getValue(filter.fieldPath)}
                                                 setValue={(val) => props.setValue(filter.fieldPath, val)}
                 />
             case "String":
-                return <ControlledTextBox id={filter.fieldPath} label={filter.fieldName} value={props.getValue(filter.fieldPath)}
+                return <ControlledTextBox  key={filter.id} id={filter.fieldPath} label={filter.fieldName} value={props.getValue(filter.fieldPath)||""}
                                           setValue={(val) => props.setValue(filter.fieldPath, val)}/>
             case "DateRange":
-                return <ControlledRangePicker label={filter.fieldName} toDate={props.getValue(filter.toPath)} fromDate={props.getValue(filter.fromPath)}
+                return <ControlledRangePicker  key={filter.id} label={filter.fieldName} toDate={props.getValue(filter.toPath)} fromDate={props.getValue(filter.fromPath)}
                                               setToDate={(val) => props.setValue(filter.toPath,val)}
                                               setFromDate={(val) => props.setValue(filter.fromPath,val)}/>
             default:
-                return <Box>Unuspported filter type</Box>
+                return <Box key="unsupported">Unuspported filter type</Box>
         }
     }
-    const wrapped = (filter: FilterDef) => <Box>{toFilter(filter)}</Box>
+    const wrapped = (filter: FilterDef) => <Box key={filter.id}>{toFilter(filter)}</Box>
     return (
         <>
-            <Box>
-
-            </Box>
             {R.map(wrapped, props.filters)}
         </>
     )

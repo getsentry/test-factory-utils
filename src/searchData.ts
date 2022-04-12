@@ -3,12 +3,14 @@
 export type FilterType = "Boolean"|"String"|"DateRange"
 
 export type SingleFieldFilterDef = {
+    id: string
     kind: "Boolean"|"String"
     fieldPath: string
     fieldName: string
 }
 
 export type DateRangeFilterDef = {
+    id: string
     kind: "DateRange"
     fieldName: string
     fromPath: string
