@@ -1,34 +1,28 @@
-import './App.css';
-import Button from "@mui/material/Button"
-import {useQuery} from "react-query";
 import ky from "ky"
+import {QueryClient, QueryClientProvider, useQuery} from "react-query";
 import {Route, Outlet, ReactLocation, Router, useSearch, useMatch, MakeGenerics} from "@tanstack/react-location"
+
+import Button from "@mui/material/Button"
 import {Box} from "@mui/material";
+
+import './App.css';
 import {Search} from "./Search";
 import {ResultBrowserLocation} from "./location";
+import React from "react";
+
+const queryClient = new QueryClient();
+const location = new ReactLocation<ResultBrowserLocation>()
 
 function getT1(): Promise<any> {
     return ky.get("/mock/t1.json").json()
 }
 
-
-const location = new ReactLocation<ResultBrowserLocation>()
-
-
 function App() {
-    const {isLoading, isError, data, error} = useQuery('t1', getT1)
-
     const routes: Route[] = [
         {
             //The search root
             path: "/search",
             element: <Search/>,
-            loader: ()=>(
-                {
-                    x: 22,
-                    y: 44,
-                }
-            )
         },
         {
             path: "detail/:runId",
@@ -41,26 +35,18 @@ function App() {
     ]
     return (
         <Router location={location} routes={routes}>
-            <div className="App">
-                <header className="App-header">
-                    <div>
-                        <Button variant="contained">Hello Button</Button>
-                        <pre>
-                            {
-                                JSON.stringify(data, null, 2)
-                            }
-                    </pre>
-
-                    </div>
-                    <Outlet/>
-                </header>
-            </div>
+            <QueryClientProvider client={queryClient}>
+                <div className="App">
+                    <header className="App-header">
+                        <Outlet/>
+                    </header>
+                </div>
+            </QueryClientProvider>
         </Router>
     )
 }
 
 export default App;
-
 
 
 function Details() {

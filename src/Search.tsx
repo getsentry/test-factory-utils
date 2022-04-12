@@ -1,20 +1,71 @@
 import {useSearch, useNavigate, useMatch} from "@tanstack/react-location"
 import Box from "@mui/material/Box"
 import * as R from "rambda"
+import ky from "ky"
 
 import React from "react"
 import {ResultBrowserLocation, SearchParams} from "./location"
-import {MultipleSelectChip} from "./FilterSelector"
+import {FilterList} from "./FilterSelector"
 import {getValue, setValue} from "./utils"
 import {ControlledBooleanChoice, ControlledTextBox, ControlledRangePicker} from "./SearchComponents"
-import {FilterDef} from "./searchData";
+import {FilterDef, SearchFiltersDef} from "./searchData";
+import {useQuery} from "react-query";
+import Alert from "@mui/material/Alert";
+import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress'
+
+function getSearchConfig(): Promise<SearchFiltersDef> {
+    return ky.get("/mock/searchFiltersDef.json").json()
+}
+
+type OneTimeErrorProps = {
+    isError: boolean,
+    message: string,
+}
+
+function OneTimeError(props: OneTimeErrorProps) {
+    const [errorAck, setErrorAck] = React.useState(false)
+    const [open, setOpen] = React.useState(props.isError);
+
+    if (props.isError && !errorAck) {
+        setErrorAck(true)
+        setOpen(true)
+    }
+    const closeLoadError = (
+        event?: React.SyntheticEvent | Event,
+        reason?: string
+    ) => {
+        if (reason === "clickaway") {
+            return
+        }
+
+        setOpen(false)
+    }
+
+    return (
+        <Snackbar open={open} autoHideDuration={6000} onClose={closeLoadError}>
+            <Alert onClose={closeLoadError} severity="error" sx={{width: "100%"}}>
+                {props.message}
+            </Alert>
+        </Snackbar>)
+
+}
 
 
 export function Search() {
     const search = useSearch<ResultBrowserLocation>()
     const navigate = useNavigate()
+    const {
+        data: filters,
+        error,
+        isError,
+        isSuccess,
+        isLoading
+    } = useQuery<SearchFiltersDef>(["search-config"], getSearchConfig, {retry: false})
+    const [open, setOpen] = React.useState(isError);
+    const [errorAck, setErrorAck] = React.useState(false)
 
-    const updatePath = (path: R.Path) => (value: any): void => {
+    const updatePathOld = (path: R.Path) => (value: any): void => {
         navigate({
             search: (old: SearchParams | null | undefined) => {
                 return setValue(path, value, old ?? {})
@@ -23,72 +74,31 @@ export function Search() {
         })
     }
 
-    const myFilters: FiltersProps = {
-        filters: [
-            {
-                kind: "Boolean",
-                fieldPath: "a.b.c",
-                fieldName: "abc",
+    const getFromSearch = (path: R.Path):any => getValue(path, search)
+    const updatePath = (path: R.Path, val:any):void => {
+        navigate({
+            search: (old: SearchParams | null | undefined) => {
+                return setValue(path, val, old ?? {})
             },
-            {
-                kind: "String",
-                fieldPath: "x.y",
-                fieldName: "xy",
-            },
-            {
-                kind: "String",
-                fieldPath: "x.y.sdfs",
-                fieldName: "xxssy",
-            },
-            {
-                kind: "String",
-                fieldPath: "x.y.s",
-                fieldName: "Hello",
-            },
-            {
-                kind: "String",
-                fieldPath: "x.ysfd",
-                fieldName: "xyz",
-            }
-        ]
+            replace: true
+        })
     }
 
     return (
         <>
-            <MultipleSelectChip/>
-            <Box sx={{p: 2}}>
-                <ControlledTextBox id="p11" label="P11 field" value={getValue("labels.p11", search)}
-                                   setValue={updatePath("labels.p11")}/>
-            </Box>
-            <Box sx={{p: 2}}>
-                <ControlledTextBox id="p12" label="P12 field" value={getValue("labels.p12", search)}
-                                   setValue={updatePath("labels.p12")}/>
-            </Box>
-            <Box sx={{p: 2}}>
-                <ControlledTextBox id="p13" label="P13 field" value={getValue("labels.p13", search)}
-                                   setValue={updatePath("labels.p13")}/>
-            </Box>
+            <OneTimeError isError={isError} message={"Error loading filters"}/>
+            <FilterList />
             <Box>
-                <ControlledRangePicker {...{
-                    label: "date range",
-                    toDate: getValue("to", search),
-                    fromDate: getValue("from", search),
-                    setToDate: updatePath("to"),
-                    setFromDate: updatePath("from")
-                }}/>
-            </Box>
-            <Box>
-                <ControlledBooleanChoice id="theBool" label="The boolean"
-                                         value={getValue("labels.theBool", search)}
-                                         setValue={updatePath("labels.theBool")}/>
+                {filters !== undefined && isSuccess && <Filters filters={filters.filters} getValue={getFromSearch} setValue={updatePath}/>}
+                {isError && <div>Error configuring the UI</div>}
+                {isLoading && <Box sx={{display: 'flex'}}>
+                    <CircularProgress/>
+                </Box>}
             </Box>
             <Box>
                 <pre>
                     {JSON.stringify(search, null, 2)}
                 </pre>
-            </Box>
-            <Box>
-                <Filters {...myFilters}/>
             </Box>
         </>
     )
@@ -96,22 +106,25 @@ export function Search() {
 
 export interface FiltersProps {
     filters: FilterDef[]
+    getValue: (path: string) => any
+    setValue: (path: string, val: any) => void
 }
 
 function Filters(props: FiltersProps) {
     const toFilter = (filter: FilterDef) => {
         switch (filter.kind) {
             case "Boolean":
-                return <ControlledBooleanChoice id={filter.fieldPath} label={filter.fieldName} value={false}
-                                                setValue={() => {
-                                                }}/>
+                return <ControlledBooleanChoice id={filter.fieldPath} label={filter.fieldName}
+                                                value={props.getValue(filter.fieldPath)}
+                                                setValue={(val) => props.setValue(filter.fieldPath, val)}
+                />
             case "String":
-                return <ControlledTextBox id={filter.fieldPath} label={filter.fieldName} value={""} setValue={() => {
-                }}/>
+                return <ControlledTextBox id={filter.fieldPath} label={filter.fieldName} value={props.getValue(filter.fieldPath)}
+                                          setValue={(val) => props.setValue(filter.fieldPath, val)}/>
             case "DateRange":
-                return <ControlledRangePicker label={filter.fieldName} toDate={null} fromDate={null} setToDate={() => {
-                }} setFromDate={() => {
-                }}/>
+                return <ControlledRangePicker label={filter.fieldName} toDate={props.getValue(filter.toPath)} fromDate={props.getValue(filter.fromPath)}
+                                              setToDate={(val) => props.setValue(filter.toPath,val)}
+                                              setFromDate={(val) => props.setValue(filter.fromPath,val)}/>
             default:
                 return <Box>Unuspported filter type</Box>
         }

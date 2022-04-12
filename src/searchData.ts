@@ -16,3 +16,8 @@ export type DateRangeFilterDef = {
 }
 
 export type FilterDef = SingleFieldFilterDef | DateRangeFilterDef
+
+// SearchFiltersDef defines the structure
+export type SearchFiltersDef = {
+    filters: FilterDef[]
+}

@@ -1,0 +1,25 @@
+{
+  "filters": [
+    {
+      "kind": "String",
+      "fieldPath": "labels.x",
+      "fieldName": "X"
+    },
+    {
+      "kind": "String",
+      "fieldPath": "labels.y",
+      "fieldName": "yy"
+    },
+    {
+      "kind": "Boolean",
+      "fieldPath": "labels.b1",
+      "fieldName": "The Bool"
+    },
+    {
+      "kind": "DateRange",
+      "fromPath": "from",
+      "toPath": "to",
+      "fieldName": "Start time"
+    }
+  ]
+}
