@@ -3,11 +3,14 @@ import {Box} from "@mui/material";
 import {ControlledRangePicker} from "./SearchComponents";
 import {useNavigate, useSearch} from "@tanstack/react-location";
 import {ResultBrowserLocation} from "./location";
+import Switch from '@mui/material/Switch';
 import * as R from "rambda";
 import {getValue, setValue} from "./utils";
-
-import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+//import Button from '@mui/material/Button';
 import {DataGrid} from '@mui/x-data-grid';
+//TODO remove the generator once we have data
 import {useDemoData} from '@mui/x-data-grid-generator';
 
 
@@ -34,13 +37,15 @@ const MainContent: FunctionComponent<{}> = (props) => (
 
 
 export function SimpleSearch() {
-    const [checkboxSelection, setCheckboxSelection] = React.useState(true);
     const search = useSearch<ResultBrowserLocation>()
     const navigate = useNavigate()
+    const [compareOn, setCompareOn] = React.useState(false);
 
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setCompareOn(event.target.checked);
+    };
     const getFromSearch = (path: R.Path): any => getValue(path, search)
     const updatePath = (path: R.Path, val: any): void => {
-        console.log("Update path called with ", val)
         navigate({
             search: (old: any) => {
                 return setValue(path, val, old ?? {})
@@ -68,17 +73,22 @@ export function SimpleSearch() {
                 />
             </Header>
             <MainContent>
-                <Box style={{width: '100%', display: 'flex', height: "100%", flexDirection:'column'}}>
-                    <Box sx={{flex:"0 0 auto"}}>
-                        <Button
-                            sx={{mb: 2}}
-                            onClick={() => setCheckboxSelection(!checkboxSelection)}
-                        >
-                            Toggle checkbox selection
-                        </Button>
+                <Box style={{width: '100%', display: 'flex', height: "100%", flexDirection: 'column'}}>
+                    <Box sx={{flex: "0 0 auto"}}>
+
+                        <Stack direction="row" spacing={1}  sx={{pl:2}} alignItems="center">
+                            <Typography>Compare</Typography>
+                            <Typography sx={{color: compareOn ? "text.disabled": "text.primary"}}  >Off</Typography>
+                            <Switch
+                                checked={compareOn}
+                                onChange={handleChange}
+                                inputProps={{ 'aria-label': 'controlled' }}
+                            />
+                            <Typography sx={{color: compareOn ? "text.primary": "text.disabled"}}>On</Typography>
+                        </Stack>
                     </Box>
-                    <Box sx={{flex:"1 1 auto"}}>
-                        <DataGrid checkboxSelection={checkboxSelection} {...data} />
+                    <Box sx={{flex: "1 1 auto"}}>
+                        <DataGrid checkboxSelection={compareOn} {...data} />
                     </Box>
                 </Box>
             </MainContent>
