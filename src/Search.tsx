@@ -83,9 +83,9 @@ export function Search() {
     }
 
     return (
-        <>
+        <Box sx={{p:2}}>
             <OneTimeError isError={isError} message={"Error loading filters"}/>
-            {/*<FilterList {...filters } selectedIds={[]} />*/}
+            <FilterList {...filters } selectedIds={[]} />
             <Box>
                 {filters !== undefined && isSuccess && <Filters filters={filters.filters} getValue={getFromSearch} setValue={updatePath}/>}
                 {isError && <div>Error configuring the UI</div>}
@@ -98,7 +98,7 @@ export function Search() {
                     {JSON.stringify(search, null, 2)}
                 </pre>
             </Box>
-        </>
+        </Box>
     )
 }
 

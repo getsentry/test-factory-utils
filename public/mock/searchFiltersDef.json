@@ -14,9 +14,9 @@
     },
     {
       "kind": "Boolean",
-      "fieldPath": "labels.b1",
-      "fieldName": "The Bool",
-      "id": "theBool"
+      "fieldPath": "useRelay",
+      "fieldName": "Use Relay",
+      "id": "UseRelay"
     },
     {
       "kind": "DateRange",

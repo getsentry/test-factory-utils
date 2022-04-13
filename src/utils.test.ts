@@ -1,4 +1,4 @@
-import {cleanEmpty} from "./utils"
+import {cleanEmpty, clearInvalidPaths} from "./utils"
 
 describe("util tests", () => {
     describe("cleanEmpty", () => {
@@ -54,6 +54,81 @@ describe("util tests", () => {
     ])("does not touch non empty data", (val) => {
         test("is unchanged", () => {
             expect(cleanEmpty(val)).toStrictEqual(val)
+        })
+    })
+    describe("clearInvalidPaths", () => {
+        const validPaths = ["a.b.c", "a.x", "a.w.p", "x", "y.z", "y.w.z"]
+        describe.each([
+            {
+                input: {
+                    a: {
+                        b: 1,
+                        w: {
+                            x: 2,
+                        }
+                    },
+                    m: 3,
+                },
+                expected: {
+                    a: {
+                        b: 1,
+                        w: {},
+                    }
+                }
+            },
+            {
+                input: {},
+                expected: {},
+            },
+            {
+                input: {
+                    a: {
+                        b: {
+                            c: {
+                                d: 1
+                            },
+                            d: 200,
+                        },
+                        c: 300,
+                        x: 4,
+                        w: {
+                            p: 5,
+                            q: 600,
+                        },
+                    },
+                    x: 7,
+                    y: {
+                        z: 8,
+                        z2: 900,
+                        w: {
+                            z: 10,
+                            a: 1100
+                        }
+                    }
+                },
+                expected: {
+                    a: {
+                        b: {
+                            c: {},
+                        },
+                        x: 4,
+                        w: {
+                            p: 5,
+                        },
+                    },
+                    x: 7,
+                    y: {
+                        z: 8,
+                        w: {
+                            z: 10,
+                        }
+                    }
+                },
+            },
+        ])("test clean", ({input, expected}: { input: any, expected: any }) => {
+            test("-", () => {
+                expect(clearInvalidPaths(validPaths, input)).toStrictEqual(expected)
+            })
         })
     })
 })
