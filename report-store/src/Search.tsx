@@ -1,4 +1,4 @@
-import {useSearch, useNavigate, useMatch} from "@tanstack/react-location"
+import {useSearch, useNavigate} from "@tanstack/react-location"
 import Box from "@mui/material/Box"
 import * as R from "rambda"
 import ky from "ky"
@@ -9,7 +9,7 @@ import {FilterList} from "./FilterSelector"
 import {getValue, setValue} from "./utils"
 import {ControlledBooleanChoice, ControlledTextBox, ControlledRangePicker} from "./SearchComponents"
 import {FilterDef, SearchFiltersDef} from "./searchData";
-import {useQuery} from "react-query";
+import { useQuery} from "react-query";
 import Alert from "@mui/material/Alert";
 import Snackbar from '@mui/material/Snackbar';
 import CircularProgress from '@mui/material/CircularProgress'

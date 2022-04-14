@@ -1,23 +1,18 @@
-import ky from "ky"
-import {QueryClient, QueryClientProvider, useQuery} from "react-query";
-import {Route, Outlet, ReactLocation, Router, useSearch, useMatch, MakeGenerics} from "@tanstack/react-location"
+import {QueryClient, QueryClientProvider} from "react-query";
+import {Route, Outlet, ReactLocation, Router, useSearch, useMatch} from "@tanstack/react-location"
 
-import Button from "@mui/material/Button"
 import {Box} from "@mui/material";
 
 import './App.css';
 import {Search} from "./Search";
 import {SimpleSearch} from "./SimpeSearch";
 import {ResultBrowserLocation} from "./location";
-import React, {PropsWithChildren, FunctionComponent} from "react";
+import React from "react";
 
 
 const queryClient = new QueryClient();
 const location = new ReactLocation<ResultBrowserLocation>()
 
-function getT1(): Promise<any> {
-    return ky.get("/mock/t1.json").json()
-}
 
 function App() {
     const routes: Route[] = [
@@ -58,7 +53,6 @@ function App() {
         </Router>
     )
 }
-
 
 
 export default App;
