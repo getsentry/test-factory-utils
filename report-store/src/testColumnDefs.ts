@@ -24,7 +24,7 @@ const  getDateFromRow = (path:string)=>(params: GridValueGetterParams<any,any>)=
          width: 300,
          hide: false,
          valueGetter: getDateFromRow("metadata.timeCreated.$date"),
-         type: "date",
+         type: "dateTime",
      }
 ]
 
