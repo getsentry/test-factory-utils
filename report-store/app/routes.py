@@ -2,7 +2,7 @@ import datetime
 import os
 import tarfile
 
-from flask import request, jsonify
+from flask import request, jsonify, redirect, send_from_directory, send_file
 from minio import Minio
 
 from app import app
@@ -13,6 +13,11 @@ from app.settings import S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
 client = Minio(
     S3_ENDPOINT, access_key=S3_ACCESS_KEY, secret_key=S3_SECRET_KEY, secure=False
 )
+
+
+@app.route("/", methods=["GET"])
+def the_app():
+    return send_file("../compiled-ui/index.html")
 
 
 @app.route("/healthz", methods=["GET"])
