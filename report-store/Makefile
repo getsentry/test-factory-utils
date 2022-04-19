@@ -18,7 +18,7 @@ update-ui: setup-frontend
 	- git rm -r ./compiled-ui
 	yarn build
 	mv build compiled-ui
-	git add ./compiled-ui
+	git add ./compiled-ui/**
 
 mongo-server:
 	docker run \
