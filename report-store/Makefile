@@ -1,7 +1,11 @@
 _:
 	exit 1
 
-run: setup-venv setup-frontend
+
+run: run-backend
+
+dev-ui: setup-venv setup-frontend
+	@echo "Starting backend and front end development server."
 	yarn start & FLASK_ENV=development ./.venv/bin/flask run -p 5050
 
 run-frontend: setup-frontend
@@ -9,6 +13,12 @@ run-frontend: setup-frontend
 
 run-backend: setup-venv
 	FLASK_ENV=development ./.venv/bin/flask run -p 5050
+
+update-ui: setup-frontend
+	- git rm -r ./compiled-ui
+	yarn build
+	mv build compiled-ui
+	git add ./compiled-ui/**
 
 mongo-server:
 	docker run \
