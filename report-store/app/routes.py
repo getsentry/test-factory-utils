@@ -15,8 +15,9 @@ client = Minio(
 )
 
 
-@app.route("/", methods=["GET"])
-def the_app():
+@app.route('/ui', defaults={'path': ''})
+@app.route('/ui/<path:path>')
+def the_app(path):
     return send_file("../compiled-ui/index.html")
 
 
