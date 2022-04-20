@@ -2,3 +2,4 @@
 !app
 !*.txt
 !*.py
+!compiled-ui
