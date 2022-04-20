@@ -14,6 +14,9 @@ client = Minio(
     S3_ENDPOINT, access_key=S3_ACCESS_KEY, secret_key=S3_SECRET_KEY, secure=False
 )
 
+@app.route('/')
+def root():
+    return redirect("/ui/")
 
 @app.route('/ui/', defaults={'path': ''})
 @app.route('/ui/<path:path>')
