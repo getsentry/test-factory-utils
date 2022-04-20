@@ -15,7 +15,9 @@ run-backend: setup-venv
 	FLASK_ENV=development ./.venv/bin/flask run -p 5050
 
 update-ui: setup-frontend
+	- rm -r ./build
 	- git rm -r ./compiled-ui
+	- rm -r ./compiled-ui
 	yarn build
 	mv build compiled-ui
 	git add ./compiled-ui/**
