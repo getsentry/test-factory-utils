@@ -9,9 +9,13 @@ import {getValue, setValue} from "./utils";
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 //import Button from '@mui/material/Button';
-import {DataGrid} from '@mui/x-data-grid';
+import {DataGrid, GridColDef} from '@mui/x-data-grid';
 //TODO remove the generator once we have data
 import {useDemoData} from '@mui/x-data-grid-generator';
+import ky from "ky";
+import {useQuery} from "react-query";
+import {SearchFiltersDef} from "./searchData";
+import TestColumns from "./testColumnDefs";
 
 
 const Header: FunctionComponent<{}> = (props) => (
@@ -35,6 +39,10 @@ const MainContent: FunctionComponent<{}> = (props) => (
     </Box>
 )
 
+function getReports(): Promise<any> {
+    return ky.get("/api/reports").json()
+}
+
 
 export function SimpleSearch() {
     const search = useSearch<ResultBrowserLocation>()
@@ -54,24 +62,43 @@ export function SimpleSearch() {
         })
     }
 
+    const {
+        data: reports,
+        error,
+        isError,
+        isSuccess,
+        isLoading
+    } = useQuery<any>(["search-config"], getReports, {retry: false})
 
-    const {data} = useDemoData({
-        dataSet: 'Commodity',
-        rowLength: 150,
-        maxColumns: 7,
-    });
+
+    // const {data} = useDemoData({
+    //     dataSet: 'Commodity',
+    //     rowLength: 150,
+    //     maxColumns: 20,
+    //     editable: true,
+    // });
+
+    const columns: GridColDef[] =[
+        {
+            field: 'name',
+            width: 300,
+           // hide: false,
+            valueGetter: (params)=>getValue("row.name", params)
+        }
+    ]
 
     return (
         <>
-            <Header>
-                <ControlledRangePicker
-                    label="Start run"
-                    toDate={getFromSearch("to")}
-                    fromDate={getFromSearch("from")}
-                    setToDate={(val) => updatePath("to", val)}
-                    setFromDate={(val) => updatePath("from", val)}
-                />
-            </Header>
+
+            {/*<Header>*/}
+            {/*    <ControlledRangePicker*/}
+            {/*        label="Start run"*/}
+            {/*        toDate={getFromSearch("to")}*/}
+            {/*        fromDate={getFromSearch("from")}*/}
+            {/*        setToDate={(val) => updatePath("to", val)}*/}
+            {/*        setFromDate={(val) => updatePath("from", val)}*/}
+            {/*    />*/}
+            {/*</Header>*/}
             <MainContent>
                 <Box style={{width: '100%', display: 'flex', height: "100%", flexDirection: 'column'}}>
                     <Box sx={{flex: "0 0 auto"}}>
@@ -88,7 +115,7 @@ export function SimpleSearch() {
                         </Stack>
                     </Box>
                     <Box sx={{flex: "1 1 auto"}}>
-                        <DataGrid checkboxSelection={compareOn} {...data} />
+                        <DataGrid checkboxSelection={compareOn} columns={TestColumns} getRowId={(row)=>getValue("name", row)} rows={isSuccess? reports: []} />
                     </Box>
                 </Box>
             </MainContent>

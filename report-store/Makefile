@@ -18,7 +18,7 @@ update-ui: setup-frontend
 	- git rm -r ./compiled-ui
 	yarn build
 	mv build compiled-ui
-	git add ./compiled-ui
+	git add ./compiled-ui/**
 
 mongo-server:
 	docker run \
@@ -28,6 +28,18 @@ mongo-server:
 		-p 27017:27017 \
 		-it \
 		mongo:5.0.6
+
+persistent-mongo-server:
+	docker run \
+		-d \
+		-v ${PWD}/.dockervolumes/mongo:/data/db \
+		--name mongo-server \
+		-p 27017:27017 \
+		mongo:5.0.6
+
+
+remove-mongo-server:
+	docker rm -f mongo-server
 
 mongo-client:
 	docker exec -it mongo-server mongo

@@ -2,7 +2,7 @@
   "name": "test-result-browser",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5050",
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@emotion/react": "^11.8.2",
     "@emotion/styled": "^11.8.1",
@@ -21,6 +21,7 @@
     "@types/react-dom": "^17.0.14",
     "date-fns": "^2.28.0",
     "ky": "^0.30.0",
+    "luxon": "^2.3.2",
     "rambda": "^7.0.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -52,5 +53,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/luxon": "^2.3.1"
   }
 }
