@@ -71,22 +71,6 @@ export function SimpleSearch() {
     } = useQuery<any>(["search-config"], getReports, {retry: false})
 
 
-    // const {data} = useDemoData({
-    //     dataSet: 'Commodity',
-    //     rowLength: 150,
-    //     maxColumns: 20,
-    //     editable: true,
-    // });
-
-    const columns: GridColDef[] =[
-        {
-            field: 'name',
-            width: 300,
-           // hide: false,
-            valueGetter: (params)=>getValue("row.name", params)
-        }
-    ]
-
     return (
         <>
 
