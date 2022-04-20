@@ -4,7 +4,7 @@ import {Route, Outlet, ReactLocation, Router, useSearch, useMatch} from "@tansta
 import {Box} from "@mui/material";
 
 import './App.css';
-import {Search} from "./Search";
+import {SearchOld} from "./SearchOld";
 import {SimpleSearch} from "./SimpeSearch";
 import {ResultBrowserLocation} from "./location";
 import React from "react";
@@ -24,7 +24,7 @@ function App() {
         {
             //The search root
             path: "/search",
-            element: <Search/>,
+            element: <SearchOld/>,
         },
         {
             path: "detail/:runId",
@@ -33,10 +33,10 @@ function App() {
         {
             path: "compare",
             element: <Compare/>
-        }
+        },
     ]
     return (
-        <Router location={location} routes={routes}>
+        <Router location={location} routes={routes} basepath='ui'>
             <QueryClientProvider client={queryClient}>
                 <Box sx={{
                     display: "flex",

@@ -52,7 +52,7 @@ function OneTimeError(props: OneTimeErrorProps) {
 }
 
 
-export function Search() {
+export function SearchOld() {
     const search = useSearch<ResultBrowserLocation>()
     const navigate = useNavigate()
     const {
