@@ -1,11 +1,13 @@
-import {GridRenderCellParams} from "@mui/x-data-grid";
-import Link  from "@mui/material/Link";
+import {GridRenderCellParams} from "@mui/x-data-grid"
+import {Link} from "@tanstack/react-location"
 
-
-export function linkRenderer(params: GridRenderCellParams<Date>) {
+export function linkRenderer(params: GridRenderCellParams<string>) {
+    const name = params.value ?? ""
+    const url = `./details/${name}`
     return (
         <strong>
-            <Link href='#'>{params.value}</Link>
+            {/*<MuiLink href={url}>{name}</MuiLink>*/}
+            <Link to ={url}> {name} </Link>
         </strong>)
 }
 
