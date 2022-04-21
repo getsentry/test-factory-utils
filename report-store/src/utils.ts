@@ -23,8 +23,7 @@ export function cleanEmpty(val: any): any {
 
 export function clearInvalidPaths(validPaths: string[], val: any): any {
     let paths = new Set<string>()
-    const addPaths = (path: string):void =>
-    {
+    const addPaths = (path: string): void => {
         let current = ""
         for (const elm of R.split(".", path)) {
             if (current.length > 0) {
@@ -55,8 +54,11 @@ function clearInvalidPathsInternal(currentPath: string, validPaths: Set<string>,
 }
 
 // Just a pass through to R.path (so we have a symmetric API with getBoolValue)
-export function getValue(path: R.Path, obj: any): any {
-    return R.path(path, obj)
+export function getValue<T=any>(path: R.Path, obj: any, defaultVal?: T): T|null {
+    const retVal = R.path<T>(path, obj)
+    if (defaultVal !== undefined)
+        return retVal ?? defaultVal
+    return retVal || null
 }
 
 export function setValue<T extends object>(path: R.Path, val: any, obj: T): T {

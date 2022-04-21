@@ -63,7 +63,7 @@ export function Browse() {
         isError,
         isSuccess,
         isLoading
-    } = useQuery<any>(["search-config"], getReports, {retry: false})
+    } = useQuery<any>(["reports"], getReports, {retry: false})
 
 
     return (
@@ -82,7 +82,7 @@ export function Browse() {
 
             </Header>
             <MainContent>
-                <DataGrid checkboxSelection={compareOn} columns={TestColumns} getRowId={(row) => getValue("name", row)} rows={isSuccess ? reports : []}/>
+                <DataGrid checkboxSelection={compareOn} columns={TestColumns} getRowId={(row) => getValue("name", row)!} rows={isSuccess ? reports : []}/>
             </MainContent>
         </>
     )
