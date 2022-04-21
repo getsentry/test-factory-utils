@@ -1,7 +1,9 @@
-import {GridColDef, GridValueFormatterParams, GridValueGetterParams} from "@mui/x-data-grid";
-import {getValue} from "./utils";
 import * as R from "rambda"
 import {DateTime} from "luxon"
+
+import {GridColDef, GridValueFormatterParams, GridValueGetterParams} from "@mui/x-data-grid";
+
+import {getValue} from "./utils";
 import {linkRenderer} from "./gridComponents";
 
 const DateFormatOptions: Intl.DateTimeFormatOptions = {
@@ -11,7 +13,6 @@ const DateFormatOptions: Intl.DateTimeFormatOptions = {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    //timeZoneName: "short",
 }
 
 const getFromRow = (path: string) => (params: GridValueGetterParams<any, any>) => getValue(`row.${path}`, params)

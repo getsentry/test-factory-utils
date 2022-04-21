@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Theme, useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Chip from '@mui/material/Chip';
+
+import {Theme, useTheme} from '@mui/material/styles';
+import {
+    Box, OutlinedInput, InputLabel, MenuItem,
+    FormControl, Select, SelectChangeEvent, Chip
+} from '@mui/material';
+
 import {FilterDef, SearchFiltersDef} from "./searchData";
 
 const ITEM_HEIGHT = 48;
@@ -40,7 +39,7 @@ export function FilterList(props: FilterListProps) {
 
     const handleChange = (event: SelectChangeEvent<string[]>) => {
         const {
-            target: { value },
+            target: {value},
         } = event;
         console.log(value)
         setFilters(
@@ -51,7 +50,7 @@ export function FilterList(props: FilterListProps) {
 
     return (
         <div>
-            <FormControl sx={{ m: 1, width: 300 }}>
+            <FormControl sx={{m: 1, width: 300}}>
                 <InputLabel id="filters-list-label">Filters</InputLabel>
                 <Select
                     labelId="filters-list-label"
@@ -59,17 +58,17 @@ export function FilterList(props: FilterListProps) {
                     multiple
                     value={filters}
                     onChange={handleChange}
-                    input={<OutlinedInput id="select-filters-list" label="Chipo" />}
+                    input={<OutlinedInput id="select-filters-list" label="Chipo"/>}
                     renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5}}>
                             {selected.map((value) => (
-                                <Chip key={value} label={value} />
+                                <Chip key={value} label={value}/>
                             ))}
                         </Box>
                     )}
                     MenuProps={MenuProps}
                 >
-                    {props.filters && props.filters.map((filter:FilterDef) => (
+                    {props.filters && props.filters.map((filter: FilterDef) => (
                         <MenuItem
                             key={filter.fieldName}
                             value={filter.id}

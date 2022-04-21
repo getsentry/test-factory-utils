@@ -1,21 +1,17 @@
 import React, {FunctionComponent} from "react"
-import {Box} from "@mui/material";
-import {ControlledRangePicker} from "./SearchComponents";
-import {useNavigate, useSearch} from "@tanstack/react-location";
-import {ResultBrowserLocation} from "./location";
-import Switch from '@mui/material/Switch';
-import * as R from "rambda";
-import {getValue, setValue} from "./utils";
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-//import Button from '@mui/material/Button';
-import {DataGrid, GridColDef} from '@mui/x-data-grid';
-//TODO remove the generator once we have data
-import {useDemoData} from '@mui/x-data-grid-generator';
-import ky from "ky";
-import {useQuery} from "react-query";
-import {SearchFiltersDef} from "./searchData";
-import TestColumns from "./testColumnDefs";
+
+import * as R from "rambda"
+import ky from "ky"
+import {useNavigate, useSearch} from "@tanstack/react-location"
+import {useQuery} from "react-query"
+
+import {Box,Switch,Stack, Typography} from "@mui/material"
+import {DataGrid} from "@mui/x-data-grid"
+
+import TestColumns from "./testColumnDefs"
+import {ResultBrowserLocation} from "./location"
+import {getValue, setValue} from "./utils"
+
 
 
 const Header: FunctionComponent<{}> = (props) => (
@@ -24,7 +20,7 @@ const Header: FunctionComponent<{}> = (props) => (
         p: 0,
         borderBottom: 1,
         borderWidth: 1,
-        borderColor: 'grey.200'
+        borderColor: "grey.200"
     }}>
         {props.children}
     </Box>
@@ -44,7 +40,7 @@ function getReports(): Promise<any> {
 }
 
 
-export function SimpleSearch() {
+export function Browse() {
     const search = useSearch<ResultBrowserLocation>()
     const navigate = useNavigate()
     const [compareOn, setCompareOn] = React.useState(false);
@@ -84,7 +80,7 @@ export function SimpleSearch() {
             {/*    />*/}
             {/*</Header>*/}
             <MainContent>
-                <Box style={{width: '100%', display: 'flex', height: "100%", flexDirection: 'column'}}>
+                <Box style={{width: "100%", display: "flex", height: "100%", flexDirection: "column"}}>
                     <Box sx={{flex: "0 0 auto"}}>
 
                         <Stack direction="row" spacing={1}  sx={{pl:2}} alignItems="center">
@@ -93,7 +89,7 @@ export function SimpleSearch() {
                             <Switch
                                 checked={compareOn}
                                 onChange={handleChange}
-                                inputProps={{ 'aria-label': 'controlled' }}
+                                inputProps={{ "aria-label": "controlled" }}
                             />
                             <Typography sx={{color: compareOn ? "text.primary": "text.disabled"}}>On</Typography>
                         </Stack>

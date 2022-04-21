@@ -10,7 +10,6 @@
     "@mui/lab": "^5.0.0-alpha.75",
     "@mui/material": "^5.5.3",
     "@mui/x-data-grid": "^5.8.0",
-    "@mui/x-data-grid-generator": "^5.8.0",
     "@tanstack/react-location": "^3.7.4",
     "@testing-library/jest-dom": "^5.16.3",
     "@testing-library/react": "^12.1.4",

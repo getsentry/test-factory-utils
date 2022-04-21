@@ -1,18 +1,17 @@
-import {useSearch, useNavigate} from "@tanstack/react-location"
-import Box from "@mui/material/Box"
+import React from "react"
+
 import * as R from "rambda"
 import ky from "ky"
-
-import React from "react"
-import {ResultBrowserLocation, SearchParams} from "./location"
-import {FilterList} from "./FilterSelector"
-import {getValue, setValue} from "./utils"
-import {ControlledBooleanChoice, ControlledTextBox, ControlledRangePicker} from "./SearchComponents"
-import {FilterDef, SearchFiltersDef} from "./searchData";
+import {useSearch, useNavigate} from "@tanstack/react-location"
 import { useQuery} from "react-query";
-import Alert from "@mui/material/Alert";
-import Snackbar from '@mui/material/Snackbar';
-import CircularProgress from '@mui/material/CircularProgress'
+
+import {Box, CircularProgress, Alert,Snackbar} from "@mui/material"
+
+import {getValue, setValue} from "./utils"
+import {ResultBrowserLocation, SearchParams} from "./location"
+import {FilterDef, SearchFiltersDef} from "./searchData";
+import {FilterList} from "./FilterSelector"
+import {ControlledBooleanChoice, ControlledTextBox, ControlledRangePicker} from "./SearchComponents"
 
 function getSearchConfig(): Promise<SearchFiltersDef> {
     return ky.get("/mock/searchFiltersDef.json").json()
