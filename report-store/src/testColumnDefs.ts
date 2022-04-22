@@ -3,7 +3,7 @@ import {DateTime} from "luxon"
 
 import {GridColDef, GridValueFormatterParams, GridValueGetterParams} from "@mui/x-data-grid";
 
-import {getValue} from "./utils";
+import {getValue, toUtcDate} from "./utils";
 import {linkRenderer} from "./gridComponents";
 
 const DateFormatOptions: Intl.DateTimeFormatOptions = {
@@ -25,16 +25,8 @@ const getDateFromRow = (path: string) => (params: GridValueGetterParams<any, any
     }
 }
 
-function dateFormater(params: GridValueFormatterParams<Date>): string | Date {
-    if (!params.value) {
-        return "-"
-    }
-    if (!(params.value instanceof Date)) {
-        return "invalid"
-    }
-
-    const dt = DateTime.fromJSDate(params.value, {zone: "utc"})
-    return dt.toLocaleString(DateFormatOptions)
+function dateFormater(params: GridValueFormatterParams<Date>): string {
+    return toUtcDate(params.value)
 }
 
 function getCommentFromRow(params: GridValueGetterParams) {

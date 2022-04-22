@@ -1,4 +1,5 @@
 import * as R from "rambda"
+import {DateTime} from "luxon"
 
 export function cleanEmpty(val: any): any {
     if (val === false) {
@@ -63,4 +64,31 @@ export function getValue<T=any>(path: R.Path, obj: any, defaultVal?: T): T|null 
 
 export function setValue<T extends object>(path: R.Path, val: any, obj: T): T {
     return cleanEmpty(R.assocPath(path, val, obj))
+}
+
+
+const DateFormatOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+}
+
+// toUtcDate accepts a date or a date string and returns string with the Date in UTC and
+// the standard format used by the report store browser
+export function toUtcDate( d: string|Date|null|undefined ):string{
+    if (!d) {
+        return "-"
+    }
+    let dt :DateTime
+    if (typeof d === "string"){
+        dt = DateTime.fromISO(d,{zone:"utc"})
+    }else if(d instanceof Date) {
+        dt = DateTime.fromJSDate(d, {zone: "utc"})
+    }else{
+        return "-"
+    }
+    return dt.toLocaleString(DateFormatOptions)
 }
