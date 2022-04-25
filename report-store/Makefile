@@ -16,11 +16,9 @@ run-backend: setup-venv
 
 update-ui: setup-frontend
 	- rm -r ./build
-	- git rm -r ./compiled-ui
 	- rm -r ./compiled-ui
 	yarn build
 	mv build compiled-ui
-	git add ./compiled-ui/**
 
 mongo-server:
 	docker run \
