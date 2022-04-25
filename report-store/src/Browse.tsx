@@ -11,28 +11,10 @@ import {DataGrid} from "@mui/x-data-grid"
 import TestColumns from "./testColumnDefs"
 import {ResultBrowserLocation} from "./location"
 import {getValue, setValue} from "./utils"
+import {Header, MainContent} from "./LayoutComponents";
 
 
-const Header: FunctionComponent<{}> = (props) => (
-    <Box sx={{
-        flex: "0 0 auto",
-        p: 0,
-        borderBottom: 1,
-        borderWidth: 1,
-        borderColor: "grey.200"
-    }}>
-        {props.children}
-    </Box>
-)
 
-const MainContent: FunctionComponent<{}> = (props) => (
-    <Box sx={{
-        flex: "1 1 auto",
-        overflow: "auto",
-    }}>
-        {props.children}
-    </Box>
-)
 
 function getReports(): Promise<any> {
     return ky.get("/api/reports").json()
@@ -45,7 +27,7 @@ export function Browse() {
     const [compareOn, setCompareOn] = React.useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setCompareOn(event.target.checked);
+        setCompareOn(event.target.checked)
     };
     const getFromSearch = (path: R.Path): any => getValue(path, search)
     const updatePath = (path: R.Path, val: any): void => {

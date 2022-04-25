@@ -1,14 +1,14 @@
 import React from "react";
 
 import {QueryClient, QueryClientProvider} from "react-query";
-import {Route, Outlet, ReactLocation, Router} from "@tanstack/react-location"
+import {Route, Outlet, ReactLocation, Router, Navigate} from "@tanstack/react-location"
 
 import {Box} from "@mui/material";
 
 import './App.css';
 import {Browse} from "./Browse";
 import {ResultBrowserLocation} from "./location";
-import {Detail} from "./Detail";
+import {Detail, ParsedDetail, RawDetail} from "./Detail";
 import {Compare} from "./Compare";
 
 
@@ -21,14 +21,27 @@ function App() {
         {
             //The search root
             path: "/",
+            id: "browse",
             element: <Browse/>,
         },
         {
-            path: "detail/:name",
-            element: <Detail/>
+            path: "/detail",
+            element: <Detail/>,
+            children: [
+                {
+                    path: "/raw/:name",
+                    element: <RawDetail/>,
+                    meta: { view: "raw"},
+                },
+                {
+                    path: "/:name",
+                    element: <ParsedDetail/>,
+                    meta: { view: "parsed"},
+                }
+            ]
         },
         {
-            path: "compare",
+            path: "/compare",
             element: <Compare/>
         },
     ]
@@ -41,10 +54,10 @@ function App() {
                     height: "100vh",
                     width: "100vw",
                     boxSizing: "border-box",
-                    m:0,
-                    p:0,
+                    m: 0,
+                    p: 0,
                 }}>
-                        <Outlet/>
+                    <Outlet/>
                 </Box>
             </QueryClientProvider>
         </Router>
