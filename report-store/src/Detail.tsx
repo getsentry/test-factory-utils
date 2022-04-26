@@ -3,22 +3,22 @@ import React from "react";
 import ky from "ky"
 import * as R from "rambda"
 import ReactJson from "react-json-view";
-import {Outlet, useMatch, useMatches, useNavigate} from "@tanstack/react-location";
+import { Outlet, useMatch, useMatches, useNavigate } from "@tanstack/react-location";
 
-import {Box, Link, Stack, Switch, SxProps, Theme, Typography} from "@mui/material";
+import { Box, Link, Stack, Switch, SxProps, Theme, Typography } from "@mui/material";
 
-import {getValue, toUtcDate} from "./utils";
-import {Header, MainContent} from "./LayoutComponents";
+import { getValue, toUtcDate } from "./utils";
+import { Header, MainContent } from "./LayoutComponents";
 
 export function getReport(reportName: string): Promise<any> {
     return ky.get(`/api/report/${reportName}`).json()
 }
 
-const PROP_GRID:SxProps = {p: 1, display: "grid", gridTemplateColumns: "20em 1fr", rowGap: "0.5em"}
+const PROP_GRID: SxProps = { p: 1, display: "grid", gridTemplateColumns: "20em 1fr", rowGap: "0.5em" }
 
 const PROP_VALUE_STYLE = {
     fontFamily: "monospace",
-    fontSize: (theme:Theme)=> theme.typography.fontSize * 1.4,
+    fontSize: (theme: Theme) => theme.typography.fontSize * 1.4,
 }
 
 export function Detail() {
@@ -36,28 +36,28 @@ export function Detail() {
 
     const handleChange = (_event: React.ChangeEvent<HTMLInputElement>) => {
         if (isParsedView) {
-            navigate({to: `./raw`, replace: true})
+            navigate({ to: `./raw`, replace: true })
         } else {
-            navigate({to: `.`, replace: true})
+            navigate({ to: `.`, replace: true })
         }
     };
 
     return (
         <>
             <Header>
-                <Stack direction="row" spacing={1} sx={{pl: 2}} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ pl: 2 }} alignItems="center">
                     <Typography>Show</Typography>
-                    <Typography sx={{color: isParsedView ? "text.primary" : "text.disabled"}}>Parsed</Typography>
+                    <Typography sx={{ color: isParsedView ? "text.primary" : "text.disabled" }}>Parsed</Typography>
                     <Switch
                         checked={!isParsedView}
                         onChange={handleChange}
-                        inputProps={{"aria-label": "controlled"}}
+                        inputProps={{ "aria-label": "controlled" }}
                     />
-                    <Typography sx={{color: isParsedView ? "text.disabled" : "text.primary"}}>Raw</Typography>
+                    <Typography sx={{ color: isParsedView ? "text.disabled" : "text.primary" }}>Raw</Typography>
                 </Stack>
             </Header>
             <MainContent>
-                <Outlet/>
+                <Outlet />
             </MainContent>
         </>
     )
@@ -67,7 +67,7 @@ export function RawDetail() {
     const match = useMatch()
     return (
         <>
-            <ReactJson src={match.data.report as object} collapsed={2}/>
+            <ReactJson src={match.data.report as object} collapsed={2} />
         </>
     )
 }
@@ -84,23 +84,15 @@ export function ParsedDetail() {
 
     const labels = getValue("raw.metadata.labels", report)
 
-    return (<Box sx={{p: 1}}>
-        <WorkflowUrl report={report}/>
-        <h1>Dates</h1>
-        <Box sx={{p: 2}}>
-            <Box sx={PROP_GRID}>
-                <Box>Creation</Box>
-                <Box>{toUtcDate(getValue("context.argo.creationTimestamp", report))} (UTC)</Box>
-                <Box>Start</Box>
-                <Box>{toUtcDate(getValue("context.argo.startTimestamp", report))} (UTC)</Box>
-            </Box>
-
-        </Box>
-        <Artifacts artifacts={getValue("context.argo.exports.artifacts", report)} reportName={reportName}/>
+    return (<Box sx={{ p: 1 }}>
+        <Typography variant="h3">{reportName}</Typography>
+        <br></br>
+        <WorkflowInfo report={report} />
         <Labels labels={labels} name="Labels (from raw)"></Labels>
-        <Params parameters={parameters} name="Parameters"/>
-        <Params parameters={exportParameters} name="Export Parameters"/>
-        <Measurements measurements={resultsMeasurements}/>
+        <Params parameters={parameters} name="Parameters" />
+        <Params parameters={exportParameters} name="Export Parameters" />
+        <Artifacts artifacts={getValue("context.argo.exports.artifacts", report)} reportName={reportName} />
+        <Measurements measurements={resultsMeasurements} />
 
     </Box>)
 }
@@ -116,9 +108,9 @@ function Artifacts(props: ArtifactsProps) {
         return null
     }
     return (
-        <Box sx={{p: 1}}>
+        <Box sx={{ p: 2 }}>
             <h1>Artifacts</h1>
-            {R.map(a=><Artifact key={a.name} artifactName={a.name} reportName={props.reportName}/>, props.artifacts)}
+            {R.map(a => <Artifact key={a.name} artifactName={a.name} reportName={props.reportName} />, props.artifacts)}
         </Box>
     )
 }
@@ -138,7 +130,7 @@ type ArtifactProps = {
 
 function Artifact(props: ArtifactProps) {
     return (
-        <Box sx={{p: 1}} key={props.artifactName}>
+        <Box sx={{ p: 1 }} key={props.artifactName}>
             <Link href={`/api/artifact/${props.reportName}/${props.artifactName}`} underline="hover" target="_blank" rel="noopener noreferrer">
                 {props.artifactName}
             </Link>
@@ -174,10 +166,10 @@ function Params(props: ParamsProps) {
     }
 
     return (
-        <Box sx={{px: 2}}>
+        <Box sx={{ px: 2 }}>
             <h1>{name}</h1>
             <Box sx={PROP_GRID}>
-                {R.map((param) => <Param key={param.name} {...param}/>, parameters)}
+                {R.map((param) => <Param key={param.name} {...param} />, parameters)}
             </Box>
         </Box>
     )
@@ -193,17 +185,17 @@ function Labels(props: LabelsProps) {
     const name = props.name ?? "Labels"
     const labels = props.labels
 
-    if (!labels ) {
+    if (!labels) {
         return null
     }
     const kvLabels = R.toPairs(labels)
 
     return (
-        <Box sx={{px: 2}}>
+        <Box sx={{ px: 2 }}>
             <h1>{name}</h1>
             <Box sx={PROP_GRID}>
                 {
-                    R.map(([k, v]:[string,string]) => <Param key={k} name={k} value={v}/>)(kvLabels)
+                    R.map(([k, v]: [string, string]) => <Param key={k} name={k} value={v} />)(kvLabels)
                 }
             </Box>
         </Box>
@@ -235,11 +227,11 @@ function Measurement(params: MeasurementProps) {
     const toMeasurementValue = (values: ValueDict) => {
         return R.pipe(
             R.toPairs,
-            R.map(([k, v]: [string, number]) => <MeasurementValue key={k} name={k} value={v}/>)
+            R.map(([k, v]: [string, number]) => <MeasurementValue key={k} name={k} value={v} />)
         )(values)
     }
     return (
-        <Box sx={{px: 1}}>
+        <Box sx={{ px: 1 }}>
             <h2>{params.name}</h2>
             <Box sx={PROP_GRID}>
                 {toMeasurementValue(params.values)}
@@ -261,24 +253,32 @@ function Measurements(params: MeasurementsProps) {
     const toMeasurement = (measurements: MeasurementsData) => {
         return R.pipe(
             R.toPairs,
-            R.map(([k, v]: [string, { [_x: string]: number }]) => <Measurement key={k} name={k} values={v}/>)
+            R.map(([k, v]: [string, { [_x: string]: number }]) => <Measurement key={k} name={k} values={v} />)
         )(measurements)
     }
 
-    return <Box sx={{px: 1}}>
+    return <Box sx={{ px: 1 }}>
         <h1>Measurements</h1>
         {toMeasurement(params.measurements)}
     </Box>
 }
 
-export function WorkflowUrl(params: { report: any }) {
+export function WorkflowInfo(params: { report: any }) {
     const url = getValue("context.argo.workflowUrl", params.report)
+    const creationTimestamp = toUtcDate(getValue("context.argo.creationTimestamp", params.report))
+    const startTimestamp = toUtcDate(getValue("context.argo.startTimestamp", params.report))
     return url && (
-        <Box sx={{p: 1}}>
-            <h1>Workflow Url</h1>
-            <Link href={url} underline="hover" target="_blank" rel="noopener noreferrer">
-                {url}
-            </Link>
+        <Box sx={PROP_GRID}>
+            <Box>Created</Box>
+            <Box>{creationTimestamp} (UTC)</Box>
+            <Box>Started</Box>
+            <Box>{startTimestamp} (UTC)</Box>
+            <Box>Workflow URL</Box>
+            <Box>
+                <Link href={url} underline="hover" target="_blank" rel="noopener noreferrer">
+                    {url}
+                </Link>
+            </Box>
         </Box>
     )
 }
