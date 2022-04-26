@@ -44,8 +44,8 @@ remove-mongo-server:
 mongo-client:
 	docker exec -it mongo-server mongo
 
-py-shell:
-	ipython -i .ipython/init.py
+py-shell: setup-venv
+	.venv/bin/ipython -i .ipython/init.py
 
 setup-venv: .venv/bin/python
 .PHONY: setup-venv
@@ -55,13 +55,13 @@ setup-venv: .venv/bin/python
 	python -m venv --copies .venv
 	.venv/bin/pip install -U pip wheel
 	.venv/bin/pip install -U -r requirements.txt
+	.venv/bin/pip install -U -r requirements-dev.txt
 
 format: setup-venv
 	.venv/bin/black .
 
 style: setup-venv
 	.venv/bin/black --check .
-
 
 setup-frontend:
 	yarn
