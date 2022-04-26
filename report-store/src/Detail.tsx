@@ -2,16 +2,15 @@ import React from "react";
 
 import ky from "ky"
 import * as R from "rambda"
-import {Outlet, useMatch, useMatches, useMatchRoute, useNavigate} from "@tanstack/react-location";
+import ReactJson from "react-json-view";
+import {Outlet, useMatch, useMatches, useNavigate} from "@tanstack/react-location";
 
 import {Box, Link, Stack, Switch, SxProps, Theme, Typography} from "@mui/material";
-import {useQuery, UseQueryResult} from "react-query";
 
 import {getValue, toUtcDate} from "./utils";
 import {Header, MainContent} from "./LayoutComponents";
-import ReactJson from "react-json-view";
 
-function getReport(reportName: string): Promise<any> {
+export function getReport(reportName: string): Promise<any> {
     return ky.get(`/api/report/${reportName}`).json()
 }
 
@@ -23,26 +22,23 @@ const PROP_VALUE_STYLE = {
 }
 
 export function Detail() {
-    const match = useMatch()
+
     const navigate = useNavigate()
     const matches = useMatches()
 
-
     let isParsedView = true
-    let name: string | null
     if (matches.length === 2) {
         const lastMatch = matches[1]
-        name = getValue("params.name", lastMatch)
         if (getValue("route.meta.view", lastMatch) === "raw") {
             isParsedView = false
         }
     }
 
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (_event: React.ChangeEvent<HTMLInputElement>) => {
         if (isParsedView) {
-            navigate({to: `./raw/${name}`, replace: true})
+            navigate({to: `./raw`, replace: true})
         } else {
-            navigate({to: `./${name}`, replace: true})
+            navigate({to: `.`, replace: true})
         }
     };
 
@@ -68,29 +64,22 @@ export function Detail() {
 }
 
 export function RawDetail() {
-    const {
-        data: report,
-        reportName
-    } = useReportWithName()
-
-
+    const match = useMatch()
     return (
         <>
-            <ReactJson src={report} collapsed={2}/>
+            <ReactJson src={match.data.report as object} collapsed={2}/>
         </>
     )
 }
 
 export function ParsedDetail() {
-    const {
-        data: report,
-        reportName,
-        //error, isError, isSuccess, isLoading
-    } = useReportWithName()
+
+    const match = useMatch()
+    const report = match.data.report as object
+    const reportName = match.data.reportName as string
 
     const parameters = getValue("context.parameters", report, [])
     const exportParameters = getValue("context.argo.exports.parameters", report, [])
-    const resultsData = getValue("results.data", report)
     const resultsMeasurements: MeasurementsData = getValue("results.measurements", report) ?? {}
 
     const labels = getValue("raw.metadata.labels", report)
@@ -267,13 +256,12 @@ type MeasurementsProps = {
     measurements: MeasurementsData
 }
 
-
 function Measurements(params: MeasurementsProps) {
 
     const toMeasurement = (measurements: MeasurementsData) => {
         return R.pipe(
             R.toPairs,
-            R.map(([k, v]: [string, { [x: string]: number }]) => <Measurement key={k} name={k} values={v}/>)
+            R.map(([k, v]: [string, { [_x: string]: number }]) => <Measurement key={k} name={k} values={v}/>)
         )(measurements)
     }
 
@@ -293,15 +281,4 @@ export function WorkflowUrl(params: { report: any }) {
             </Link>
         </Box>
     )
-
-}
-
-
-// hook that retrieves the report with the name take from {params.name} inside a match
-function useReportWithName<ReportType = any>(): UseQueryResult<ReportType> &{reportName: string}{
-    const match = useMatch()
-    return {
-        ...useQuery<any>(["search-config"], () => getReport(match.params.name), {retry: false}),
-        reportName: match.params.name
-    }
 }

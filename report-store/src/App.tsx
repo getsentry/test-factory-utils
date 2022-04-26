@@ -1,14 +1,14 @@
 import React from "react";
 
 import {QueryClient, QueryClientProvider} from "react-query";
-import {Route, Outlet, ReactLocation, Router, Navigate} from "@tanstack/react-location"
+import {Route, Outlet, ReactLocation, Router} from "@tanstack/react-location"
 
 import {Box} from "@mui/material";
 
 import './App.css';
 import {Browse} from "./Browse";
 import {ResultBrowserLocation} from "./location";
-import {Detail, ParsedDetail, RawDetail} from "./Detail";
+import {Detail, getReport, ParsedDetail, RawDetail} from "./Detail";
 import {Compare} from "./Compare";
 
 
@@ -25,16 +25,17 @@ function App() {
             element: <Browse/>,
         },
         {
-            path: "/detail",
+            path: "/detail/:name",
             element: <Detail/>,
+            loader:  async ({params:{name}})=> ({ report: await getReport(name), reportName: name}) ,
             children: [
                 {
-                    path: "/raw/:name",
+                    path: "/raw",
                     element: <RawDetail/>,
                     meta: { view: "raw"},
                 },
                 {
-                    path: "/:name",
+                    path: "/",
                     element: <ParsedDetail/>,
                     meta: { view: "parsed"},
                 }
