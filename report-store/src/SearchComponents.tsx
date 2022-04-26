@@ -1,17 +1,10 @@
-import Box from "@mui/material/Box"
-import TextField, {TextFieldClasses} from "@mui/material/TextField"
-import Grid from "@mui/material/Grid"
+import React, {useState} from "react"
+
+import {Box, TextField, Grid, FormControlLabel, Radio, RadioGroup, FormLabel, FormControl} from "@mui/material"
+
 import AdapterDateFns from '@mui/lab/AdapterDateFns'
 import LocalizationProvider from '@mui/lab/LocalizationProvider'
 import DateTimePicker from '@mui/lab/DateTimePicker'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import FormControl from '@mui/material/FormControl'
-import Radio from '@mui/material/Radio'
-import RadioGroup from '@mui/material/RadioGroup'
-import FormLabel from '@mui/material/FormLabel'
-
-import React, {useState} from "react"
-
 
 export interface ControlledBooleanChoiceProps {
     id: string
@@ -22,7 +15,6 @@ export interface ControlledBooleanChoiceProps {
 
 export function ControlledBooleanChoice(props: ControlledBooleanChoiceProps) {
     const toVal = (val: boolean | string | null | undefined) => {
-        //val === true ? "yes" : val === false ? "no" : "any"
         switch (val) {
             case "true":
             case "yes":
@@ -116,8 +108,8 @@ export interface ControlledRangePickerProps {
 
 export function ControlledRangePicker(props: ControlledRangePickerProps) {
     //override undefined (otherwise DateTimePicker sets it to now)
-    const [fromDate, setLocalFromDate] = useState<string | null>(props.fromDate??null)
-    const [toDate, setLocalToDate] = useState<string | null>(props.toDate??null)
+    const [fromDate, setLocalFromDate] = useState<string | null>(props.fromDate ?? null)
+    const [toDate, setLocalToDate] = useState<string | null>(props.toDate ?? null)
 
     const updateFromDate = () => {
         if (fromDate !== props.fromDate) {
@@ -130,8 +122,8 @@ export function ControlledRangePicker(props: ControlledRangePickerProps) {
             props.setToDate(toDate)
         }
     }
-    const onBlur = (update: ()=>void) => (e: any) => update()
-    const onKeyDown = (update: ()=>void) => (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const onBlur = (update: () => void) => (e: any) => update()
+    const onKeyDown = (update: () => void) => (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Enter") {
             update()
         }

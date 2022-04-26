@@ -1,13 +1,15 @@
+import React from "react";
+
 import {QueryClient, QueryClientProvider} from "react-query";
-import {Route, Outlet, ReactLocation, Router, useSearch, useMatch} from "@tanstack/react-location"
+import {Route, Outlet, ReactLocation, Router} from "@tanstack/react-location"
 
 import {Box} from "@mui/material";
 
 import './App.css';
-import {SearchOld} from "./SearchOld";
-import {SimpleSearch} from "./SimpeSearch";
+import {Browse} from "./Browse";
 import {ResultBrowserLocation} from "./location";
-import React from "react";
+import {Detail, getReport, ParsedDetail, RawDetail} from "./Detail";
+import {Compare} from "./Compare";
 
 
 const queryClient = new QueryClient();
@@ -19,19 +21,28 @@ function App() {
         {
             //The search root
             path: "/",
-            element: <SimpleSearch/>,
+            id: "browse",
+            element: <Browse/>,
         },
         {
-            //The search root
-            path: "/search",
-            element: <SearchOld/>,
+            path: "/detail/:name",
+            element: <Detail/>,
+            loader:  async ({params:{name}})=> ({ report: await getReport(name), reportName: name}) ,
+            children: [
+                {
+                    path: "/raw",
+                    element: <RawDetail/>,
+                    meta: { view: "raw"},
+                },
+                {
+                    path: "/",
+                    element: <ParsedDetail/>,
+                    meta: { view: "parsed"},
+                }
+            ]
         },
         {
-            path: "detail/:runId",
-            element: <Details/>
-        },
-        {
-            path: "compare",
+            path: "/compare",
             element: <Compare/>
         },
     ]
@@ -43,47 +54,16 @@ function App() {
                     flexDirection: "column",
                     height: "100vh",
                     width: "100vw",
-                    boxSizing: "bored-box",
-                    m:0,
-                    p:0,
+                    boxSizing: "border-box",
+                    m: 0,
+                    p: 0,
                 }}>
-                        <Outlet/>
+                    <Outlet/>
                 </Box>
             </QueryClientProvider>
         </Router>
     )
 }
 
-
 export default App;
 
-
-function Details() {
-
-    const match = useMatch()
-    const routeId = match.route.id
-    const params = match.params
-
-    return (<div>
-        <Box>This is the details page</Box>
-        <Box>The match object</Box>
-        <pre>
-                   {
-                       JSON.stringify(params, null, 2)
-                   }
-        </pre>
-    </div>)
-}
-
-function Compare() {
-
-    const search = useSearch()
-    return (<div>
-        <div>This is the compare page</div>
-        <Box>The search params:</Box>
-        <pre>
-            {JSON.stringify(search, null, 2)}
-        </pre>
-
-    </div>)
-}
