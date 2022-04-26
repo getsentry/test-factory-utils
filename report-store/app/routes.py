@@ -90,10 +90,14 @@ def get_report_list():
     limit = int(args.get("limit", 100))
 
     results = (
-        queryset.order_by("-metadata.timeCreated", "name")
+        queryset.order_by("-metadata.timeCreated")
         .paginate(page=page, per_page=limit)
         .items
     )
+
+    # HACK: sort to have newest first, but if the reports are "close enough" (meaning that reports are produces
+    # by the same Argo workflow) -- then sort by name.
+    results = sorted(results, key=lambda report: (-int(report.metadata.timeCreated.timestamp()), report.name))
 
     return jsonify(results)
 
