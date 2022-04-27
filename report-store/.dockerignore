@@ -1,5 +1,8 @@
 **
-!app
 !*.txt
 !*.py
-!compiled-ui
+!*.json
+!*.lock
+!app
+!public
+!src

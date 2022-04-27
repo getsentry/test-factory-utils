@@ -14,12 +14,14 @@ client = Minio(
     S3_ENDPOINT, access_key=S3_ACCESS_KEY, secret_key=S3_SECRET_KEY, secure=False
 )
 
-@app.route('/')
+
+@app.route("/")
 def root():
     return redirect("/ui/")
 
-@app.route('/ui/', defaults={'path': ''})
-@app.route('/ui/<path:path>')
+
+@app.route("/ui/", defaults={"path": ""})
+@app.route("/ui/<path:path>")
 def the_app(path):
     return send_file("../compiled-ui/index.html")
 
@@ -78,10 +80,24 @@ def get_report_list():
         # Do the filtering
         pass
 
-    page = int(args.get("page", 1))
-    limit = int(args.get("limit", 10))
+    include_full = args.get("full", "0").lower() in {"1", "true", "yes"}
+    if not include_full:
+        queryset = queryset.exclude("raw")
 
-    results = queryset.paginate(page=page, per_page=limit).items
+    page = int(args.get("page", 1))
+    # The limit is quite big because mostly we're doing client side pagination
+    # at the moment.
+    limit = int(args.get("limit", 100))
+
+    results = (
+        queryset.order_by("-metadata.timeCreated")
+        .paginate(page=page, per_page=limit)
+        .items
+    )
+
+    # HACK: sort to have newest first, but if the reports are "close enough" (meaning that reports are produces
+    # by the same Argo workflow) -- then sort by name.
+    results = sorted(results, key=lambda report: (-int(report.metadata.timeCreated.timestamp()), report.name))
 
     return jsonify(results)
 
