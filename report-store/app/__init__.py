@@ -10,9 +10,7 @@ def get_app():
     return app
 
 
-app = Flask(__name__,
-            static_url_path='/',
-            static_folder="../compiled-ui")
+app = Flask(__name__, static_url_path="/", static_folder="../compiled-ui")
 
 app.config.from_envvar("REPORT_STORE_CONFIG", silent=True)
 

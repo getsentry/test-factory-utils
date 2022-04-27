@@ -1,13 +1,12 @@
 import datetime
-import os
 import tarfile
+from io import BytesIO
 
-from flask import request, jsonify, redirect, send_from_directory, send_file
+from flask import request, jsonify, redirect, send_file
 from minio import Minio
 
 from app import app
 from app.models import Report, MetadataTree
-
 from app.settings import S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
 
 client = Minio(
@@ -97,13 +96,19 @@ def get_report_list():
 
     # HACK: sort to have newest first, but if the reports are "close enough" (meaning that reports are produces
     # by the same Argo workflow) -- then sort by name.
-    results = sorted(results, key=lambda report: (-int(report.metadata.timeCreated.timestamp()), report.name))
+    results = sorted(
+        results,
+        key=lambda report: (-int(report.metadata.timeCreated.timestamp()), report.name),
+    )
 
     return jsonify(results)
 
 
 @app.route("/api/artifact/<report_id>/<artifact_id>", methods=["GET"])
 def get_artifact(report_id, artifact_id):
+    """
+    Return an uncompressed artifact.
+    """
 
     # TODO memoize
     report = Report.objects.get_or_404(name=report_id)
@@ -121,20 +126,25 @@ def get_artifact(report_id, artifact_id):
 
     # TODO memoize (bucket_key is globally unique)
     res = client.get_object(S3_BUCKET, bucket_key)
+    response_bytes = BytesIO(res.read())
+    res.close()
+    res.release_conn()
 
-    tar = tarfile.open(fileobj=res)
-    members = tar.getmembers()
+    with tarfile.open(fileobj=response_bytes, mode="r:gz") as tar:
+        members = tar.getmembers()
 
-    # FIXME we don't support compressed directories at the moment
-    assert len(members) == 1
+        # FIXME we don't support compressed directories at the moment
+        assert len(members) == 1
+        compressed_file = members[0]
 
-    data = tar.extractfile(members[0]).read().decode("utf8")
+        data = tar.extractfile(compressed_file).read().decode("utf8")
+        file_name = compressed_file.name
 
     result = {
         "data": data,
         "artifact_id": artifact_id,
         "bucket_key": bucket_key,
-        "basename": os.path.basename(bucket_key),
+        "basename": file_name,
     }
 
     return jsonify(result)
