@@ -82,13 +82,13 @@ export function ParsedDetail() {
     const exportParameters = getValue("context.argo.exports.parameters", report, [])
     const resultsMeasurements: MeasurementsData = getValue("results.measurements", report) ?? {}
 
-    const labels = getValue("raw.metadata.labels", report)
+    const labels = getValue("metadata.labels", report)
 
     return (<Box sx={{ p: 1 }}>
         <Typography variant="h3">{reportName}</Typography>
         <br></br>
         <WorkflowInfo report={report} />
-        <Labels labels={labels} name="Labels (from raw)"></Labels>
+        <Labels labels={labels} name="Labels"></Labels>
         <Params parameters={parameters} name="Parameters" />
         <Params parameters={exportParameters} name="Export Parameters" />
         <Artifacts artifacts={getValue("context.argo.exports.artifacts", report)} reportName={reportName} />
@@ -177,7 +177,7 @@ function Params(props: ParamsProps) {
 
 type LabelsProps = {
     name?: string
-    labels: { [idx: string]: string }
+    labels: { name: string, value: string }[]
 }
 
 
@@ -188,14 +188,13 @@ function Labels(props: LabelsProps) {
     if (!labels) {
         return null
     }
-    const kvLabels = R.toPairs(labels)
 
     return (
         <Box sx={{ px: 2 }}>
             <h1>{name}</h1>
             <Box sx={PROP_GRID}>
                 {
-                    R.map(([k, v]: [string, string]) => <Param key={k} name={k} value={v} />)(kvLabels)
+                    labels.map(l => <Param key={l.name} name={l.name} value={l.value} />)
                 }
             </Box>
         </Box>

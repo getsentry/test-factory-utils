@@ -6,7 +6,7 @@ from flask import request, jsonify, redirect, send_file
 from minio import Minio
 
 from app import app
-from app.models import Report, MetadataTree
+from app.models import Report, MetadataTree, NameValuePair, ResultsTree
 from app.settings import S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
 
 client = Minio(
@@ -52,11 +52,33 @@ def store_report():
         report = Report(name=name, metadata=MetadataTree(timeCreated=now))
         response_str = "added\n"
 
-    report.metadata.timeUpdated = now
     report.apiVersion = content.get("apiVersion", "unknown")
     report.raw = content.get("raw")
+
+    ### Fill metadata
+    report.metadata.timeUpdated = now
+    metadata_raw = content.get("metadata", {})
+    labels_raw = metadata_raw.get("labels", [])
+    labels_map = dict()
+    # Deduplicate and sanitize labels first
+    for label_entry in labels_raw:
+        name, value = label_entry.get("name", ""), label_entry.get("value", "")
+        if not name:
+            continue
+        if not value:
+            value = ""
+        labels_map[str(name)] = str(value)
+    # Add to the object
+    report.metadata.labels = [
+        NameValuePair(name=key, value=value) for key, value in labels_map.items()
+    ]
+
+    ### Fill results
+    results_raw = content.get("results", {})
+    report.results = ResultsTree.from_dict(results_raw)
+
+    ### Fill context
     report.context = content.get("context")
-    report.results = content.get("results")
 
     report.save()
 

@@ -25,12 +25,22 @@ class CustomQuerySet(BaseQuerySet):
 class CustomDocument(Document):
     meta = {"abstract": True, "queryset_class": CustomQuerySet}
 
+    # The functions below can be moved to a mixin
     def to_dict(self) -> dict:
         return _document_to_json_dict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "CustomDocument":
+        return cls.from_json(json.dumps(d))
 
 
 class CustomEmbeddedDocument(EmbeddedDocument):
     meta = {"abstract": True, "queryset_class": CustomQuerySet}
 
+    # The functions below can be moved to a mixin
     def to_dict(self) -> dict:
         return _document_to_json_dict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "CustomDocument":
+        return cls.from_json(json.dumps(d))
