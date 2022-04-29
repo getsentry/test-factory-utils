@@ -156,7 +156,9 @@ def get_artifact(report_id, artifact_id):
         members = tar.getmembers()
 
         # FIXME we don't support compressed directories at the moment
-        assert len(members) == 1
+        if len(members) != 1:
+            return "only single file artifacts are supported\n", 400
+
         compressed_file = members[0]
 
         data = tar.extractfile(compressed_file).read().decode("utf8")
