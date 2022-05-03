@@ -5,7 +5,7 @@ import * as R from "rambda"
 import ReactJson from "react-json-view";
 import { Outlet, useMatch, useMatches, useNavigate } from "@tanstack/react-location";
 
-import { Box, Link, Stack, Switch, SxProps, Theme, Typography } from "@mui/material";
+import { Box, Link, Stack, Switch, SxProps, Typography } from "@mui/material";
 
 import { getValue, toUtcDate } from "./utils";
 import { Header, MainContent } from "./LayoutComponents";
@@ -14,11 +14,10 @@ export function getReport(reportName: string): Promise<any> {
     return ky.get(`/api/report/${reportName}`).json()
 }
 
-const PROP_GRID: SxProps = { p: 1, display: "grid", gridTemplateColumns: "20em 1fr", rowGap: "0.5em" }
+const PROP_GRID: SxProps = { p: 1, display: "grid", gridTemplateColumns: "16em 1fr", rowGap: "0.5em" }
 
 const PROP_VALUE_STYLE = {
     fontFamily: "monospace",
-    fontSize: (theme: Theme) => theme.typography.fontSize * 1.4,
 }
 
 export function Detail() {
@@ -46,7 +45,13 @@ export function Detail() {
         <>
             <Header>
                 <Stack direction="row" spacing={1} sx={{ pl: 2 }} alignItems="center">
-                    <Typography>Show</Typography>
+                    <Typography>
+                        <Link href="/">
+                            &lsaquo;&lsaquo; All reports
+                        </Link>
+                    </Typography>
+                    &nbsp;&nbsp;
+                    <Typography>Display:</Typography>
                     <Typography sx={{ color: isParsedView ? "text.primary" : "text.disabled" }}>Parsed</Typography>
                     <Switch
                         checked={!isParsedView}
@@ -90,7 +95,7 @@ export function ParsedDetail() {
         <WorkflowInfo report={report} />
         <Labels labels={labels} name="Labels"></Labels>
         <Params parameters={parameters} name="Parameters" />
-        <Params parameters={exportParameters} name="Export Parameters" />
+        <Params parameters={exportParameters} name="Computed Values" />
         <Artifacts artifacts={getValue("context.argo.exports.artifacts", report)} reportName={reportName} />
         <Measurements measurements={resultsMeasurements} />
 
@@ -264,20 +269,36 @@ function Measurements(params: MeasurementsProps) {
 
 export function WorkflowInfo(params: { report: any }) {
     const url = getValue("context.argo.workflowUrl", params.report)
-    const creationTimestamp = toUtcDate(getValue("context.argo.creationTimestamp", params.report))
-    const startTimestamp = toUtcDate(getValue("context.argo.startTimestamp", params.report))
+    const workflowCreationTimestamp = toUtcDate(getValue("context.argo.creationTimestamp", params.report))
+    const workflowStartTimestamp = toUtcDate(getValue("context.argo.startTimestamp", params.report))
+    const runStartTimestampStr = getValue("context.run.stageStartTimestamp", params.report)
+    const runEndTimestampStr = getValue("context.run.stageEndTimestamp", params.report)
+
     return url && (
         <Box sx={PROP_GRID}>
-            <Box>Created</Box>
-            <Box>{creationTimestamp} (UTC)</Box>
-            <Box>Started</Box>
-            <Box>{startTimestamp} (UTC)</Box>
             <Box>Workflow URL</Box>
             <Box>
                 <Link href={url} underline="hover" target="_blank" rel="noopener noreferrer">
                     {url}
                 </Link>
             </Box>
+            <Box>Workflow created</Box>
+            <Box>{workflowCreationTimestamp} (UTC)</Box>
+            <Box>Workflow started</Box>
+            <Box>{workflowStartTimestamp} (UTC)</Box>
+
+            {runStartTimestampStr &&
+                <>
+                    <Box>Run started</Box>
+                    <Box>{toUtcDate(runStartTimestampStr)} (UTC)</Box>
+                </>
+            }
+            {runEndTimestampStr &&
+                <>
+                    <Box>Run finished</Box>
+                    <Box>{toUtcDate(runEndTimestampStr)} (UTC)</Box>
+                </>
+            }
         </Box>
     )
 }
