@@ -5,7 +5,7 @@ import * as R from "rambda"
 import ReactJson from "react-json-view";
 import { Outlet, useMatch, useMatches, useNavigate } from "@tanstack/react-location";
 
-import { Box, Divider, Link, Stack, Switch, SxProps, Theme, Typography } from "@mui/material";
+import { Box, Link, Stack, Switch, SxProps, Theme, Typography } from "@mui/material";
 
 import { getValue, toUtcDate } from "./utils";
 import { Header, MainContent } from "./LayoutComponents";
