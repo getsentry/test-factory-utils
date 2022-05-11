@@ -65,8 +65,8 @@ type CliParams struct {
 	grafanaBoardId        *string
 	grafanaOrganisationId *string
 
-	locustServerName     *string
-	loadServerName       *string
+	locustServerUrl      *string
+	loadServerUrl        *string
 	dryRun               bool
 	configFilePath       *string
 	reportFilePath       *string
@@ -89,9 +89,9 @@ func cliSetup() *cobra.Command {
 	}
 	rootCmd.Flags()
 
-	Params.locustServerName = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint (deprecated)")
+	Params.locustServerUrl = rootCmd.Flags().StringP("locust", "l", DefaultLocustServer, "Locust server endpoint (deprecated)")
 
-	Params.loadServerName = rootCmd.Flags().String("load-server", DefaultLoadServer, "Load server endpoint")
+	Params.loadServerUrl = rootCmd.Flags().String("load-server", DefaultLoadServer, "Load server endpoint")
 
 	Params.influxServerName = rootCmd.Flags().String("influx-base", "", "InfluxDB dashboard base URL")
 
@@ -229,7 +229,7 @@ func runLoadStarter() {
 	var configPath = *Params.configFilePath
 	if configPath != "" {
 		if IsStarlarkConfig(configPath) {
-			config, err = LoadStarlarkConfig(configPath)
+			config, err = LoadStarlarkConfig(configPath, Params.loadServerUrl, Params.locustServerUrl)
 		}
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to load config file from: %s", configPath)

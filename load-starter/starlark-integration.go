@@ -16,9 +16,18 @@ type LoadTestEnv struct {
 	LoadTestActions []RunAction
 }
 
-func LoadStarlarkConfig(configPath string) (Config, error) {
+func LoadStarlarkConfig(configPath string, loadServerUrl *string, locustServerUrl *string) (Config, error) {
 	thread := &starlark.Thread{Name: "Starlark execution"}
 	var tests LoadTestEnv
+
+	if locustServerUrl != nil && *locustServerUrl != DefaultLocustServer {
+		// first set the obsolete CLI param locust URL (will probably be overridden)
+		tests.LoadTesterUrl = *locustServerUrl
+	}
+	if loadServerUrl != nil && *loadServerUrl != DefaultLoadServer {
+		// set url from CLI param (can be overridden by the script)
+		tests.LoadTesterUrl = *loadServerUrl
+	}
 
 	var env = starlark.StringDict{
 		"duration":            starlark.NewBuiltin("duration", newDuration),
