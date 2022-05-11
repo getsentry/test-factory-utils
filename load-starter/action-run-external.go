@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Action that allows to run external commands
+// RunExternalAction that allows to run external commands
 type RunExternalAction struct {
 	cmd []string
 }
