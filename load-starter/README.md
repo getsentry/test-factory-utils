@@ -9,97 +9,161 @@ Usage:
   ./load-starter [flags]
 
 Flags:
-  -b, --board string          the InfluxDb board id
-  -f, --config string         Path to configuration file
-      --dry-run               dry-run mode
-  -d, --duration duration     the duration to run the program (default 10s)
-  -h, --help                  help for app
-  -i, --influx string         InfluxDB dashboard base URL (default "http://localhost:8086")
-  -l, --locust string         Locust server endpoint (default "http://ingest-load-tester.default.svc.cluster.local")
-  -o, --organisation string   the InfluxDb organisation id
-  -r, --report string         If provided: report will be written here
-  -u, --users int             number of simulated users (default 5)
+      --color                         Use color (only for console output).
+  -f, --config string                 Path to configuration file
+      --dry-run                       dry-run mode
+      --grafana-base string           Grafana base URL
+      --grafana-board string          Grafana board id
+      --grafana-organisation string   Grafana board id
+  -h, --help                          help for app
+      --influx-base string            InfluxDB dashboard base URL
+      --influx-board string           InfluxDb board id
+      --influx-organisation string    InfluxDb organisation id
+      --load-server string            Load server endpoint (default "http://go-load-tester.default.svc.cluster.local")
+      --log string                    Log level: trace, debug, (info), warn, error, fatal, panic (default "info")
+  -r, --report string                 If provided: report will be written here
+  -s, --slack-message string          If provided: notification report (simply put, a formatted Slack message) will be written here
 ```
 
 ## Building
 
 To build the tool:
 
-```
+```shell
 make build
 ```
 
 To run:
 
-```
+```shell
 go run .
 ```
 
 ## Configuration File
 
-If provided (via `--config` command line argument), the configuration file will be used to control the test load created by Locust. If the configuration file is NOT provided, command line options will be used to start a simple test of type `static`.
+To configure the load starter provide the `--config` command line argument
 
-### Test Stages
+The configuration file is a starlark script.
+For details on the starlark language please see [starlark-go](https://github.com/google/starlark-go).
 
-A test run consists of multiple **stages**.
+The following custom builtins are available for creating test runs:
 
-Each stage has a type, and the currently supported stage types are:
+```python
+duration( val: str)
+```
 
-* `static` -- you specify the number of users and duration, and load-starter will tell Locust to run for the specified time.
-* `gradual` -- this stage gradually changes the load according to the given starting and ending number of users, duration, and step size.
-    Let's assume it receives the following inputs: startUsers=10, endUsers=30, step=5, duration=60s. In this case, first it’ll run with 10 users for 60s, then for 15 for 60s... and finally, for 30 users for 60s; the total running time will be 300 seconds (5 steps).
-    Negative step size is supported (e.g. going from 30 users to 10).
+Creates a duration value from a string. For details of the string syntax please see the go documentation
+for [func ParseDuration](https://pkg.go.dev/time#ParseDuration).
+Examples:
 
+```python
+one_sec = duration("1s")
+two_hours_four_min = duration("2h4m")
+one_ms = duration("1ms")
+```
 
-Example configuration file may look like this:
+```
+set_load_tester_url(url: str)
+```
+Sets the url of the load tester (will override the `--load-server` CLI parameter) for all tests
+that follow the call to `set_load_tester_url`.
 
-```yaml
----
-stages:
-- type: gradual
-  startUsers: 10
-  endUsers: 30
-  step: 5
-  stepDuration: '60s'
-- type: static
-  users: 40
-  duration: '100s'
-- type: gradual
-  startUsers: 30
-  endUsers: 20
-  step: -2
-  stepDuration: '60s'
+Examples:
+
+```python
+set_load_tester_url("http://go-load-tester.default.svc.cluster.local")
+```
+
+```
+add_locust_test( 
+    duration: Union[duration,str],
+    users: int,
+    spawn_rate: Optional[int],
+    name: Optional[str],
+    description: Optional[str],
+    url: Optional[str],
+    )
+```
+This is an obsolete API. If possible please migrate to Vegeta tests. 
+Creates a locust load test.
+
+```
+add_vegeta_test(
+    duration: Union[duration,str],
+    test_type: str,
+    freq: int,
+    per:  Union[duration,str],
+    config: Dict[str, Any],
+    name: Optional[str],
+    description: Optional[str],
+    url: Optional[str],
+    )
+```
+
+Creates a Vegeta load test.
+
+The `freq` and `per` are used to control the intesity of the attack. `freq` represents number of requests sent and 
+`per` represents the amount of time in which to send the number of requests specified in `freq`, typically `per` is 
+`"1s"` in which case `freq` represents requests/sec.
+
+The `test_type` controls the type of test (the test types are defined in go-load-tester, see `go-load-tester` for details).
+
+The `config` represents the configuration of the load test and is dependent on the `test_type` see `go-load-tester` documentation
+for details on the available test types and the configuration for each test type.
+
+```
+add_run_external( cmd: List[str])
+```
+
+Schedules running an external (shell) command.
+
+```python
+add_run_external(["ls", "-la", "my-dir"])
 ```
 
 ## Test Report
 
 If `--report FILE` argument is provided, a test report will be generated and written at the end of the run.
 
-For every stage and substage of the run, the report will include start and end timestamps, number of users, and potentially other kinds of metadata.
 
 Example report:
 
 ```yaml
-stageReports:
-- steps:
-  - users: 10
-    startTime: 2022-01-05T16:50:58.800347Z
-    endTime: 2022-01-05T16:51:58.800358Z
-  - users: 15
-    startTime: 2022-01-05T16:51:58.80036Z
-    endTime: 2022-01-05T16:52:58.800365Z
-...
-  - users: 30
-    startTime: 2022-01-05T16:54:58.803081Z
-    endTime: 2022-01-05T16:55:58.803085Z
-  name: ""
-  stageType: gradual
-- steps:
-  - users: 40
-    startTime: 2022-01-05T16:55:58.803626Z
-    endTime: 2022-01-05T16:59:58.803636Z
-  name: ""
-  stageType: static
+testRuns:
+  - runInfo:
+      name: 'Session test with Vegeta, on frequency: 100/sec'
+      description: Testing transactions with various params
+      duration: 2m0s
+      runner: vegeta
+      spec:
+        numMessages: 100
+        params:
+          maxBreadcrumbs: 25
+          maxSpans: 40
+          numReleases: 1000
+          numUsers: 2000
+        per: 1s
+        testType: transaction
+    startTime: 2022-05-10T16:01:19.816269586Z
+    endTime: 2022-05-10T16:03:19.859911674Z
+  - runInfo:
+      name: 'Session test with Vegeta, on frequency: 200/sec'
+      description: Testing transactions with various params
+      duration: 2m0s
+      runner: vegeta
+      spec:
+        numMessages: 200
+        params:
+          maxBreadcrumbs: 25
+          maxSpans: 40
+          numReleases: 1000
+          numUsers: 2000
+        per: 1s
+        testType: transaction
+    startTime: 2022-05-10T16:03:38.226848053Z
+    endTime: 2022-05-10T16:05:38.286043691Z
+startTime: 2022-05-10T16:00:59.89790197Z
+endTime: 2022-05-10T16:07:56.64842927Z
 ```
 
 ## Dry-run Mode
