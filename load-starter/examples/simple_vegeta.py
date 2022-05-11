@@ -2,6 +2,7 @@ CONFIG_VERSION = "1.0.0"
 VEGETA_URL = "http://localhost:7770"
 
 def add_vegeta_tests():
+    add_sleep("10s")
     add_vegeta_test(
         duration=duration("30s"),
         test_type="session",
@@ -23,6 +24,8 @@ def add_vegeta_tests():
         },
 
     )
+    add_sleep(duration("20s"))
+
 
 # setup some vegeta tests
 set_load_tester_url(VEGETA_URL)

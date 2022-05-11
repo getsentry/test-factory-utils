@@ -26,6 +26,7 @@ type LocustTestAction struct {
 	LoadTesterUrl string
 }
 
+// CreateLocustTestAction creates a TestConfig for a Locust attack
 func CreateLocustTestAction(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64) LocustTestAction {
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 

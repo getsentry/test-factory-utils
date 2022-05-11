@@ -26,6 +26,7 @@ func LoadStarlarkConfig(configPath string) (Config, error) {
 		"add_locust_test":     starlark.NewBuiltin("add_locust_test", tests.addLocustTestBuiltin),
 		"add_vegeta_test":     starlark.NewBuiltin("add_vegeta_test", tests.addVegetaTestBuiltin),
 		"add_run_external":    starlark.NewBuiltin("add_run_external", tests.addRunExternalBuiltin),
+		"add_sleep":           starlark.NewBuiltin("add_sleep", tests.addSleepBuiltin),
 		"Nanosecond":          StarlarkDuration{val: time.Nanosecond, frozen: true},
 		"Microsecond":         StarlarkDuration{val: time.Microsecond, frozen: true},
 		"Millisecond":         StarlarkDuration{val: time.Millisecond, frozen: true},
@@ -528,6 +529,27 @@ func (env *LoadTestEnv) addRunExternalBuiltin(thread *starlark.Thread, b *starla
 	}
 
 	env.LoadTestActions = append(env.LoadTestActions, RunExternalAction{cmd: processedCmd})
+
+	return
+}
+
+// addSleepBuiltin implements the builtin add_sleep(duration:str|duration)
+func (env *LoadTestEnv) addSleepBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
+	var duration starlark.Value
+
+	retVal = starlark.None
+
+	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration); err != nil {
+		return
+	}
+
+	var durationVal time.Duration
+	durationVal, err = toDuration(duration)
+	if err != nil {
+		return
+	}
+
+	env.LoadTestActions = append(env.LoadTestActions, SleepAction{duration: durationVal})
 
 	return
 }
