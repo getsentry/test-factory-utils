@@ -69,6 +69,22 @@ from util import parse_timedelta
     help="Ratio of unique environments to generate",
 )
 @click.option(
+    "--num-extra-tags",
+    type=int,
+    help="Number of additional tags to generate."
+)
+@click.option(
+    "--extra-tags-values",
+    type=int,
+    default=10,
+    help="Number of additional tag values to generate. If --extra-tags-unique-rate is provided, this parameter defines the number of fallback (non-unique) tag values.",
+)
+@click.option(
+    "--extra-tags-unique-rate",
+    type=click.FloatRange(0, 1),
+    help="Ratio of unique tag values (for extra-tags) to generate",
+)
+@click.option(
     "--col-min",
     type=int,
     help="min number of items in collections (sets & distributions)",
