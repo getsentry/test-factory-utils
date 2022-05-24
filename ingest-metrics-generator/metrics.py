@@ -166,10 +166,20 @@ def _get_environment(idx: int, settings: Mapping[str, Any]) -> str:
 
 
 def _get_tags(idx: int, settings: Mapping[str, Any]) -> Mapping[str, str]:
-    return {
+    tags = {
         "environment": _get_environment(idx, settings),
         "release": _get_release(idx, settings),
     }
+
+    num = settings["num_extra_tags"]
+    predefined_values = settings["extra_tags_values"]
+    rate = settings["extra_tags_unique_rate"]
+
+    for i in range(num):
+        value = _get_tag_num_with_unique_rate(idx * num + i, settings, predefined_values, rate)
+        tags[f"extra-tag-{i}"] = f"extra-value-{value}"
+
+    return tags
 
 
 def default_metric_generator(
