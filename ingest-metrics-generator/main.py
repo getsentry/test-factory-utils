@@ -146,7 +146,7 @@ def get_settings(
     environments: Optional[str],
     environments_unique_rate: Optional[str],
     num_extra_tags: Optional[int],
-    extra_tag_values: Optional[int],
+    extra_tags_values: Optional[int],
     extra_tags_unique_rate: Optional[int],
     col_min: Optional[int],
     col_max: Optional[int],
@@ -163,7 +163,7 @@ def get_settings(
         "environments": 1,
         "environments_unique_rate": 0,
         "num_extra_tags": 0,
-        "extra_tag_values": 10,
+        "extra_tags_values": 10,
         "extra_tags_unique_rate": 0,
         "col_min": 1,
         "col_max": 1,
@@ -243,8 +243,8 @@ def get_settings(
     if num_extra_tags is not None:
         settings["num_extra_tags"] = num_extra_tags
 
-    if extra_tag_values is not None:
-        settings["extra_tag_values"] = extra_tag_values
+    if extra_tags_values is not None:
+        settings["extra_tags_values"] = extra_tags_values
 
     if extra_tags_unique_rate is not None:
         settings["extra_tags_unique_rate"] = float(extra_tags_unique_rate)
