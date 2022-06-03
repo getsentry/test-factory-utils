@@ -57,7 +57,8 @@ func QueryInfluxDb() {
 		hasResults := result.Next()
 		if !hasResults {
 			fmt.Printf("No results found at iteration: %d, waiting...\n", count)
-			if count > 2 {
+			// FIXME(anton): make the max count configurable
+			if count > 5 {
 				ExitWithError(NoResults, count)
 			}
 
