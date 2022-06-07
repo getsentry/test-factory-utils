@@ -1,7 +1,7 @@
 FROM moby/buildkit:v0.10.3
 
 # For testing and troubleshooting
-RUN apk add --no-cache podman curl bash
+RUN apk add --no-cache podman curl bash jq yq
 
 ENV DOCKER_CRED_VERSION="2.1.0"
 ENV DOCKER_CRED_SHA="91cca7b5ca33133bcd217982be31d670efe7f1a33eb5be72e014f74feecac00f"
