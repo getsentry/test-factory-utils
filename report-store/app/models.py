@@ -30,9 +30,14 @@ class ResultsTree(CustomEmbeddedDocument):
 
 
 ### Document Models
+REPORT_TYPE_SDK = "sdk"
+REPORT_TYPE_REGULAR = "regular"
+REPORT_TYPES = {REPORT_TYPE_SDK, REPORT_TYPE_REGULAR}
 
 
-class Report(CustomDocument):
+class BaseReport(CustomDocument):
+    meta = {"abstract": True}
+
     apiVersion = StringField(required=True)
     name = StringField(required=True, unique=True)
     metadata = EmbeddedDocumentField(MetadataTree)
@@ -42,3 +47,19 @@ class Report(CustomDocument):
 
     def __str__(self):
         return self.name
+
+
+class Report(BaseReport):
+    """
+    Generic load-testing report
+    """
+
+    meta = {"collection": "report"}
+
+
+class SdkReport(BaseReport):
+    """
+    SDK Performance measurements report
+    """
+
+    meta = {"collection": "sdk_report"}
