@@ -57,8 +57,12 @@ def main():
 
 
 if __name__ == "__main__":
-    # to load data from the server you need to first get a proxy that is not auth protected to the server
-    #  something like:
-    # kubectl port-forward service/report-store 8087:80
-    # load_data_from_prod(prod_uri="http://localhost:8087", local_uri="http://127.0.0.1:5000")
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--prod":
+        # to load data from the server you need to first get a proxy that is not auth protected to the server
+        #  something like:
+        # kubectl port-forward service/report-store 8087:80
+        load_data_from_prod(
+            prod_uri="http://localhost:8087", local_uri="http://127.0.0.1:5001"
+        )
+    else:
+        main()

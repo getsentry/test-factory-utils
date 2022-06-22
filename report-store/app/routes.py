@@ -1,17 +1,41 @@
 import datetime
 import tarfile
+from functools import wraps
 from io import BytesIO
 
 from flask import request, jsonify, redirect, send_file
 from minio import Minio
 
 from app import app
-from app.models import Report, MetadataTree, NameValuePair, ResultsTree
+from app.models import (
+    Report,
+    MetadataTree,
+    NameValuePair,
+    ResultsTree,
+    SdkReport,
+    REPORT_TYPE_SDK,
+)
 from app.settings import S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
 
 client = Minio(
     S3_ENDPOINT, access_key=S3_ACCESS_KEY, secret_key=S3_SECRET_KEY, secure=False
 )
+
+
+def report_router(f):
+    """
+    Decorator that routes to various Report types based on 'type' query argument
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        report_type = request.args.get("type")
+        ReportCls = Report
+        if report_type == REPORT_TYPE_SDK:
+            ReportCls = SdkReport
+        return f(*args, ReportCls=ReportCls, **kwargs)
+
+    return decorated_function
 
 
 @app.route("/")
@@ -31,7 +55,7 @@ def healthcheck():
 
 
 @app.route("/api/report", methods=["POST"])
-def store_report():
+def store_report(ReportCls):
     print(request)
     print(request.headers)
 
@@ -45,11 +69,11 @@ def store_report():
 
     # Do an upsert
     # TODO: any better way to do it?
-    report = Report.objects(name=name).first()
+    report = ReportCls.objects(name=name).first()
     response_str = "updated\n"
     now = datetime.datetime.utcnow()
     if not report:
-        report = Report(name=name, metadata=MetadataTree(timeCreated=now))
+        report = ReportCls(name=name, metadata=MetadataTree(timeCreated=now))
         response_str = "added\n"
 
     report.apiVersion = content.get("apiVersion", "unknown")
@@ -86,17 +110,19 @@ def store_report():
 
 
 @app.route("/api/report/<report_id>", methods=["GET"])
-def get_report(report_id):
-    report = Report.objects.get_or_404(name=report_id)
+@report_router
+def get_report(ReportCls, report_id):
+    report = ReportCls.objects.get_or_404(name=report_id)
     return jsonify(report.to_dict())
 
 
 @app.route("/api/reports", methods=["GET"])
-def get_report_list():
+@report_router
+def get_report_list(ReportCls):
     args = request.args
     search_query = args.get("search")
 
-    queryset = Report.objects
+    queryset = ReportCls.objects
     if search_query:
         # Do the filtering
         pass
@@ -127,13 +153,13 @@ def get_report_list():
 
 
 @app.route("/api/artifact/<report_id>/<artifact_id>", methods=["GET"])
-def get_artifact(report_id, artifact_id):
+@report_router
+def get_artifact(ReportCls, report_id, artifact_id):
     """
     Return an uncompressed artifact.
     """
-
     # TODO memoize
-    report = Report.objects.get_or_404(name=report_id)
+    report = ReportCls.objects.get_or_404(name=report_id)
 
     artifact_list = list(
         report.raw.get("status", {}).get("outputs", {}).get("artifacts", [])

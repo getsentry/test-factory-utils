@@ -1,10 +1,10 @@
 import * as R from "rambda"
-import {DateTime} from "luxon"
+import { DateTime } from "luxon"
 
-import {GridColDef, GridValueFormatterParams, GridValueGetterParams} from "@mui/x-data-grid";
+import { GridColDef, GridValueFormatterParams, GridValueGetterParams } from "@mui/x-data-grid";
 
-import {getValue, toUtcDate} from "./utils";
-import {linkRenderer} from "./gridComponents";
+import { getValue, toUtcDate } from "./utils";
+import { linkRenderer } from "./gridComponents";
 
 const DateFormatOptions: Intl.DateTimeFormatOptions = {
     year: "numeric",
