@@ -1,6 +1,6 @@
 module github.com/getsentry/test-factory/influxdb-monitor
 
-go 1.17
+go 1.18
 
 require (
 	github.com/influxdata/influxdb-client-go/v2 v2.7.0
