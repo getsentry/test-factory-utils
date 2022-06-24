@@ -55,6 +55,7 @@ def healthcheck():
 
 
 @app.route("/api/report", methods=["POST"])
+@report_router
 def store_report(ReportCls):
     print(request)
     print(request.headers)
