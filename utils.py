@@ -4,23 +4,46 @@ from typing import Any, List, Union
 
 def get_at(obj, *args, **kwargs) -> Any:
     """
+    Gets the object at the specified path, it traverses dictionaries and arrays
 
-
+    >>> x = { "a":[{"x":{ "w": [1,2,3]}}], "y": {"x":"abc", "w":123}}
+    >>> get_at(x, "a", default="NOPE")
+    [{'x': {'w': [1, 2, 3]}}]
+    >>> get_at(x, "a", 0, "x.w.0")
+    1
+    >>> get_at(x, "a", 0, "x.w")
+    [1, 2, 3]
+    >>> get_at(x, "a", 0, "x")
+    {'w': [1, 2, 3]}
+    >>> get_at(x, "a.0.x")
+    {'w': [1, 2, 3]}
+    >>> get_at(x, "a.2.x", default="NOPE")
+    'NOPE'
+    >>> get_at(x, "a.1.x", default="NOPE")
+    'NOPE'
+    >>> get_at(x, "a.0.x", default="NOPE")
+    {'w': [1, 2, 3]}
+    >>> get_at(x, "y", default="NOPE")
+    {'x': 'abc', 'w': 123}
+    >>> get_at(x, "y","x", default="NOPE")
+    'abc'
+    >>> get_at(x, "y.x", default="NOPE")
+    'abc'
     """
     path = []
     for arg in args:
         if isinstance(arg, int):
-            path += arg
+            path.append(arg)
         if isinstance(arg, str):
             ps = arg.split(".")
             path += ps
 
     default = kwargs.get("default")
 
-    return get_at_path(obj, path, default)
+    return _get_at_path(obj, path, default)
 
 
-def get_at_path(obj, path: List[Union[str,int]], default) -> Any:
+def _get_at_path(obj, path: List[Union[str, int]], default) -> Any:
     """
 
     """
@@ -35,14 +58,14 @@ def get_at_path(obj, path: List[Union[str,int]], default) -> Any:
     if next_obj is default:
         return default
 
-    get_at_path(next_obj, rest, default)
+    return _get_at_path(next_obj, rest, default)
 
 
 def _navigate(obj, idx: Union[str, int], default):
     if obj is None:
         return default
     if isinstance(obj, Mapping):
-        return obj.get(idx, default=default)
+        return obj.get(idx, default)
     if isinstance(obj, Sequence):
         try:
             idx = int(idx)
