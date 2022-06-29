@@ -59,7 +59,7 @@ def pretty_timedelta(delta: timedelta) -> str:
     hours = delta.seconds // (60 * 60)
     minutes = delta.seconds // 60 % 60
     seconds = delta.seconds % 60
-    fraction = delta.microseconds / (10 ** 6)
+    fraction = delta.microseconds / (10**6)
 
     if weeks != 0:
         retVal += f"{weeks}w"

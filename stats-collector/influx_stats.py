@@ -1,5 +1,5 @@
 import yaml
-from typing import Generator, List, Sequence, Callable, Any, Optional, Dict
+from typing import Generator, List, Sequence, Callable, Any, Optional, Dict, Union
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -283,14 +283,17 @@ def kafka_consumer_processing_rate(
 def _get_scalar_from_result(
     result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
 ) -> Optional[float]:
+    if len(result) > 1:
+        print(f"WARNING: query returned more than one row (rows: {len(result)})")
+
     for table in result:
         for record in table:
-            if condition is None:
-                # no condition first would do:
-                return record[column]
-            elif condition(record):
-                return record[column]
-    # nothing matched
+            return record[column]
+
+            # FIXME: apply condition
+            # if condition is not None:
+
+    # Nothing matched
     return None
 
 
@@ -348,11 +351,139 @@ def extend_report_with_static_profile(
             for result in generator(start=start, stop=stop, query_api=query_api):
                 summary.values.append(result)
         test_run.metrics = metrics
-    return report
 
 
-def extend_report_with_query_file(report: Report, query_file: str):
-    with open(query_file, "r") as f:
-        query_spec = yaml.safe_load(f)
+############################################
 
-    print(query_spec)
+
+@dataclass
+class MetricQueryArgs:
+    quantiles: List[Union[str, float]]
+    filters: Dict[str, str]
+
+    @staticmethod
+    def from_dict(d: dict) -> "MetricQuery":
+        assert type(d) is dict
+
+        quantiles = d.get("quantiles", [])
+        assert type(quantiles) is list
+
+        filters = d.get("filters", {})
+        assert type(filters) is dict
+
+        return MetricQueryArgs(quantiles=quantiles, filters=filters)
+
+
+@dataclass
+class MetricQuery:
+    flux_query: Optional[str]
+    args: MetricQueryArgs
+
+    @staticmethod
+    def from_dict(d: dict) -> "MetricQuery":
+        assert type(d) is dict
+
+        args = d.get("args", {})
+        assert type(args) is dict
+
+        mq_args = MetricQueryArgs.from_dict(args)
+
+        mq = MetricQuery(flux_query=d.get("flux_query"), args=mq_args)
+        return mq
+
+    def generate_queries(self, start_time: datetime, end_time: datetime):
+        start = to_flux_datetime(start_time)
+        stop = to_flux_datetime(end_time)
+
+        # Filters
+        if self.args.filters:
+            filters = []
+            for key, value in self.args.filters.items():
+                filters.append(f'filter(fn: (r) =>  r["{key}"] == "{value}") ')
+            filter_statement = "|> ".join(filters)
+        else:
+            # No-op operation
+            filter_statement = "drop(columns: [])"
+
+        for requested_quantile in self.args.quantiles:
+
+            # Quantiles
+            if type(requested_quantile) == str:
+                assert requested_quantile in ["min", "max", "median", "mean"]
+                quantile_statement = f"{requested_quantile}()"
+            elif type(requested_quantile) == float:
+                assert 0.0 <= requested_quantile <= 1.0
+                quantile_statement = f"quantile(q: {requested_quantile})"
+            else:
+                raise ValueError(f"Invalid quantile type: {requested_quantile}")
+
+            query = self.flux_query.format(
+                bucket="statsd",
+                start=start,
+                stop=stop,
+                quantile=quantile_statement,
+                filters=filter_statement,
+            )
+            print(query)
+            yield query, [f"quantile-{str(requested_quantile)}"]
+
+
+@dataclass
+class DynamicProfile:
+    metrics = Dict[str, MetricQuery]
+
+    @staticmethod
+    def load(path: str) -> "DynamicProfile":
+        with open(path, "r") as f:
+            data = f.read()
+        return DynamicProfile.loads(data)
+
+    @staticmethod
+    def loads(s: str) -> "DynamicProfile":
+        raw = yaml.safe_load(s)
+        res = DynamicProfile()
+        metrics_dict = {}
+
+        metrics_raw = raw.get("metrics", {})
+        assert type(metrics_raw) is dict
+
+        for metric_key, metric_dict in metrics_raw.items():
+            metrics_dict[metric_key] = MetricQuery.from_dict(metric_dict)
+
+        res.metrics = metrics_dict
+
+        return res
+
+
+def extend_report_with_query_file(
+    report: Report, query_file: str, client: InfluxDBClient
+):
+    prof = DynamicProfile.load(query_file)
+    print(prof.__dict__)
+
+    query_api = client.query_api()
+
+    for test_run in report.test_runs:
+
+        metrics = []
+
+        for metric_id, metric_query in prof.metrics.items():
+
+            summary = MetricSummary(name=metric_id, values=[])
+            metrics.append(summary)
+
+            for query, attrs in metric_query.generate_queries(
+                start_time=test_run.start_time, end_time=test_run.end_time
+            ):
+                print(">>> Processing query:")
+                print(query)
+
+                r = query_api.query(query)
+                result = _get_scalar_from_result(r)
+
+                print("Result:", result)
+                summary.values.append(MetricValue(value=result, attributes=attrs))
+
+        test_run.metrics = metrics
+
+        print(test_run)

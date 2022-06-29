@@ -155,7 +155,9 @@ def main(
     else:
         # Use dynamic profile from the query file
         assert query_file_input
-        extend_report_with_query_file(report=report, query_file=query_file_input)
+        extend_report_with_query_file(
+            report=report, query_file=query_file_input, client=client
+        )
 
     ### Format and output the results
     formatter = get_formatter(format)
