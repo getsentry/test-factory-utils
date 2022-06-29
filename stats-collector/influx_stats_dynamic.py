@@ -45,23 +45,28 @@ class MetricQuery:
         mq = MetricQuery(flux_query=d.get("flux_query"), args=mq_args)
         return mq
 
-    def generate_queries(self, start_time: datetime, end_time: datetime):
+    def generate_queries(
+        self, start_time: datetime, end_time: datetime, filters: Dict[str, str]
+    ):
         start = to_flux_datetime(start_time)
         stop = to_flux_datetime(end_time)
 
         # Filters
-        if self.args.filters:
+        final_filters = {}
+        final_filters.update(self.args.filters)
+        final_filters.update(filters)
+
+        if final_filters:
             filters = []
-            for key, value in self.args.filters.items():
+            for key, value in final_filters.items():
                 filters.append(f'filter(fn: (r) =>  r["{key}"] == "{value}") ')
             filter_statement = "|> ".join(filters)
         else:
             # No-op operation
             filter_statement = "drop(columns: [])"
 
+        # Quantiles
         for requested_quantile in self.args.quantiles:
-
-            # Quantiles
             if type(requested_quantile) == str:
                 assert requested_quantile in ["min", "max", "median", "mean"]
                 quantile_statement = f"{requested_quantile}()"
@@ -109,8 +114,16 @@ class DynamicProfile:
 
 
 def extend_report_with_query_file(
-    report: Report, query_file: str, client: InfluxDBClient
+    report: Report, query_file: str, client: InfluxDBClient, flux_filters: List[str]
 ):
+    # Process filters
+    processed_filters: Dict[str, str] = {}
+    for filter_str in flux_filters:
+        parts = filter_str.strip().split("=")
+        if len(parts) != 2:
+            raise ValueError(f"Invalid filter: {filter_str}")
+        processed_filters[parts[0]] = parts[1]
+
     prof = DynamicProfile.load(query_file)
 
     query_api = client.query_api()
@@ -124,7 +137,9 @@ def extend_report_with_query_file(
             metrics.append(summary)
 
             for query, attrs in metric_query.generate_queries(
-                start_time=test_run.start_time, end_time=test_run.end_time
+                start_time=test_run.start_time,
+                end_time=test_run.end_time,
+                filters=processed_filters,
             ):
                 print(">>> Processing query:")
                 print(query)

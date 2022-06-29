@@ -6,9 +6,7 @@ import click
 import yaml
 from influxdb_client import InfluxDBClient
 
-from influx_stats import (
-    TestingProfile,
-)
+from influx_stats import TestingProfile, extend_report_with_static_profile
 from influx_stats_dynamic import extend_report_with_query_file
 from report import Report, TestRun
 from util import parse_timedelta
@@ -48,6 +46,13 @@ MIN_REQUIREMENTS_MESSAGE = "Either multistage or at least two parameters from (s
     help="Name of the input file containing query specifications",
 )
 @click.option(
+    "--filter",
+    "flux_filters",
+    multiple=True,
+    type=str,
+    help="Additional filter that will be applied to every Flux query",
+)
+@click.option(
     "--format",
     "-f",
     default="text",
@@ -75,6 +80,7 @@ def main(
     org,
     report_file_input,
     query_file_input,
+    flux_filters,
     format,
     out,
     profile,
@@ -154,7 +160,10 @@ def main(
         # Use dynamic profile from the query file
         assert query_file_input
         extend_report_with_query_file(
-            report=report, query_file=query_file_input, client=client
+            report=report,
+            query_file=query_file_input,
+            client=client,
+            flux_filters=flux_filters,
         )
 
     ### Format and output the results
