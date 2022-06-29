@@ -78,7 +78,6 @@ class MetricQuery:
                 quantile=quantile_statement,
                 filters=filter_statement,
             )
-            print(query)
             yield query, [f"quantile-{str(requested_quantile)}"]
 
 
@@ -113,7 +112,6 @@ def extend_report_with_query_file(
     report: Report, query_file: str, client: InfluxDBClient
 ):
     prof = DynamicProfile.load(query_file)
-    print(prof.__dict__)
 
     query_api = client.query_api()
 
@@ -122,7 +120,6 @@ def extend_report_with_query_file(
         metrics = []
 
         for metric_id, metric_query in prof.metrics.items():
-
             summary = MetricSummary(name=metric_id, values=[])
             metrics.append(summary)
 
@@ -135,7 +132,7 @@ def extend_report_with_query_file(
                 r = query_api.query(query)
                 result = get_scalar_from_result(r)
 
-                print("Result:", result)
+                print(f"Result: {result}\n\n")
                 summary.values.append(MetricValue(value=result, attributes=attrs))
 
         test_run.metrics = metrics

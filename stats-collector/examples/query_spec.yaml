@@ -1,0 +1,40 @@
+metrics:
+  cpu_usage:
+    args:
+      quantiles:
+        - 0.5
+        - 0.9
+        - 1.0
+      filters:
+        _measurement: "kubernetes_pod_container"
+        _field: "cpu_usage_nanocores"
+    flux_query: |
+       from(bucket: "{bucket}")
+            |> range(start: {start}, stop: {stop})
+            |> {filters}
+            |> toFloat()
+            |> map(fn: (r) => ({{
+                r with
+                _value: r._value / 1000000000.0 * 1000.0
+                }})
+            )
+            |> {quantile}
+
+  events_accepted_per_sec:
+    args:
+      quantiles:
+        - mean
+        - max
+      filters:
+        _measurement: "relay_event_accepted"
+        _field: "value"
+
+    flux_query: |
+      import "sampledata"
+
+      sampledata.int()
+          |> filter(fn: (r) =>  r["tag"] == "t1")
+          |> limit(n:4, offset: 0)
+          |> yield(name: "unmodified")
+          |> map(fn: (r) => ({{r with _value: r._value * r._value}}))
+          |> yield(name: "squared")
