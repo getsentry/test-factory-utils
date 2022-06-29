@@ -1,27 +1,19 @@
-import io
-import json
 import os
 from datetime import timedelta
 from dateutil import parser
-from enum import Enum, unique
 
 import click
 import yaml
-from influx_stats import get_stats, TestingProfile, Report, TestRun
+from influxdb_client import InfluxDBClient
 
-from util import to_optional_datetime, parse_timedelta
+from influx_stats import get_stats_with_static_profile, TestingProfile, Report, TestRun
+from util import parse_timedelta
+from formatters import get_formatter, OutputFormat
 
 # Suitable for use with port forwarding, e.g. "sentry-kube kubectl port-forward service/influxdb 8087:80"
 INFLUX_URL = "http://localhost:8087/"
 
 MIN_REQUIREMENTS_MESSAGE = "Either multistage or at least two parameters from (start, stop, duration) must be specified."
-
-
-@unique
-class OutputFormat(Enum):
-    TEXT = "text"
-    JSON = "json"
-    YAML = "yaml"
 
 
 @click.command()
@@ -46,6 +38,12 @@ class OutputFormat(Enum):
     "run on each test run in the report. See load-starter doc for details",
 )
 @click.option(
+    "--query-file-input",
+    "-q",
+    default=None,
+    help="Name of the input file containing query specifications",
+)
+@click.option(
     "--format",
     "-f",
     default="text",
@@ -62,12 +60,24 @@ class OutputFormat(Enum):
     "--profile",
     "-p",
     type=click.Choice(TestingProfile.values()),
-    required=True,
     help="Testing profile",
 )
 def main(
-    start, end, duration, token, url, org, report_file_input, format, out, profile
+    start,
+    end,
+    duration,
+    token,
+    url,
+    org,
+    report_file_input,
+    query_file_input,
+    format,
+    out,
+    profile,
 ):
+    if query_file_input and profile:
+        raise click.UsageError("You specified both query file and profile, exiting!")
+
     start_time = None
     if start is not None:
         start_time = parser.parse(start)
@@ -76,7 +86,23 @@ def main(
     if end is not None:
         end_time = parser.parse(end)
 
-    if report_file_input is None:
+    if token is None:
+        token = os.getenv("INFLUX_TOKEN")
+        if not token:
+            raise click.UsageError(
+                "INFLUX_TOKEN not provided.\n"
+                "Set INFLUX_TOKEN environment variable or provide --token command line argument"
+            )
+
+    if url is None:
+        url = os.getenv("INFLUX_URL")
+        if url is None:
+            url = INFLUX_URL
+
+    if report_file_input:
+        report = load_report_from_load_starter(report_file_input)
+    else:
+        # No input files provided, take the start/end times from CLI
         if start_time is None and end_time is None:
             raise click.UsageError(MIN_REQUIREMENTS_MESSAGE)
 
@@ -85,6 +111,7 @@ def main(
                 raise click.UsageError(MIN_REQUIREMENTS_MESSAGE)
             else:
                 duration_interval = parse_timedelta(duration)
+                assert duration_interval, "Invalid duration"
             if start_time is None:
                 assert end_time is not None
                 start_time = end_time - duration_interval
@@ -106,47 +133,29 @@ def main(
                 )
             ],
         )
-    else:
-        report = load_report(report_file_input)
 
-    if token is None:
-        token = os.getenv("INFLUX_TOKEN")
-        if not token:
-            raise click.UsageError(
-                "INFLUX_TOKEN not provided.\n"
-                "Set INFLUX_TOKEN environment variable or provide --token command line argument"
-            )
+    client = InfluxDBClient(url=url, token=token, org=org)
 
-    if url is None:
-        url = os.getenv("INFLUX_URL")
-        if url is None:
-            url = INFLUX_URL
-
-    # we have a valid start & stop time
-    stats = get_stats(
+    stats = get_stats_with_static_profile(
         report=report,
-        url=url,
-        token=token,
-        org=org,
         profile=profile,
+        client=client,
     )
 
+    ### Format and output the results
     formatter = get_formatter(format)
-
     result = formatter.format(stats)
-
     if out is not None:
         with open(out, "wt") as o:
             print(result, file=o)
         print(f"Result written to: {out}")
-        text_formatter = TextFormatter()
+        text_formatter = get_formatter(OutputFormat.TEXT)
         print(text_formatter.format(stats))
     else:
         print(result)
 
 
-# Note just crash if we don't get the proper yaml doc
-def load_report(file_name: str) -> Report:
+def load_report_from_load_starter(file_name: str) -> Report:
     with open(file_name, "r") as f:
         doc = yaml.load(f, Loader=yaml.Loader)
 
@@ -158,6 +167,7 @@ def load_report(file_name: str) -> Report:
         description = test_info.get("description")
         runner = test_info.get("runner")
         duration = parse_timedelta(test_info.get("duration"))
+        assert duration, "Invalid duration"
         spec = test_info.get("spec")
         start_time = raw_test_run["startTime"]
         if type(start_time) == str:
@@ -194,69 +204,6 @@ def load_report(file_name: str) -> Report:
         end_time = parser.parse(end_time)
 
     return Report(start_time=start_time, end_time=end_time, test_runs=test_runs)
-
-
-def get_formatter(req_format: str):
-    if req_format == OutputFormat.TEXT.value:
-        return TextFormatter()
-    elif req_format == OutputFormat.JSON.value:
-        return JsonFormatter()
-    elif req_format == OutputFormat.YAML.value:
-        return YamlFormatter()
-    else:
-        return TextFormatter()
-
-
-class TextFormatter:
-    def format(self, report: Report) -> str:
-        output = io.StringIO()
-        base_indent = "  "
-        for test_run in report.test_runs:
-            level = 0
-            print(f"\nTest run {test_run.name} ", file=output)
-            level = 1
-            indent = base_indent * level
-            print(
-                f"\n{indent} start:{to_optional_datetime(test_run.start_time)} end:{to_optional_datetime(test_run.end_time)}",
-                file=output,
-            )
-
-            print(f"\n{indent}spec:", file=output)
-            level = 2
-            indent = base_indent * level
-            spec = yaml.dump(test_run.spec, indent=2, default_flow_style=False)
-            spec = spec.replace("\n", f"\n{indent}")
-            print(f"\n{indent}{spec}", file=output)
-
-            for stat in test_run.metrics:
-                level = 3
-                indent = base_indent * level
-                print(f"{indent}{stat.name}", file=output)
-                for metric_value in stat.values:
-                    params = ", ".join(metric_value.attributes)
-                    if metric_value.value is not None:
-                        s = "{}{:>16} -> {:.2f}".format(
-                            indent, params, metric_value.value
-                        )
-                    else:
-                        s = "{}{:>16} -> Empty".format(indent, params)
-                    print(s, file=output)
-                print(f"{indent}" + "-" * 32, file=output)
-        ret_val = output.getvalue()
-        output.close()
-        return ret_val
-
-
-class JsonFormatter:
-    def format(self, report: Report) -> str:
-        result = report.to_dict()
-        return json.dumps(result, indent=2)
-
-
-class YamlFormatter:
-    def format(self, report: Report) -> str:
-        result = report.to_dict()
-        return yaml.dump(result, indent=2, default_flow_style=False)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,12 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from influxdb_client import QueryApi, InfluxDBClient
-from util import load_flux_file, to_flux_datetime, to_optional_datetime, pretty_timedelta
+from util import (
+    load_flux_file,
+    to_flux_datetime,
+    to_optional_datetime,
+    pretty_timedelta,
+)
 from dataclasses import dataclass
 from enum import Enum, unique
 
@@ -89,7 +94,7 @@ class Report:
         return {
             "startTime": to_optional_datetime(self.start_time),
             "endTime": to_optional_datetime(self.end_time),
-            "testRuns": [test_run.to_dict() for test_run in self.test_runs]
+            "testRuns": [test_run.to_dict() for test_run in self.test_runs],
         }
 
 
@@ -288,7 +293,7 @@ def _get_scalar_from_result(
     return None
 
 
-TEST_PROFILES = {
+STATIC_TEST_PROFILES = {
     TestingProfile.RELAY.value: {
         "stats_functions": [
             ("events accepted", event_accepted_stats),
@@ -321,15 +326,14 @@ TEST_PROFILES = {
 }
 
 
-def get_stats(
-    report: Report, url: str, token: str, org: str, profile: str
+def get_stats_with_static_profile(
+    report: Report, profile: str, client: InfluxDBClient
 ) -> Report:
-    if profile not in TEST_PROFILES:
+    if profile not in STATIC_TEST_PROFILES:
         raise ValueError(f"No stats found for the profile: {profile}", profile)
 
-    stats_functions = TEST_PROFILES[profile]["stats_functions"]
+    stats_functions = STATIC_TEST_PROFILES[profile]["stats_functions"]
 
-    client = InfluxDBClient(url=url, token=token, org=org)
     query_api = client.query_api()
 
     for test_run in report.test_runs:
