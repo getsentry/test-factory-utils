@@ -19,11 +19,7 @@ from pymongo import MongoClient
 import requests
 
 from utils import del_at
-
-URL = "http://localhost:5000"
-SDK_REPORT_COLLECTION = "sdk_report"
-REPORT_COLLECTION = "report"
-
+from mongo_const import URL, SDK_REPORT_COLLECTION, REPORT_COLLECTION
 
 def main():
     client = MongoClient("localhost", 27017)
