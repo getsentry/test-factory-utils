@@ -2,7 +2,7 @@ import re
 import pathlib
 from dateutil.tz import tzlocal, UTC
 
-from typing import Optional
+from typing import Optional, Callable, Any
 from datetime import timedelta, datetime
 
 TIMEDELTA_REGEX = (
@@ -99,3 +99,20 @@ def to_optional_datetime(d: Optional[datetime]) -> str:
         return to_flux_datetime(d)
     else:
         return ""
+
+
+def get_scalar_from_result(
+    result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
+) -> Optional[float]:
+    if len(result) > 1:
+        print(f"WARNING: query returned more than one row (rows: {len(result)})")
+
+    for table in result:
+        for record in table:
+            return record[column]
+
+            # FIXME: apply condition
+            # if condition is not None:
+
+    # Nothing matched
+    return None

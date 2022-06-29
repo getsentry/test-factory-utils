@@ -7,12 +7,10 @@ import yaml
 from influxdb_client import InfluxDBClient
 
 from influx_stats import (
-    extend_report_with_query_file,
-    extend_report_with_static_profile,
     TestingProfile,
-    TestRun,
-    Report,
 )
+from influx_stats_dynamic import extend_report_with_query_file
+from report import Report, TestRun
 from util import parse_timedelta
 from formatters import get_formatter, OutputFormat
 
