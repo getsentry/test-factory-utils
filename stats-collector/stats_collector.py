@@ -6,7 +6,13 @@ import click
 import yaml
 from influxdb_client import InfluxDBClient
 
-from influx_stats import get_stats_with_static_profile, TestingProfile, Report, TestRun
+from influx_stats import (
+    extend_report_with_query_file,
+    extend_report_with_static_profile,
+    TestingProfile,
+    TestRun,
+    Report,
+)
 from util import parse_timedelta
 from formatters import get_formatter, OutputFormat
 
@@ -75,8 +81,10 @@ def main(
     out,
     profile,
 ):
-    if query_file_input and profile:
-        raise click.UsageError("You specified both query file and profile, exiting!")
+    if (query_file_input and profile) or (not query_file_input and not profile):
+        raise click.UsageError(
+            "You specified none or both arguments from query file and profile, exiting!"
+        )
 
     start_time = None
     if start is not None:
@@ -99,6 +107,7 @@ def main(
         if url is None:
             url = INFLUX_URL
 
+    # Prepare a report object (without measurements yet)
     if report_file_input:
         report = load_report_from_load_starter(report_file_input)
     else:
@@ -136,28 +145,34 @@ def main(
 
     client = InfluxDBClient(url=url, token=token, org=org)
 
-    stats = get_stats_with_static_profile(
-        report=report,
-        profile=profile,
-        client=client,
-    )
+    if profile:
+        # Static profile specified, use that
+        extend_report_with_static_profile(
+            report=report,
+            profile=profile,
+            client=client,
+        )
+    else:
+        # Use dynamic profile from the query file
+        assert query_file_input
+        extend_report_with_query_file(report=report, query_file=query_file_input)
 
     ### Format and output the results
     formatter = get_formatter(format)
-    result = formatter.format(stats)
+    result = formatter.format(report)
     if out is not None:
         with open(out, "wt") as o:
             print(result, file=o)
         print(f"Result written to: {out}")
         text_formatter = get_formatter(OutputFormat.TEXT)
-        print(text_formatter.format(stats))
+        print(text_formatter.format(report))
     else:
         print(result)
 
 
 def load_report_from_load_starter(file_name: str) -> Report:
     with open(file_name, "r") as f:
-        doc = yaml.load(f, Loader=yaml.Loader)
+        doc = yaml.safe_load(f)
 
     test_runs = []
 

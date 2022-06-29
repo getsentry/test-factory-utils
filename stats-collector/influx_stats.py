@@ -1,3 +1,4 @@
+import yaml
 from typing import Generator, List, Sequence, Callable, Any, Optional, Dict
 from datetime import datetime, timedelta
 from functools import partial
@@ -326,9 +327,9 @@ STATIC_TEST_PROFILES = {
 }
 
 
-def get_stats_with_static_profile(
+def extend_report_with_static_profile(
     report: Report, profile: str, client: InfluxDBClient
-) -> Report:
+):
     if profile not in STATIC_TEST_PROFILES:
         raise ValueError(f"No stats found for the profile: {profile}", profile)
 
@@ -348,3 +349,10 @@ def get_stats_with_static_profile(
                 summary.values.append(result)
         test_run.metrics = metrics
     return report
+
+
+def extend_report_with_query_file(report: Report, query_file: str):
+    with open(query_file, "r") as f:
+        query_spec = yaml.safe_load(f)
+
+    print(query_spec)
