@@ -17,9 +17,9 @@ from typing import Sequence, List, Optional
 import pandas as pd
 import datapane as dp
 import altair as alt
-import numpy as np
-import matplotlib.pyplot as plt
-from mysql.connector import connect
+
+# from mysql_data import get_sdk_size
+from mongo_data import get_sdk_size
 
 
 def main():
@@ -40,62 +40,71 @@ def sdk_size():
 
 Sdk size evolution.
     """
-    connection = get_connection()
-    sdk_vals = get_sdk_size(connection)
-    connection.close()
-    sdk_vals = sdk_vals.drop(columns='id')
-    sdk_vals = sdk_vals.set_index(keys='started')
-    sdk_vals_no_idx = sdk_vals.reset_index()
-    base = alt.Chart(sdk_vals_no_idx).encode(
+    sdk_vals = get_sdk_size()
+
+    return dp.Page(title="SDK Size", blocks=[
+        text,
+        dp.Plot(get_sdk_trend_plot(sdk_vals)),
+        dp.DataTable(sdk_vals)
+    ])
+
+
+def get_sdk_trend_plot(sdk_vals):
+    all_points = alt.Chart(sdk_vals)
+
+    all_dots = all_points.encode(
         x="started",
         y="value",
-        color="measurement",
-        shape="measurement",
         tooltip="version",
-        text="version",
+        color="measurement",
+        shape=alt.Shape("measurement"),
+    ).mark_point(size=10, opacity=0.5)
+
+    trend_line = all_points.encode(
+        x="started",
+        y="value",
+        color=alt.Color("measurement", legend=None)
+    ).mark_line(size=1, opacity=0.3)
+
+    minor_releases = last_minor_releases(sdk_vals)
+
+    last_chart = alt.Chart(sdk_vals[sdk_vals["version"].isin(minor_releases)])
+
+    last_points = last_chart.encode(
+        x="started",
+        y="value",
+    ).mark_point(size=55, opacity=1.0).encode(
+        shape="measurement",
+        color="measurement"
     )
 
-    last_release = sdk_vals_no_idx[sdk_vals_no_idx["version"] == "6.1.1"]
-    minor_releases = last_minor_releases(sdk_vals_no_idx)
-
-    last = alt.Chart(sdk_vals_no_idx[sdk_vals_no_idx["version"].isin(minor_releases)]).encode(
+    last_text = last_chart.mark_text(
+        align='center',
+        baseline='line-bottom',
+        dy=-10
+    ).encode(
         x="started",
         y="value",
-        color="measurement",
-        shape="measurement",
-        tooltip="version",
-        text="version",
-    ).mark_point(size=55, opacity=1.0)
+        text='version'
+    )
 
     line = (alt.Chart(pd.DataFrame({'y': [8000000]})).
             mark_rule(size=1, strokeDash=[4, 4], color="red", opacity=0.5).
             encode(y='y'))
 
-    warn_text = alt.Chart(pd.DataFrame({'y': [8000000]})).mark_text(text="too much", align="center", opacity=1, baseline="line-bottom", dx=-300, fontSize=12).encode(y="y")
+    warn_text = alt.Chart(pd.DataFrame({'y': [8000000]})).mark_text(text="too much", align="center", opacity=1, baseline="line-bottom", dx=-350, fontSize=14).encode(y="y")
 
-    last_text = last.mark_text(
-        align='center',
-        baseline='line-bottom',
-        dy=-10
-    ).encode(
-        text='version'
-    )
-    graph = alt.layer(
-        base.mark_point(size=10, opacity=0.5),
-        base.mark_line(size=1, opacity=0.3),
+    return alt.layer(
+        all_dots,
+        trend_line,
         line,
         warn_text,
-        last,
+        last_points,
         last_text,
     ).properties(
         width=850,
         height=400
     ).interactive()
-    return dp.Page(title="SDK Size", blocks=[
-        text,
-        dp.Plot(graph),
-        dp.DataTable(sdk_vals_no_idx)
-    ])
 
 
 @dataclass
@@ -197,77 +206,6 @@ the previous minor and previous major releases.
     return dp.Page(title="Latest Releases", blocks=[
         text,
     ])
-
-
-def get_connection():
-    connection = connect(user="qe-all", password="primordialFish", database="test-results", host="localhost", port=3306)
-    if connection is None:
-        print("Error while trying to connect")
-        return
-    return connection
-
-
-def get_stuff(connection):
-    cursor = connection.cursor()
-    max_price = 22
-    cursor.execute("SELECT * FROM customers where price > %s", (max_price,))
-    result = cursor.fetchall()
-    for x in result:
-        print(x)
-    cursor.close()
-
-
-def get_sdk_data():
-    conn = get_connection()
-    sdk_data = get_sdk_size(conn)
-    conn.close()
-
-
-def get_sdk_size(connection):
-    query = """select tr.id as id,
-        started,
-        attr2 as version,
-        label1 as measurement,
-        value
-from test_run as tr inner join measurement as m on tr.id = m.test_run_id
-where name = 'size'
-and type = 'sdk'
-and attr1= 'python'"""
-    cursor = connection.cursor()
-    cursor.execute(query)
-    ret_val = pd.DataFrame(cursor.fetchall())
-    ret_val.columns = [d[0] for d in cursor.description]
-    cursor.close()
-
-    return ret_val
-
-
-def get_sdk_size_old(connection):
-    query = """
-        select tr.id as id,
-        started,
-        attr2 as version,
-        max((case
-                when (label1 = 'full')
-                    then value
-                else 0 end))  AS full,
-       max((case
-                when (label1 = 'min')
-                    then value
-                else 0 end))  AS min
-from test_run as tr inner join measurement as m on tr.id = m.test_run_id
-where name = 'size'
-and type = 'sdk'
-and attr1= 'python'
-group by id, started,  version
-"""
-    cursor = connection.cursor()
-    cursor.execute(query)
-    ret_val = pd.DataFrame(cursor.fetchall())
-    ret_val.columns = [d[0] for d in cursor.description]
-    cursor.close()
-
-    return ret_val
 
 
 def last_minor_releases(frame):
