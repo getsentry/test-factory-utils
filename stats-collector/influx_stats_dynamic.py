@@ -1,3 +1,4 @@
+import logging
 import yaml
 from datetime import datetime
 from typing import List, Optional, Dict, Union
@@ -8,6 +9,9 @@ from influxdb_client import InfluxDBClient
 
 from report import Report, MetricSummary, MetricValue
 from util import get_scalar_from_result, to_flux_datetime
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -87,19 +91,25 @@ class MetricQuery:
 
 
 @dataclass
-class DynamicProfile:
+class DynamicQueryProfile:
     metrics = Dict[str, MetricQuery]
 
     @staticmethod
-    def load(path: str) -> "DynamicProfile":
+    def load(path: str) -> "DynamicQueryProfile":
+        """
+        Load the profile given the file path
+        """
         with open(path, "r") as f:
             data = f.read()
-        return DynamicProfile.loads(data)
+        return DynamicQueryProfile.loads(data)
 
     @staticmethod
-    def loads(s: str) -> "DynamicProfile":
+    def loads(s: str) -> "DynamicQueryProfile":
+        """
+        Load the profile from the given string
+        """
         raw = yaml.safe_load(s)
-        res = DynamicProfile()
+        res = DynamicQueryProfile()
         metrics_dict = {}
 
         metrics_raw = raw.get("metrics", {})
@@ -116,6 +126,13 @@ class DynamicProfile:
 def extend_report_with_query_file(
     report: Report, query_file: str, client: InfluxDBClient, flux_filters: List[str]
 ):
+    """
+    Extend the provided Report with measurements, collected using a query file.
+
+    One query file defines a list of measurements to be queried from InfluxDB, and for every measurement
+    you can get more than one aggregated value by specifying a list of aggregations/quantiles.
+    """
+
     # Process filters
     processed_filters: Dict[str, str] = {}
     for filter_str in flux_filters:
@@ -124,7 +141,7 @@ def extend_report_with_query_file(
             raise ValueError(f"Invalid filter: {filter_str}")
         processed_filters[parts[0]] = parts[1]
 
-    prof = DynamicProfile.load(query_file)
+    prof = DynamicQueryProfile.load(query_file)
 
     query_api = client.query_api()
 
@@ -141,15 +158,12 @@ def extend_report_with_query_file(
                 end_time=test_run.end_time,
                 filters=processed_filters,
             ):
-                print(">>> Processing query:")
-                print(query)
+                logger.debug(f"Processing query:\n{query}")
 
                 r = query_api.query(query)
                 result = get_scalar_from_result(r)
 
-                print(f"Result: {result}\n\n")
+                logger.debug(f"Result: {result}\n\n")
                 summary.values.append(MetricValue(value=result, attributes=attrs))
 
         test_run.metrics = metrics
-
-        print(test_run)

@@ -1,9 +1,13 @@
+import logging
 import re
 import pathlib
 from dateutil.tz import tzlocal, UTC
 
 from typing import Optional, Callable, Any
 from datetime import timedelta, datetime
+
+
+logger = logging.getLogger(__name__)
 
 TIMEDELTA_REGEX = (
     r"(?P<minus>-)?"
@@ -104,11 +108,16 @@ def to_optional_datetime(d: Optional[datetime]) -> str:
 def get_scalar_from_result(
     result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
 ) -> Optional[float]:
-    if len(result) > 1:
-        print(f"WARNING: query returned more than one row (rows: {len(result)})")
+
+    tables_num = len(result)
 
     for table in result:
+        record_num = len(table.columns)
         for record in table:
+            if tables_num > 1 or record_num > 1:
+                logger.warning(
+                    f"Query returned several values (tables: {tables_num}, rows: {record_num})"
+                )
             return record[column]
 
             # FIXME: apply condition

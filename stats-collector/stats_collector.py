@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import timedelta
 from dateutil import parser
@@ -16,6 +17,18 @@ from formatters import get_formatter, OutputFormat
 INFLUX_URL = "http://localhost:8087/"
 
 MIN_REQUIREMENTS_MESSAGE = "Either multistage or at least two parameters from (start, stop, duration) must be specified."
+
+logger = logging.getLogger(__name__)
+
+
+def configure_logging():
+    log_level = os.environ.get("STATS_COLLECTOR_LOG_LEVEL", "INFO").upper()
+
+    logging.basicConfig(
+        format="%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s",
+        level=log_level,
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 @click.command()
@@ -50,7 +63,7 @@ MIN_REQUIREMENTS_MESSAGE = "Either multistage or at least two parameters from (s
     "flux_filters",
     multiple=True,
     type=str,
-    help="Additional filter that will be applied to every Flux query",
+    help="Additional filter that will be applied to every Flux query (currently works only for query file inputs)",
 )
 @click.option(
     "--format",
@@ -85,6 +98,8 @@ def main(
     out,
     profile,
 ):
+    configure_logging()
+
     if (query_file_input and profile) or (not query_file_input and not profile):
         raise click.UsageError(
             "You specified none or both arguments from query file and profile, exiting!"
@@ -99,12 +114,7 @@ def main(
         end_time = parser.parse(end)
 
     if token is None:
-        token = os.getenv("INFLUX_TOKEN")
-        if not token:
-            raise click.UsageError(
-                "INFLUX_TOKEN not provided.\n"
-                "Set INFLUX_TOKEN environment variable or provide --token command line argument"
-            )
+        token = os.getenv("INFLUX_TOKEN", "")
 
     if url is None:
         url = os.getenv("INFLUX_URL")
@@ -172,11 +182,11 @@ def main(
     if out is not None:
         with open(out, "wt") as o:
             print(result, file=o)
-        print(f"Result written to: {out}")
+        logger.info(f"Result written to: {out}")
         text_formatter = get_formatter(OutputFormat.TEXT)
-        print(text_formatter.format(report))
+        logger.info(text_formatter.format(report))
     else:
-        print(result)
+        logger.info(result)
 
 
 def load_report_from_load_starter(file_name: str) -> Report:
