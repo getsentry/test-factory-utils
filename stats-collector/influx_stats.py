@@ -1,11 +1,10 @@
-from typing import Generator, List, Sequence, Callable, Any, Optional, Dict
-from datetime import datetime, timedelta
+from typing import Generator
 from functools import partial
+from enum import Enum, unique
 
 from influxdb_client import QueryApi, InfluxDBClient
-from util import load_flux_file, to_flux_datetime, to_optional_datetime, pretty_timedelta
-from dataclasses import dataclass
-from enum import Enum, unique
+from util import load_flux_file, to_flux_datetime, get_scalar_from_result
+from report import Report, MetricSummary, MetricValue
 
 
 @unique
@@ -17,80 +16,6 @@ class TestingProfile(Enum):
     @staticmethod
     def values():
         return [profile.value for profile in TestingProfile]
-
-
-@dataclass
-class MetricValue:
-    """
-    A single value extracted from a metric e.g. "average event_processing_time"
-    A Metric Summary contains a list of MetricValue
-    """
-
-    value: float
-    attributes: List[str]
-
-    def to_dict(self):
-        return {
-            "value": self.value,
-            "attributes": [val for val in self.attributes],
-        }
-
-
-@dataclass
-class MetricSummary:
-    """
-    Contains the extracted summaries for a metric
-    """
-
-    name: str
-    values: List[MetricValue]
-
-    def to_dict(self):
-        return {"name": self.name, "values": [value.to_dict() for value in self.values]}
-
-
-@dataclass
-class TestRun:
-    start_time: datetime
-    end_time: datetime
-    name: Optional[str]
-    description: Optional[str]
-    duration: timedelta
-    runner: Optional[str]
-    spec: Dict[str, Any]
-    metrics: List[MetricSummary]
-
-    def to_dict(self):
-        ret_val = {
-            "startTime": to_optional_datetime(self.start_time),
-            "endTime": to_optional_datetime(self.end_time),
-            "duration": pretty_timedelta(self.duration),
-            "metrics": [metric.to_dict() for metric in self.metrics],
-            "spec": self.spec,
-        }
-
-        if self.name:
-            ret_val["name"] = self.name
-        if self.description:
-            ret_val["description"] = self.name
-        if self.runner:
-            ret_val["runner"] = self.runner
-
-        return ret_val
-
-
-@dataclass
-class Report:
-    start_time: datetime
-    end_time: datetime
-    test_runs: List[TestRun]
-
-    def to_dict(self):
-        return {
-            "startTime": to_optional_datetime(self.start_time),
-            "endTime": to_optional_datetime(self.end_time),
-            "testRuns": [test_run.to_dict() for test_run in self.test_runs]
-        }
 
 
 def event_accepted_stats(
@@ -111,7 +36,7 @@ def event_accepted_stats(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[func])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[func])
 
 
 def event_processing_time(
@@ -131,7 +56,7 @@ def event_processing_time(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
 def kafka_messages_produced(
@@ -155,7 +80,7 @@ def kafka_messages_produced(
             return row["event_type"] == "session"
 
         yield MetricValue(
-            value=_get_scalar_from_result(r, condition=session_selector),
+            value=get_scalar_from_result(r, condition=session_selector),
             attributes=["session", q_name],
         )
 
@@ -163,7 +88,7 @@ def kafka_messages_produced(
             return row["event_type"] == "metric"
 
         yield MetricValue(
-            value=_get_scalar_from_result(r, condition=metric_selector),
+            value=get_scalar_from_result(r, condition=metric_selector),
             attributes=["metric", q_name],
         )
 
@@ -185,7 +110,7 @@ def requests_per_second_locust(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
 def cpu_usage(
@@ -206,7 +131,7 @@ def cpu_usage(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
 def memory_usage(
@@ -227,7 +152,7 @@ def memory_usage(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
 def event_queue_size(
@@ -247,7 +172,7 @@ def event_queue_size(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
 def kafka_consumer_processing_rate(
@@ -271,24 +196,10 @@ def kafka_consumer_processing_rate(
 
         r = query_api.query(code)
 
-        yield MetricValue(value=_get_scalar_from_result(r), attributes=[q_name])
+        yield MetricValue(value=get_scalar_from_result(r), attributes=[q_name])
 
 
-def _get_scalar_from_result(
-    result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
-) -> Optional[float]:
-    for table in result:
-        for record in table:
-            if condition is None:
-                # no condition first would do:
-                return record[column]
-            elif condition(record):
-                return record[column]
-    # nothing matched
-    return None
-
-
-TEST_PROFILES = {
+STATIC_TEST_PROFILES = {
     TestingProfile.RELAY.value: {
         "stats_functions": [
             ("events accepted", event_accepted_stats),
@@ -321,15 +232,14 @@ TEST_PROFILES = {
 }
 
 
-def get_stats(
-    report: Report, url: str, token: str, org: str, profile: str
-) -> Report:
-    if profile not in TEST_PROFILES:
+def extend_report_with_static_profile(
+    report: Report, profile: str, client: InfluxDBClient
+):
+    if profile not in STATIC_TEST_PROFILES:
         raise ValueError(f"No stats found for the profile: {profile}", profile)
 
-    stats_functions = TEST_PROFILES[profile]["stats_functions"]
+    stats_functions = STATIC_TEST_PROFILES[profile]["stats_functions"]
 
-    client = InfluxDBClient(url=url, token=token, org=org)
     query_api = client.query_api()
 
     for test_run in report.test_runs:
@@ -343,4 +253,3 @@ def get_stats(
             for result in generator(start=start, stop=stop, query_api=query_api):
                 summary.values.append(result)
         test_run.metrics = metrics
-    return report

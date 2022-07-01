@@ -1,9 +1,13 @@
+import logging
 import re
 import pathlib
 from dateutil.tz import tzlocal, UTC
 
-from typing import Optional
+from typing import Optional, Callable, Any
 from datetime import timedelta, datetime
+
+
+logger = logging.getLogger(__name__)
 
 TIMEDELTA_REGEX = (
     r"(?P<minus>-)?"
@@ -59,7 +63,7 @@ def pretty_timedelta(delta: timedelta) -> str:
     hours = delta.seconds // (60 * 60)
     minutes = delta.seconds // 60 % 60
     seconds = delta.seconds % 60
-    fraction = delta.microseconds / (10 ** 6)
+    fraction = delta.microseconds / (10**6)
 
     if weeks != 0:
         retVal += f"{weeks}w"
@@ -99,3 +103,23 @@ def to_optional_datetime(d: Optional[datetime]) -> str:
         return to_flux_datetime(d)
     else:
         return ""
+
+
+def get_scalar_from_result(
+    result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
+) -> Optional[float]:
+
+    tables_num = len(result)
+
+    for table in result:
+        record_num = len(table.records)
+        for record in table:
+            if condition is None or condition(record):
+                if tables_num > 1 or record_num > 1:
+                    logger.warning(
+                        f"Query returned several values (tables: {tables_num}, rows: {record_num})"
+                    )
+                return record[column]
+
+    # Nothing matched
+    return None
