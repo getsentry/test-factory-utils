@@ -113,7 +113,6 @@ def get_scalar_from_result(
 
     for table in result:
         record_num = len(table.records)
-        print(table.__dict__)
         for record in table:
             if condition is None or condition(record):
                 if tables_num > 1 or record_num > 1:
