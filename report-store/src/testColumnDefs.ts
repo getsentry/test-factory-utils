@@ -32,6 +32,7 @@ function dateFormater(params: GridValueFormatterParams<Date>): string {
 function getCommentFromRow(params: GridValueGetterParams) {
     const val = R.pipe(
         getFromRow("context.parameters"),
+        R.defaultTo([]),
         R.find((x: any) => x.name === "comment"),
         R.path("value"),
         (v: any) => v ? v : "-",

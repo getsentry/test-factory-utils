@@ -5,7 +5,7 @@ import sys
 
 import requests
 
-SERVER_ENDPOINT = "http://127.0.0.1:5000/api/report"
+SERVER_ENDPOINT = "http://127.0.0.1:5001/api/report"
 
 
 def process_file(name):

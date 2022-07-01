@@ -48,8 +48,8 @@ export function Browse() {
 
     return (
         <>
-            <Header>
-                <Stack direction="row" spacing={1} sx={{ pl: 2 }} alignItems="center">
+            {/* Comparison toggle */}
+            {/* <Stack direction="row" spacing={1} sx={{ pl: 2 }} alignItems="center">
                     <Typography>Compare</Typography>
                     <Typography sx={{ color: compareOn ? "text.disabled" : "text.primary" }}>Off</Typography>
                     <Switch
@@ -58,9 +58,7 @@ export function Browse() {
                         inputProps={{ "aria-label": "controlled" }}
                     />
                     <Typography sx={{ color: compareOn ? "text.primary" : "text.disabled" }}>On</Typography>
-                </Stack>
-
-            </Header>
+                </Stack> */}
             <MainContent>
                 <DataGrid
                     checkboxSelection={compareOn}

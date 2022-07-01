@@ -1,15 +1,15 @@
 import React from "react";
 
-import {QueryClient, QueryClientProvider} from "react-query";
-import {Route, Outlet, ReactLocation, Router} from "@tanstack/react-location"
+import { QueryClient, QueryClientProvider } from "react-query";
+import { Route, Outlet, ReactLocation, Router } from "@tanstack/react-location"
 
-import {Box} from "@mui/material";
+import { Box } from "@mui/material";
 
 import './App.css';
-import {Browse} from "./Browse";
-import {ResultBrowserLocation} from "./location";
-import {Detail, getReport, ParsedDetail, RawDetail} from "./Detail";
-import {Compare} from "./Compare";
+import { Browse } from "./Browse";
+import { ResultBrowserLocation } from "./location";
+import { Detail, getReport, ParsedDetail, RawDetail } from "./Detail";
+import { Compare } from "./Compare";
 
 
 const queryClient = new QueryClient();
@@ -22,29 +22,26 @@ function App() {
             //The search root
             path: "/",
             id: "browse",
-            element: <Browse/>,
+            element: <Browse />,
         },
         {
             path: "/detail/:name",
-            element: <Detail/>,
-            loader:  async ({params:{name}})=> ({ report: await getReport(name), reportName: name}) ,
+            element: <Detail />,
+            loader: async ({ params: { name } }) => ({ report: await getReport(name), reportName: name }),
             children: [
                 {
                     path: "/raw",
-                    element: <RawDetail/>,
-                    meta: { view: "raw"},
+                    element: <RawDetail />,
+                    meta: { view: "raw" },
                 },
                 {
                     path: "/",
-                    element: <ParsedDetail/>,
-                    meta: { view: "parsed"},
+                    element: <ParsedDetail />,
+                    meta: { view: "parsed" },
                 }
             ]
         },
-        {
-            path: "/compare",
-            element: <Compare/>
-        },
+
     ]
     return (
         <Router location={location} routes={routes} basepath='ui'>
@@ -58,7 +55,7 @@ function App() {
                     m: 0,
                     p: 0,
                 }}>
-                    <Outlet/>
+                    <Outlet />
                 </Box>
             </QueryClientProvider>
         </Router>
@@ -66,4 +63,3 @@ function App() {
 }
 
 export default App;
-
