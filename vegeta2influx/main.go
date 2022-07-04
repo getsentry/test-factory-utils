@@ -1,3 +1,23 @@
+/*
+Copyright © 2022 Sentry
+
+This utility gets as input Vegeta response logs (in json format) and converts them into calls to InfluxDb.
+
+It is meant to be used directly with the `vegeta` executable in this manner:
+
+```
+> vegeta attack --duration=1m --targets=targets.txt ... | vegeta encode | vegeta2influx --bucketName=myBucket ...
+```
+
+Another typical use is to first capture the attack in a file and then push the result to influx like so:
+
+```
+> vegeta attack --duration=1m --targets=targets.txt ... | vegeta encode > results.txt
+> vegeta2influx --input=results.txt --bucketName=myBucket --influxdb-url=http://localhost:8086 ...
+```
+
+*/
+
 package main
 
 import (
@@ -6,23 +26,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	flag "github.com/spf13/pflag"
 )
 
 type CliParams struct {
-	influxDbServer *string
-	influxDbToken  *string
-	organisationId *string
+	influxDbServer string
+	influxDbToken  string
+	organisationId string
 	dryRun         bool
-	bucketName     *string
-	measurement    *string
-	input          *string
+	bucketName     string
+	measurement    string
+	input          string
+	useColor       bool
+	logLevel       string
 }
 
 var Params CliParams
@@ -44,31 +69,40 @@ type dryRunWriteAPIBlocking struct {
 	precision time.Duration
 }
 
-func (api dryRunWriteAPIBlocking) WriteRecord(ctx context.Context, lines ...string) error {
+func (api dryRunWriteAPIBlocking) WriteRecord(_ context.Context, lines ...string) error {
 	for _, line := range lines {
-		fmt.Println(line)
-
+		log.Info().Msg(line)
 	}
 	return nil
 }
 
-func (api dryRunWriteAPIBlocking) WritePoint(ctx context.Context, points ...*write.Point) error {
+func (api dryRunWriteAPIBlocking) WritePoint(_ context.Context, points ...*write.Point) error {
 	for _, point := range points {
-		fmt.Print(write.PointToLineProtocol(point, api.precision))
+		log.Info().Msg(write.PointToLineProtocol(point, api.precision))
 	}
 	return nil
 }
 
 func pushData() {
 
+	if Params.dryRun {
+		log.Info().Msg("Dry Run, pretending to send messages:")
+	} else {
+		log.Info().Msgf("Writing to:\n"+
+			"Server=%s\n"+
+			"Organisation=%s\n"+
+			"Bucket=%s\n"+
+			"Measurement=%s\n",
+			Params.influxDbServer, Params.organisationId, Params.bucketName, Params.measurement)
+	}
 	file := os.Stdin
 	ctx := context.Background()
-	if Params.input != nil && len(*Params.input) > 0 {
+	if len(Params.input) > 0 {
 		var err error
-		file, err = os.Open(*Params.input)
+		file, err = os.Open(Params.input)
 		if err != nil {
 			//TODO add logging
-			fmt.Printf("Could not open file: %s\n%s\nQUITTING!", *Params.input, err)
+			log.Error().Err(err).Msgf("Could not open file: %s", Params.input)
 			return
 		}
 		defer file.Close()
@@ -80,21 +114,30 @@ func pushData() {
 		precision, _ := time.ParseDuration("1ms")
 		writeApi = &dryRunWriteAPIBlocking{precision: precision}
 	} else {
-		client := influxdb2.NewClient(*Params.influxDbServer, *Params.influxDbToken)
-		writeApi = client.WriteAPIBlocking(*Params.organisationId, *Params.bucketName)
+		client := influxdb2.NewClient(Params.influxDbServer, Params.influxDbToken)
+
+		_, err := client.Health(context.Background())
+
+		if err != nil {
+			log.Error().Err(err).Msg("Could not build client")
+			return
+		}
+
+		writeApi = client.WriteAPIBlocking(Params.organisationId, Params.bucketName)
 		// Ensures background processes finishes
 		defer client.Close()
 	}
 	for scanner.Scan() {
 		var pointData VegetaResult
-		rawData := []byte(scanner.Text())
+		text := scanner.Text()
+		rawData := []byte(text)
 		err := json.Unmarshal(rawData, &pointData)
-
 		if err != nil {
-			//TODO Log error
+			log.Error().Err(err).Msgf("Could not unmarshal response object into JSON, moving to the next one:\n %s", text)
 			continue
 		}
-		writePoint(ctx, writeApi, pointData, *Params.measurement)
+		writePoint(ctx, writeApi, pointData, Params.measurement)
+		log.Trace().Msgf("Wrote point captured at:%s", pointData.Timestamp)
 	}
 }
 
@@ -109,10 +152,15 @@ func writePoint(ctx context.Context, api api.WriteAPIBlocking, pointData VegetaR
 	}
 
 	point := influxdb2.NewPoint(measureName, tags, fields, pointData.Timestamp)
-	_ = api.WritePoint(ctx, point)
+	err := api.WritePoint(ctx, point)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to WritePoint to influx db")
+	}
 }
 
 func cliSetup() *cobra.Command {
+
 	var rootCmd = &cobra.Command{
 		Use:   "influxdb-monitor",
 		Short: "Waits for a condition in InfluxDB to become True or an expiration time ",
@@ -120,34 +168,56 @@ func cliSetup() *cobra.Command {
 			pushData()
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
-			//Horrible hack (probably I'm missing something on how cobra/viper integration is supposed to work)
-			//I would expect to have viper populate params automatically (somehow that's not happening)
-			*Params.influxDbToken = viper.GetString("influxdb-token")
-			*Params.influxDbServer = viper.GetString("influxdb-url")
 		},
 	}
 
-	viper.BindEnv("influxdb-token", "INFLUX_TOKEN")
-	viper.BindEnv("influxdb-url", "INFLUX_URL")
-
-	Params.influxDbServer = rootCmd.Flags().StringP("influxdb-url", "u", "http://localhost:8086", "InfluxDB URL")
-	Params.influxDbToken = rootCmd.Flags().StringP("influxdb-token", "x", "", "InfluxDB access token")
-	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "InfluxDB organisation id")
-	Params.bucketName = rootCmd.Flags().StringP("bucket-name", "b", "vegeta", "Bucket where the metric is stored")
-	Params.measurement = rootCmd.Flags().StringP("measurement", "m", "request", "Name of the measurement (metric)")
+	flag.StringVarP(&Params.influxDbServer, "influxdb-url", "u", "http://localhost:8086", "InfluxDB URL")
+	flag.StringVarP(&Params.influxDbToken, "influxdb-token", "x", "", "InfluxDB access token")
+	flag.StringVarP(&Params.organisationId, "organisation", "o", "", "InfluxDB organisation id")
+	flag.StringVarP(&Params.bucketName, "bucket-name", "b", "vegeta", "Bucket where the metric is stored")
+	flag.StringVarP(&Params.measurement, "measurement", "m", "request", "Name of the measurement (metric)")
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
-	Params.input = rootCmd.Flags().StringP("input", "i", "", "Filname to use for input, default <stdin>")
-
-	flags := rootCmd.Flags()
-
-	viper.BindPFlag("influxdb-token", flags.Lookup("influxdb-token"))
-	viper.BindPFlag("influxdb-url", flags.Lookup("influxdb-url"))
+	flag.StringVarP(&Params.input, "input", "i", "", "File name to use for input, default <stdin>")
+	flag.StringVarP(&Params.logLevel, "log", "l", "info", "Log level: trace, info, warn, (error), fatal, panic")
+	rootCmd.Flags().BoolVarP(&Params.useColor, "color", "c", false, "Use color (only for console output).")
 
 	return rootCmd
 }
 
 func main() {
-	fmt.Println("Pushing data!!! ")
 	var rootCmd = cliSetup()
-	rootCmd.Execute()
+	initLogging()
+	log.Info().Msg("vegeta2influx started, parsing input...")
+	_ = rootCmd.Execute()
+}
+
+func initLogging() {
+	var consoleWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: !Params.useColor,
+		TimeFormat: "15:04:05"}
+	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
+
+	var logLevel zerolog.Level
+
+	switch strings.ToLower(Params.logLevel) {
+	case "t", "trc", "trace":
+		logLevel = zerolog.TraceLevel
+	case "d", "dbg", "debug":
+		logLevel = zerolog.DebugLevel
+	case "i", "inf", "info":
+		logLevel = zerolog.InfoLevel
+	case "w", "warn", "warning":
+		logLevel = zerolog.WarnLevel
+	case "e", "err", "error":
+		logLevel = zerolog.ErrorLevel
+	case "f", "fatal":
+		logLevel = zerolog.FatalLevel
+	case "p", "panic":
+		logLevel = zerolog.PanicLevel
+	case "dis", "disable", "disabled":
+		logLevel = zerolog.Disabled
+	default:
+		logLevel = zerolog.ErrorLevel
+	}
+
+	zerolog.SetGlobalLevel(logLevel)
 }
