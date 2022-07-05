@@ -129,10 +129,10 @@ func pushData() {
 		// Ensures background processes finishes
 		defer client.Close()
 	}
-	pushDataInternal(ctx, writeApi, inputFile, Params.measurement)
+	pushDataInternal(ctx, writeApi, inputFile, Params.measurement, Params.tags)
 }
 
-func pushDataInternal(ctx context.Context, writeApi api.WriteAPIBlocking, input io.Reader, measurement string) {
+func pushDataInternal(ctx context.Context, writeApi api.WriteAPIBlocking, input io.Reader, measurement string, tags map[string]string) {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		var pointData VegetaResult
@@ -143,7 +143,7 @@ func pushDataInternal(ctx context.Context, writeApi api.WriteAPIBlocking, input 
 			log.Error().Err(err).Msgf("Could not unmarshal response object into JSON, moving to the next one:\n %s", text)
 			continue
 		}
-		writePoint(ctx, writeApi, pointData, measurement, Params.tags)
+		writePoint(ctx, writeApi, pointData, measurement, tags)
 		log.Trace().Msgf("Wrote point captured at:%s", pointData.Timestamp)
 	}
 }
@@ -279,13 +279,11 @@ func parseTags(tagsRaw []string) map[string]string {
 	for _, tagRaw := range tagsRaw {
 		ss := strings.Split(tagRaw, "=")
 		if len(ss) != 2 {
-			log.Warn().Msgf("Could not parse tag %s it must be in the format: -t key=value")
+			log.Warn().Msgf("Could not parse tag %s it must be in the format: -t key=value", ss)
 			continue
 		} else {
 			retVal[ss[0]] = ss[1]
 		}
-
 	}
-
 	return retVal
 }
