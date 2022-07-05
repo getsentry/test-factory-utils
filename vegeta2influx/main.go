@@ -25,6 +25,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 type CliParams struct {
@@ -48,6 +49,9 @@ type CliParams struct {
 	input          string
 	useColor       bool
 	logLevel       string
+	tagsRaw        []string
+	//loaded from the result of parsing tagsRaw
+	tags map[string]string
 }
 
 var Params CliParams
@@ -84,6 +88,7 @@ func (api dryRunWriteAPIBlocking) WritePoint(_ context.Context, points ...*write
 }
 
 func pushData() {
+	ctx := context.Background()
 
 	if Params.dryRun {
 		log.Info().Msg("Dry Run, pretending to send messages:")
@@ -95,18 +100,16 @@ func pushData() {
 			"Measurement=%s\n",
 			Params.influxDbServer, Params.organisationId, Params.bucketName, Params.measurement)
 	}
-	file := os.Stdin
-	ctx := context.Background()
+	inputFile := os.Stdin
 	if len(Params.input) > 0 {
 		var err error
-		file, err = os.Open(Params.input)
+		inputFile, err = os.Open(Params.input)
 		if err != nil {
-			log.Error().Err(err).Msgf("Could not open file: %s", Params.input)
+			log.Error().Err(err).Msgf("Could not open inputFile: %s", Params.input)
 			return
 		}
-		defer func() { _ = file.Close() }()
+		defer func() { _ = inputFile.Close() }()
 	}
-	scanner := bufio.NewScanner(file)
 
 	var writeApi api.WriteAPIBlocking
 	if Params.dryRun {
@@ -126,6 +129,11 @@ func pushData() {
 		// Ensures background processes finishes
 		defer client.Close()
 	}
+	pushDataInternal(ctx, writeApi, inputFile, Params.measurement)
+}
+
+func pushDataInternal(ctx context.Context, writeApi api.WriteAPIBlocking, input io.Reader, measurement string) {
+	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		var pointData VegetaResult
 		text := scanner.Text()
@@ -135,19 +143,30 @@ func pushData() {
 			log.Error().Err(err).Msgf("Could not unmarshal response object into JSON, moving to the next one:\n %s", text)
 			continue
 		}
-		writePoint(ctx, writeApi, pointData, Params.measurement)
+		writePoint(ctx, writeApi, pointData, measurement, Params.tags)
 		log.Trace().Msgf("Wrote point captured at:%s", pointData.Timestamp)
 	}
 }
 
-func writePoint(ctx context.Context, api api.WriteAPIBlocking, pointData VegetaResult, measureName string) {
+func writePoint(ctx context.Context, api api.WriteAPIBlocking, pointData VegetaResult, measureName string, extraTags map[string]string) {
 
-	tags := map[string]string{
-		"attack": pointData.Attack,
-		"status": fmt.Sprintf("%d", pointData.Code),
+	var tags map[string]string
+	if extraTags != nil {
+		tags = make(map[string]string, len(extraTags)+2)
+		for k, v := range extraTags {
+			tags[k] = v
+		}
+	} else {
+		tags = make(map[string]string, 2)
 	}
+
+	tags["attack"] = pointData.Attack
+	tags["status"] = fmt.Sprintf("%d", pointData.Code)
+
 	fields := map[string]any{
-		"value": pointData.Latency,
+		"value":    pointData.Latency,
+		"bytesIn":  pointData.BytesIn,
+		"bytesOut": pointData.BytesOut,
 	}
 
 	point := influxdb2.NewPoint(measureName, tags, fields, pointData.Timestamp)
@@ -177,18 +196,41 @@ The date specified by the timestamp, the value will be latency field and attack 
 			pushData()
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
+			// viper variables come from environment and are overridden by cli params (exactly what we need)
+			// override the fields in Params with them
+			Params.influxDbToken = viper.GetString("token")
+			Params.influxDbServer = viper.GetString("url")
+			Params.organisationId = viper.GetString("org")
+			Params.bucketName = viper.GetString("bucket")
+			Params.measurement = viper.GetString("measurement")
+			Params.tags = parseTags(Params.tagsRaw)
 		},
 	}
 
-	flag.StringVarP(&Params.influxDbServer, "influxdb-url", "u", "http://localhost:8086", "InfluxDB URL")
-	flag.StringVarP(&Params.influxDbToken, "influxdb-token", "x", "", "InfluxDB access token")
-	flag.StringVarP(&Params.organisationId, "organisation", "o", "", "InfluxDB organisation id")
-	flag.StringVarP(&Params.bucketName, "bucket-name", "b", "vegeta", "Bucket where the metric is stored")
-	flag.StringVarP(&Params.measurement, "measurement", "m", "request", "Name of the measurement (metric)")
-	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
-	flag.StringVarP(&Params.input, "input", "i", "", "File name to use for input, default <stdin>")
-	flag.StringVarP(&Params.logLevel, "log", "l", "info", "Log level: trace, info, warn, (error), fatal, panic")
-	rootCmd.Flags().BoolVarP(&Params.useColor, "color", "c", false, "Use color (only for console output).")
+	rootCmd.PersistentFlags().StringVarP(&Params.influxDbServer, "influxdb-url", "u", "http://localhost:8086", "InfluxDB URL")
+	rootCmd.PersistentFlags().StringVarP(&Params.influxDbToken, "influxdb-token", "x", "", "InfluxDB access token")
+	rootCmd.PersistentFlags().StringVarP(&Params.organisationId, "organisation", "o", "", "InfluxDB organisation id")
+	rootCmd.PersistentFlags().StringVarP(&Params.bucketName, "bucket-name", "b", "vegeta", "Bucket where the metric is stored")
+	rootCmd.PersistentFlags().StringVarP(&Params.measurement, "measurement", "m", "request", "Name of the measurement (metric)")
+	rootCmd.PersistentFlags().BoolVarP(&Params.dryRun, "dry-run", "d", false, "dry-run mode")
+	rootCmd.PersistentFlags().StringVarP(&Params.input, "input", "i", "", "File name to use for input, default <stdin>")
+	rootCmd.PersistentFlags().StringVarP(&Params.logLevel, "log", "l", "info", "Log level: trace, info, warn, (error), fatal, panic")
+	rootCmd.PersistentFlags().BoolVarP(&Params.useColor, "color", "c", false, "Use color (only for console output).")
+	rootCmd.PersistentFlags().StringArrayVarP(&Params.tagsRaw, "tags", "t", []string{}, "Additional tags -t name=value -t n2=v2")
+
+	// bind env vars to viper vars
+	_ = viper.BindEnv("token", "VE2IN-TOKEN")
+	_ = viper.BindEnv("url", "VE2IN-URL")
+	_ = viper.BindEnv("org", "VE2IN-ORG")
+	_ = viper.BindEnv("bucket", "VE2IN-BUCKET")
+	_ = viper.BindEnv("measurement", "VE2IN-MEASUREMENT")
+
+	// bind flags to viper vars (will override environment variables)
+	_ = viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("influxdb-token"))
+	_ = viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("influxdb-url"))
+	_ = viper.BindPFlag("org", rootCmd.PersistentFlags().Lookup("organisation"))
+	_ = viper.BindPFlag("bucket", rootCmd.PersistentFlags().Lookup("bucket-name"))
+	_ = viper.BindPFlag("measurement", rootCmd.PersistentFlags().Lookup("measurement"))
 
 	return rootCmd
 }
@@ -229,4 +271,21 @@ func initLogging() {
 	}
 
 	zerolog.SetGlobalLevel(logLevel)
+}
+
+func parseTags(tagsRaw []string) map[string]string {
+	retVal := make(map[string]string)
+
+	for _, tagRaw := range tagsRaw {
+		ss := strings.Split(tagRaw, "=")
+		if len(ss) != 2 {
+			log.Warn().Msgf("Could not parse tag %s it must be in the format: -t key=value")
+			continue
+		} else {
+			retVal[ss[0]] = ss[1]
+		}
+
+	}
+
+	return retVal
 }
