@@ -101,11 +101,10 @@ func pushData() {
 		var err error
 		file, err = os.Open(Params.input)
 		if err != nil {
-			//TODO add logging
 			log.Error().Err(err).Msgf("Could not open file: %s", Params.input)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 	}
 	scanner := bufio.NewScanner(file)
 
@@ -162,8 +161,18 @@ func writePoint(ctx context.Context, api api.WriteAPIBlocking, pointData VegetaR
 func cliSetup() *cobra.Command {
 
 	var rootCmd = &cobra.Command{
-		Use:   "influxdb-monitor",
-		Short: "Waits for a condition in InfluxDB to become True or an expiration time ",
+		Use:   "vegeta2influx",
+		Short: "Converts vegeta json report outputs to influxdb metric insert requests",
+		Long: `Converts the output from a vegeta report into calls to insert metrics in InfluxDb
+
+The input should be a sequence of Json documents, one per line.
+This is what you get after a call to:  "vegeta attack --duration=1m | vegeta report".
+Each line which is a JSON document of the form:
+{"attack":"at1","seq":19,"code":200,"timestamp":"2022-07-04T17:52:06.096582044+02:00","latency":306656,"bytes_out":0,"bytes_in":0,"error":"","body":"..."}
+Will be converted into a call to insert a point into influxDb.
+The point inserted will have the name specified with the measurement CLI parameter
+The date specified by the timestamp, the value will be latency field and attack and status fields will be saved as tags. 
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			pushData()
 		},
