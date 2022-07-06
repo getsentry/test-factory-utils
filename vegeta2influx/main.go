@@ -219,11 +219,11 @@ The date specified by the timestamp, the value will be latency field and attack 
 	rootCmd.PersistentFlags().StringArrayVarP(&Params.tagsRaw, "tags", "t", []string{}, "Additional tags -t name=value -t n2=v2")
 
 	// bind env vars to viper vars
-	_ = viper.BindEnv("token", "VE2IN-TOKEN")
-	_ = viper.BindEnv("url", "VE2IN-URL")
-	_ = viper.BindEnv("org", "VE2IN-ORG")
-	_ = viper.BindEnv("bucket", "VE2IN-BUCKET")
-	_ = viper.BindEnv("measurement", "VE2IN-MEASUREMENT")
+	_ = viper.BindEnv("token", "VE2IN_TOKEN")
+	_ = viper.BindEnv("url", "VE2IN_URL")
+	_ = viper.BindEnv("org", "VE2IN_ORG")
+	_ = viper.BindEnv("bucket", "VE2IN_BUCKET")
+	_ = viper.BindEnv("measurement", "VE2IN_MEASUREMENT")
 
 	// bind flags to viper vars (will override environment variables)
 	_ = viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("influxdb-token"))
