@@ -21,6 +21,7 @@ import requests
 from utils import del_at
 from mongo_const import URL, SDK_REPORT_COLLECTION, REPORT_COLLECTION
 
+
 def main():
     client = MongoClient("localhost", 27017)
     db = client.main
@@ -31,7 +32,8 @@ def main():
         print("Could not access reports server")
 
     docs = resp.json()
-
+    # clear previous content
+    db.drop_collection(REPORT_COLLECTION)
     add_docs(db[REPORT_COLLECTION], docs)
 
     resp = requests.get(f"{URL}/api/reports?type=sdk")
@@ -40,10 +42,12 @@ def main():
         print("Could not access reports server")
 
     docs = resp.json()
+    db.drop_collection(SDK_REPORT_COLLECTION)
     add_docs(db[SDK_REPORT_COLLECTION], docs)
 
 
 def add_docs(collection, docs):
+    print(f"handling {len(docs)} documents.")
     for doc in docs:
         del_at(doc, "_id")
 

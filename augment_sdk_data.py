@@ -22,7 +22,7 @@ def main():
     # we have only 8 docs ( we create more of them)
     doc_iter = original.find().sort([("context.argo.creationTimestamp", pymongo.ASCENDING)])
     docs = [doc for doc in doc_iter]
-    for idx in range(12):
+    for idx in range(1):
         for doc in docs:
             doc = deepcopy(doc)
             next_delta = datetime.timedelta(days=random.randint(5, 17), hours=random.randint(3, 18))
@@ -56,17 +56,17 @@ def main():
                 }
             }
             # note currently we don't save dates it as MongoDb's ISODate but as a string (we probably should, if possible)
-            d_text = d.isoformat()[:19] + "Z"
-            d_text = d # use a proper date (for our tests)
-            set_at(doc, d_text, "context.argo.creationTimestamp")
-            set_at(doc, d_text, "context.argo.startTimestamp")
-            set_at(doc, d_text, "metadata.timeCreated.$date")
-            set_at(doc, d_text, "metadata.timeUpdated.$date")
-            set_at(doc, d_text, "metadata.commitDate")
-            set_at(doc, d_text, "context.argo.startTimestamp")
-            set_at(doc, measurements, "results.measurements")
+            # d_text = d.isoformat()[:19] + "Z"
+            # d_text = d # use a proper date (for our tests)
+            # set_at(doc, d_text, "context..argo..creationTimestamp")
+            # set_at(doc, d_text, "context..argo..startTimestamp")
+            # set_at(doc, d_text, "metadata..timeCreated..$date")
+            # set_at(doc, d_text, "metadata..timeUpdated..$date")
+            # set_at(doc, d_text, "metadata..commitDate")
+            # set_at(doc, d_text, "context..argo..startTimestamp")
+            set_at(doc, measurements, "results..measurements")
             version = {"name": "version", "value": next(v)}
-            append_at(doc, version, "metadata.labels")
+            append_at(doc, version, "metadata..labels")
 
             test_collection.insert_one(doc)
 
