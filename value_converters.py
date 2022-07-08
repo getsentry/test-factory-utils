@@ -2,7 +2,7 @@
 Contains value converters
 Value converters convert values based on a spec
 """
-
+import datetime
 from typing import Callable, Any
 from dateutil.parser import parse
 
@@ -11,7 +11,7 @@ from report_spec import ConverterSpec
 
 def _datetime_converter_generator(spec: ConverterSpec):
     def converter(val):
-        return parse(val)
+        return parse(val).astimezone(datetime.timezone.utc)
 
     return converter
 

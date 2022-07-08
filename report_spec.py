@@ -124,9 +124,13 @@ class RowExtractorSpec:
 class DataFrameSpec:
     mongo_collection: str
     mongo_filter: Any
+    mongo_sort: Any
     mongo_projection: Any
     columns: List[str]
     extractors: List[RowExtractorSpec]
+    # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
+    column_types: Optional[List[Optional[str]]] = None
+
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":

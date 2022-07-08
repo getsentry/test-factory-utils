@@ -68,7 +68,15 @@ def to_data_frame(coll_it, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     vals = {}
     for idx in range(len(spec.columns)):
         vals[spec.columns[idx]] = column_values[idx]
-    return pd.DataFrame(vals)
+    df = pd.DataFrame(vals)
+    # finally do any explicit column conversions if specified
+    if spec.column_types is not None:
+        for idx, data_type in spec.column_types:
+            if data_type is not None:
+                # we have an explicit column type conversion
+                column_name = spec.columns[idx]
+                df[column_name] = df[column_name].astype(data_type)
+    return df
 
 
 def load_data_frame(db, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
@@ -81,6 +89,8 @@ def load_data_frame(db, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     projection = spec.mongo_projection if spec.mongo_projection is not None else {}
 
     it = collection.find(query, projection)
+    if spec.mongo_sort:
+        it = it.sort(spec.mongo_sort)
     return to_data_frame(it, spec)
 
 
@@ -93,26 +103,45 @@ def get_sdk_size():
         mongo_collection="sdk_report2",
         mongo_filter={},
         mongo_projection={},
+        mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
         columns=["started", "version", "measurement", "value"],
         extractors=[
             RowExtractorSpec(
                 accepts_null=False,
                 columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]"),  # , converter=ConverterSpec(type="datetime")),
+                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
                     ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="full"),
-                    ValueExtractorSpec(path="results.measurements.sdk_size.full"),
+                    ValueExtractorSpec(value="mean"),
+                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-mean"'),
                 ]
             ),
             RowExtractorSpec(
                 accepts_null=False,
                 columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]"),  # , converter=ConverterSpec(type="datetime")),
+                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
                     ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="min"),
-                    ValueExtractorSpec(path="results.measurements.sdk_size.min"),
+                    ValueExtractorSpec(value="q05"),
+                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-0.5"'),
                 ]
-            )
+            ),
+            RowExtractorSpec(
+                accepts_null=False,
+                columns=[
+                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
+                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
+                    ValueExtractorSpec(value="q09"),
+                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-0.9"'),
+                ]
+            ),
+            RowExtractorSpec(
+                accepts_null=False,
+                columns=[
+                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
+                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
+                    ValueExtractorSpec(value="max"),
+                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-1.0"'),
+                ]
+            ),
         ],
     )
     return load_data_frame(get_db(), spec)
