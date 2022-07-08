@@ -15,14 +15,13 @@ import pandas as pd
 import datapane as dp
 import altair as alt
 
-# from mysql_data import get_sdk_size
 from mongo_data import get_sdk_size, get_performance_data
 from version import last_minor_releases
 
 
 def main():
     report = get_report()
-    report.save("sdk_performance.html", open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    report.save("sdk_performance_old.html", open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
 
 
 def get_report():
