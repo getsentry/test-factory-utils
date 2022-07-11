@@ -7,34 +7,13 @@ import jmespath
 import pandas as pd
 import pymongo
 
-from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec, ConverterSpec
-from utils import get_at
-from mongo_const import SDK_REPORT_TEST
+from report_spec import DataFrameSpec
 from value_converters import get_converter
 
 
 def get_db():
     client = pymongo.MongoClient("localhost", 27017)
     return client.main
-
-
-def get_collection():
-    db = get_db()
-    test_collection = db[SDK_REPORT_TEST]
-    return test_collection
-
-
-def get_version(labels):
-    versions = filter(lambda x: x.get("name") == "version", labels)
-    versions = list(versions)
-    if len(versions) > 0:
-        return versions[0].get("value")
-    return None
-
-
-def main():
-    sdk_size = get_sdk_size()
-    print(sdk_size)
 
 
 def to_data_frame(coll_it, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
@@ -99,102 +78,3 @@ def load_data_frame(db, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     if spec.mongo_sort:
         it = it.sort(spec.mongo_sort)
     return to_data_frame(it, spec)
-
-
-def fix_doc_dates(doc):
-    pass
-
-
-def get_sdk_size():
-    spec = DataFrameSpec(
-        mongo_collection="sdk_report2",
-        mongo_filter={},
-        mongo_projection={},
-        mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
-        columns=["started", "version", "measurement", "value"],
-        extractors=[
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
-                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="mean"),
-                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-mean"'),
-                ]
-            ),
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
-                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="q05"),
-                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-0.5"'),
-                ]
-            ),
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
-                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="q09"),
-                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-0.9"'),
-                ]
-            ),
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="metadata.labels[?name=='commit_date'].value|[0]", converter=ConverterSpec(type="datetime")),
-                    ValueExtractorSpec(path="metadata.labels[?name=='version'].value|[0]"),
-                    ValueExtractorSpec(value="max"),
-                    ValueExtractorSpec(path='results.measurements.cpu_usage."quantile-1.0"'),
-                ]
-            ),
-        ],
-    )
-    return load_data_frame(get_db(), spec)
-
-
-def get_sdk_size_old():
-    sizes = []
-    col = get_collection()
-    for doc in col.find().sort([("context.argo.creationTimestamp", pymongo.ASCENDING)]):
-        labels = get_at(doc, "metadata..labels")
-        version = get_version(labels)
-        started = get_at(doc, "metadata..commitDate")
-        full_val = get_at(doc, "results..measurements..sdk_size..full")
-        min_val = get_at(doc, "results..measurements..sdk_size..min")
-
-        sizes.append(get_measurement(version, started, "full", full_val))
-        sizes.append(get_measurement(version, started, "min", min_val))
-    df = pd.DataFrame(sizes)
-    return df
-
-
-def get_performance_data():
-    measurements = []
-    col = get_collection()
-    for doc in col.find().sort([("context.argo.creationTimestamp", pymongo.ASCENDING)]):
-        labels = get_at(doc, "metadata..labels")
-        version = get_version(labels)
-        started = get_at(doc, "metadata..commitDate")
-        cpu = get_at(doc, "results..measurements..cpu usage (cores)")
-        memory = get_at(doc, "results..measurements..memory_usage (Mb)")
-        num_messages = get_at(doc, "results..measurements..messages processed by consumer (/s)")
-
-        perf_data = {
-            "version": version,
-            "started": started,
-            "cpu": cpu,
-            "memory": memory,
-            "num_messages": num_messages
-        }
-        measurements.append(perf_data)
-    return measurements
-
-
-def get_measurement(version, started, measurement, val):
-    return {"started": started, "version": version, "measurement": measurement, "value": val}
-
-
-if __name__ == '__main__':
-    main()

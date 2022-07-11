@@ -9,6 +9,8 @@ from sdk_performance_datasets import get_cpu_usage, get_ram_usage
 from sdk_performance_graphs import trend_plot
 
 GCS_BUCKET_NAME ="sentry-testing-bucket-test-sdk-reports"
+
+
 def main():
     cpu_usage = get_cpu_usage()
     ram_usage = get_ram_usage()
@@ -34,6 +36,7 @@ def upload_to_gcs(file_name, bucket_name):
     with open(file_name, "rb") as my_file:
         blob.upload_from_file(my_file, content_type="text/html")
     print(f"Uploaded to GCS at: https://storage.cloud.google.com/{GCS_BUCKET_NAME}/{blob_file_name}")
+
 
 @dataclass
 class LastTwo:
