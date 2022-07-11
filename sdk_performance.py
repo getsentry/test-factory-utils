@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import List
+from datetime import datetime
 
 import datapane as dp
+from google.cloud import storage
 
 from sdk_performance_datasets import get_cpu_usage, get_ram_usage
 from sdk_performance_graphs import trend_plot
 
-
+GCS_BUCKET_NAME ="sentry-testing-bucket-test-sdk-reports"
 def main():
     cpu_usage = get_cpu_usage()
     ram_usage = get_ram_usage()
@@ -16,8 +18,22 @@ def main():
         last_release_page(cpu_usage, ram_usage),
     )
 
-    report.save("sdk_performance.html", open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    temp_filename = "sdk_performance.html"
+    report.save(temp_filename, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    upload_to_gcs(temp_filename, GCS_BUCKET_NAME)
 
+
+def upload_to_gcs(file_name, bucket_name):
+    date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
+    blob_file_name = f"python/django/sdk_report_{date_s}.html"
+    storage_client = storage.Client()
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_file_name)
+
+    with open(file_name, "rb") as my_file:
+        blob.upload_from_file(my_file, content_type="text/html")
+    print(f"Uploaded to GCS at: https://storage.cloud.google.com/{GCS_BUCKET_NAME}/{blob_file_name}")
 
 @dataclass
 class LastTwo:
