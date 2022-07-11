@@ -76,6 +76,13 @@ def to_data_frame(coll_it, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
                 # we have an explicit column type conversion
                 column_name = spec.columns[idx]
                 df[column_name] = df[column_name].astype(data_type)
+    if spec.dataframe_sort is not None:
+        column = spec.dataframe_sort
+        ascending = True
+        if spec.dataframe_sort.startswith("-"):
+            ascending = False
+            column = column[1:]
+        df.sort_values(by=[column], inplace=True, ascending=ascending)
     return df
 
 

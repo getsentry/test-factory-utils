@@ -10,6 +10,7 @@ def get_ram_usage() -> pd.DataFrame:
         mongo_collection="sdk_report",
         mongo_filter={},
         mongo_projection={},
+        dataframe_sort="commit_count",
         mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
         columns=["commit_date", "commit_count", "measurement", "value"],
         extractors=[
@@ -62,6 +63,7 @@ def get_cpu_usage() -> pd.DataFrame:
         mongo_filter={},
         mongo_projection={},
         mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
+        dataframe_sort="commit_count",
         columns=["commit_date", "commit_count", "measurement", "value"],
         extractors=[
             RowExtractorSpec(

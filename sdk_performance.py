@@ -16,7 +16,7 @@ def main():
         last_release_page(cpu_usage, ram_usage),
     )
 
-    report.save("sdk_performance.html", open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.FULL))
+    report.save("sdk_performance.html", open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
 
 
 @dataclass
@@ -71,13 +71,9 @@ Last release stats
         blocks=[
             intro,
             cpu_intro,
-            dp.Group(columns=len(measurements),
-                     blocks=memory_widgets
-                     ),
+            dp.Group(columns=2, blocks=memory_widgets),
             mem_intro,
-            dp.Group(columns=len(measurements),
-                     blocks=cpu_widgets
-                     ),
+            dp.Group(columns=2, blocks=cpu_widgets),
         ]
     )
 
@@ -109,7 +105,7 @@ def big_number(heading, current, previous, bigger_is_better):
         change_str = f"{change:.{2}}%"
     else:
         change = current
-        change_str = f"{change}"
+        change_str = f"{change:.{2}}"
 
     if (bigger_is_better and change >= 0) or (not bigger_is_better and change <= 0):
         positive_intent = True
@@ -117,6 +113,9 @@ def big_number(heading, current, previous, bigger_is_better):
         positive_intent = False
 
     upward_change = current >= previous
+
+    current = f"{current:.{4}}"
+    previous = f"{previous:.{4}}"
 
     return dp.BigNumber(
         heading=heading,

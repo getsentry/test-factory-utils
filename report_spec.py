@@ -123,14 +123,14 @@ class RowExtractorSpec:
 @dataclass
 class DataFrameSpec:
     mongo_collection: str
-    mongo_filter: Any
-    mongo_sort: Any
-    mongo_projection: Any
     columns: List[str]
     extractors: List[RowExtractorSpec]
     # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
     column_types: Optional[List[Optional[str]]] = None
-
+    mongo_filter: Any = None
+    mongo_sort: Any = None # mongo db cursor sort (use it if you can)
+    mongo_projection: Any = None
+    dataframe_sort: Optional[str] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":
