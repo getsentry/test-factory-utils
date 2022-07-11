@@ -1,0 +1,131 @@
+{
+  "_id": "62c5920a2fdc403fc3ae6e9b",
+  "apiVersion": "0.1",
+  "context": {
+    "argo": {
+      "creationTimestamp": "2020-09-09T13:17:00.000+0000",
+      "exports": {
+        "parameters": [
+          {
+            "name": "test_pod_name",
+            "value": "z-sdk-build-j578d-3044206171"
+          }
+        ]
+      },
+      "startTimestamp": "2020-09-09T13:17:00.000+0000",
+      "template": "z-sdk-build",
+      "workflowId": "a41040f1-5932-497e-8a01-27d9caed6c1f",
+      "workflowUrl": "https://run.testa.getsentry.net/archived-workflows/argo/a41040f1-5932-497e-8a01-27d9caed6c1f"
+    },
+    "parameters": [
+      {
+        "name": "sentry_sdk_version",
+        "value": "master"
+      },
+      {
+        "name": "platform",
+        "value": "python"
+      }
+    ],
+    "run": {
+      "endTimestamp": "2022-07-04T18:12:22Z",
+      "stageEndTimestamp": "2022-07-04T18:12:22Z",
+      "stageStartTimestamp": "2022-07-04T18:11:11Z",
+      "startTimestamp": "2022-07-04T18:11:11Z"
+    }
+  },
+  "metadata": {
+    "internalLabels": [
+    ],
+    "labels": [
+      {
+        "name": "runner",
+        "value": "argo-workflows"
+      },
+      {
+        "name": "workflowName",
+        "value": "z-sdk-build-j578d"
+      },
+      {
+        "name": "templateName",
+        "value": "z-sdk-build"
+      },
+      {
+        "name": "commit_sha",
+        "value": "5ea8d6bb55807ad2de17fff9b7547fedeaa6ca74"
+      },
+      {
+        "name": "commit_count",
+        "value": "1426"
+      },
+      {
+        "name": "commit_date",
+        "value": "2022-07-01 13:12:58 +0000"
+      },
+      {
+        "name": "platform",
+        "value": "python"
+      },
+      {
+        "name": "input_revision",
+        "value": "master"
+      },
+      {
+        "name": "is_default_branch",
+        "value": "1"
+      },
+      {
+        "name": "git_repo",
+        "value": "https://github.com/getsentry/sentry-python.git"
+      },
+      {
+        "name": "parentWorkflow",
+        "value": "z-sdk-build-j578d"
+      },
+      {
+        "name": "isChild",
+        "value": "1"
+      },
+      {
+        "name": "version",
+        "value": "0.1.0"
+      }
+    ],
+    "timeCreated": {
+      "$date": "2020-09-09T13:17:00.000+0000"
+    },
+    "timeUpdated": {
+      "$date": "2020-09-09T13:17:00.000+0000"
+    },
+    "commitDate": "2020-09-09T13:17:00.000+0000"
+  },
+  "name": "z-sdk-build-j578d-python-raw-test-send-periodic.py-0",
+  "raw": {
+  },
+  "results": {
+    "data": {
+    },
+    "measurements": {
+      "cpu usage (cores)": {
+        "0.9": 0.31147796035894604,
+        "0.99": 0.5314779603589461,
+        "max": 0.6414779603589461,
+        "median": 0.09147796035894606
+      },
+      "memory_usage (Mb)": {
+        "0.9": 131.9584585287821,
+        "0.99": 137.8584585287821,
+        "max": 149.25845852878209,
+        "median": 125.5584585287821
+      },
+      "messages processed by consumer (/s)": {
+        "max": 104.2844605632998,
+        "median": 83.2844605632998
+      },
+      "sdk_size": {
+        "full": 3638012,
+        "min": 2021118
+      }
+    }
+  }
+}
