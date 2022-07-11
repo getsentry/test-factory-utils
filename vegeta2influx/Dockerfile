@@ -27,7 +27,7 @@ RUN go build -o /vegeta2influx
 #  FINAL stage
 #
 FROM alpine:3.14 as final
-RUN apk --no-cache add bash
+RUN apk --no-cache add bash gettext
 COPY --from=build /vegeta2influx /usr/local/bin/vegeta2influx
 COPY --from=build /vegeta /usr/local/bin/vegeta
 
