@@ -5,10 +5,10 @@ from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec, Con
 import pymongo
 
 
-def get_ram_usage(db) -> pd.DataFrame:
+def get_ram_usage(db, mongo_filter) -> pd.DataFrame:
     spec = DataFrameSpec(
         mongo_collection="sdk_report",
-        mongo_filter={},
+        mongo_filter=mongo_filter,
         mongo_projection={},
         dataframe_sort="commit_count",
         mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
@@ -57,10 +57,10 @@ def get_ram_usage(db) -> pd.DataFrame:
     return ret_val
 
 
-def get_cpu_usage(db) -> pd.DataFrame:
+def get_cpu_usage(db, mongo_filter) -> pd.DataFrame:
     spec = DataFrameSpec(
         mongo_collection="sdk_report",
-        mongo_filter={},
+        mongo_filter=mongo_filter,
         mongo_projection={},
         mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
         dataframe_sort="commit_count",

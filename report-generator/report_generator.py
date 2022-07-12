@@ -15,10 +15,20 @@ from report_generator_graphs import trend_plot
 @click.option("--mongo-db", "-m", "mongo_url", envvar='MONGO_DB', required=True, help="url of mongo db (something like: 'mongodb://mongo-server/27017')")
 @click.option("--gcs-bucket-name", "-b", 'bucket_name', envvar='GCS_BUCKET_NAME', default="sentry-testing-bucket-test-sdk-reports", help="GCS bucket name for saving the report")
 @click.option("--report-name", "-r", envvar="REPORT_NAME", default="report.html", help="path to the name of the report file")
-def main(mongo_url, bucket_name, report_name):
+@click.option("--platform", "-p", envvar="PLATFORM", required=True, help="the platform used to extract the data")
+@click.option("--environment", "-e", envvar="ENVIRONMENT", required=True, help="the environment")
+@click.option("--git-sha", "-s", envvar="REFERENCE_SHA", required=True, help="the git sha of the version of interest")
+def main(mongo_url, bucket_name, report_name, platform, environment, git_sha):
     db = get_db(mongo_url)
-    cpu_usage = get_cpu_usage(db)
-    ram_usage = get_ram_usage(db)
+    mongo_filter = {
+        "$and": [
+            {"metadata.labels": {"$elemMatch": {"name": "platform", "value": platform}}},
+            {"metadata.labels": {"$elemMatch": {"name": "environment", "value": environment}}}
+        ]
+    }
+
+    cpu_usage = get_cpu_usage(db, mongo_filter)
+    ram_usage = get_ram_usage(db, mongo_filter)
 
     report = dp.Report(
         trends_page(cpu_usage, ram_usage),
@@ -53,7 +63,17 @@ def get_last_two(dataframe, measurements) -> List[LastTwo]:
     ret_val = []
     for measurement in measurements:
         last_two = dataframe[dataframe['measurement'].isin([measurement])].tail(2)['value'].tolist()
-        ret_val.append(LastTwo(name=measurement, current=last_two[1], previous=last_two[0]))
+        if len(last_two) == 0:
+            current = None
+            previous = None
+        elif len(last_two) == 1:
+            current = last_two[0]
+            previous = None
+        else:
+            current = last_two[1]
+            previous = last_two[0]
+
+        ret_val.append(LastTwo(name=measurement, current=current, previous=previous))
     return ret_val
 
 
@@ -123,32 +143,34 @@ SDK evolution.
 
 
 def big_number(heading, current, previous, bigger_is_better):
-    if previous != 0:
-        change = (current - previous) / previous * 100
-        change_str = f"{change:.{2}}%"
+    if previous is not None and current is not None:
+        if previous != 0:
+            change = (current - previous) / previous * 100
+            change_str = f"{change:.{2}}%"
+        else:
+            change = current
+            change_str = f"{change:.{2}}"
+
+        if (bigger_is_better and change >= 0) or (not bigger_is_better and change <= 0):
+            positive_intent = True
+        else:
+            positive_intent = False
+
+        upward_change = current >= previous
+
+        current = f"{current:.{4}}"
+        previous = f"{previous:.{4}}"
+
+        return dp.BigNumber(
+            heading=heading,
+            value=current,
+            change=change_str,
+            prev_value=previous,
+            is_positive_intent=positive_intent,
+            is_upward_change=upward_change
+        )
     else:
-        change = current
-        change_str = f"{change:.{2}}"
-
-    if (bigger_is_better and change >= 0) or (not bigger_is_better and change <= 0):
-        positive_intent = True
-    else:
-        positive_intent = False
-
-    upward_change = current >= previous
-
-    current = f"{current:.{4}}"
-    previous = f"{previous:.{4}}"
-
-    return dp.BigNumber(
-        heading=heading,
-        value=current,
-        change=change_str,
-        prev_value=previous,
-        is_positive_intent=positive_intent,
-        is_upward_change=upward_change
-    )
-
+        return dp.BigNumber(heading=heading, value=current if current is not None else "No Value")
 
 if __name__ == '__main__':
     main()
