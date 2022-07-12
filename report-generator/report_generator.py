@@ -6,7 +6,7 @@ import datapane as dp
 from google.cloud import storage
 
 from sdk_performance_datasets import get_cpu_usage, get_ram_usage
-from sdk_performance_graphs import trend_plot
+from report_generator_graphs import trend_plot
 
 GCS_BUCKET_NAME ="sentry-testing-bucket-test-sdk-reports"
 
@@ -21,8 +21,8 @@ def main():
     )
 
     temp_filename = "sdk_performance.html"
-    report.save(temp_filename, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
-    upload_to_gcs(temp_filename, GCS_BUCKET_NAME)
+    report.save(temp_filename,open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    # upload_to_gcs(temp_filename, GCS_BUCKET_NAME)
 
 
 def upload_to_gcs(file_name, bucket_name):
