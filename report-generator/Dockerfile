@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.8.12-alpine
+FROM python:3.8.12
 
-RUN apk --no-cache add bash
+RUN apt-get update
+RUN apt-get install build-essential
 
 WORKDIR /app
 
