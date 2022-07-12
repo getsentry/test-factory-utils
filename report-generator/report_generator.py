@@ -4,25 +4,29 @@ from datetime import datetime
 
 import datapane as dp
 from google.cloud import storage
+import click
 
+from mongo_data import get_db
 from sdk_performance_datasets import get_cpu_usage, get_ram_usage
 from report_generator_graphs import trend_plot
 
-GCS_BUCKET_NAME ="sentry-testing-bucket-test-sdk-reports"
 
-
-def main():
-    cpu_usage = get_cpu_usage()
-    ram_usage = get_ram_usage()
+@click.command()
+@click.option("--mongo-db", "-m", "mongo_url", envvar='MONGO_DB', required=True, help="url of mongo db (something like: 'mongodb://mongo-server/27017')")
+@click.option("--gcs-bucket-name", "-b", 'bucket_name', envvar='GCS_BUCKET_NAME', default="sentry-testing-bucket-test-sdk-reports", help="GCS bucket name for saving the report")
+@click.option("--report-name", "-r", envvar="REPORT_NAME", default="report.html", help="path to the name of the report file")
+def main(mongo_url, bucket_name, report_name):
+    db = get_db(mongo_url)
+    cpu_usage = get_cpu_usage(db)
+    ram_usage = get_ram_usage(db)
 
     report = dp.Report(
         trends_page(cpu_usage, ram_usage),
         last_release_page(cpu_usage, ram_usage),
     )
 
-    temp_filename = "sdk_performance.html"
-    report.save(temp_filename,open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
-    # upload_to_gcs(temp_filename, GCS_BUCKET_NAME)
+    report.save(report_name, open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    upload_to_gcs(report_name, bucket_name)
 
 
 def upload_to_gcs(file_name, bucket_name):
@@ -35,7 +39,7 @@ def upload_to_gcs(file_name, bucket_name):
 
     with open(file_name, "rb") as my_file:
         blob.upload_from_file(my_file, content_type="text/html")
-    print(f"Uploaded to GCS at: https://storage.cloud.google.com/{GCS_BUCKET_NAME}/{blob_file_name}")
+    print(f"Uploaded to GCS at: https://storage.cloud.google.com/{bucket_name}/{blob_file_name}")
 
 
 @dataclass

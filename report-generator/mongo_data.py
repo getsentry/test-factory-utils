@@ -7,12 +7,13 @@ import jmespath
 import pandas as pd
 import pymongo
 
+
 from report_spec import DataFrameSpec
 from value_converters import get_converter
 
 
-def get_db():
-    client = pymongo.MongoClient("localhost", 27017)
+def get_db(mongo_url):
+    client = pymongo.MongoClient(mongo_url)
     return client.main
 
 

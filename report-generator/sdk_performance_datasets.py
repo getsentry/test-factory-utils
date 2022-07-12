@@ -5,7 +5,7 @@ from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec, Con
 import pymongo
 
 
-def get_ram_usage() -> pd.DataFrame:
+def get_ram_usage(db) -> pd.DataFrame:
     spec = DataFrameSpec(
         mongo_collection="sdk_report",
         mongo_filter={},
@@ -52,12 +52,12 @@ def get_ram_usage() -> pd.DataFrame:
             ),
         ],
     )
-    ret_val = load_data_frame(get_db(), spec)
+    ret_val = load_data_frame(db, spec)
     ret_val.drop_duplicates(subset=["commit_count", "measurement"], inplace=True, keep='last')
     return ret_val
 
 
-def get_cpu_usage() -> pd.DataFrame:
+def get_cpu_usage(db) -> pd.DataFrame:
     spec = DataFrameSpec(
         mongo_collection="sdk_report",
         mongo_filter={},
@@ -104,6 +104,6 @@ def get_cpu_usage() -> pd.DataFrame:
             ),
         ],
     )
-    ret_val = load_data_frame(get_db(), spec)
+    ret_val = load_data_frame(db, spec)
     ret_val.drop_duplicates(subset=["commit_count", "measurement"], inplace=True, keep='last')
     return ret_val
