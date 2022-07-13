@@ -139,25 +139,41 @@ class RowExtractorSpec:
 
 
 @dataclass
-class DataFrameSpec:
+class DocStreamSpec:
     mongo_collection: str
+    mongo_filter: Any = None
+    mongo_sort: Any = None  # mongo db cursor sort (use it if you can)
+    mongo_projection: Any = None
+
+    @staticmethod
+    def from_dict(data) -> "DocStreamSpec":
+        mongo_collection = data.get("collection")
+        mongo_filter = data.get("mongo_filter")
+        return DocStreamSpec(mongo_collection=mongo_collection, mongo_filter=mongo_filter)
+
+
+@dataclass
+class DiffSpec:
+    base: DocStreamSpec
+    base_doc_filter: str
+    current: DocStreamSpec
+    current_doc_filter: str
+
+
+@dataclass
+class DataFrameSpec:
     columns: List[str]
     extractors: List[RowExtractorSpec]
     # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
     column_types: Optional[List[Optional[str]]] = None
-    mongo_filter: Any = None
-    mongo_sort: Any = None  # mongo db cursor sort (use it if you can)
-    mongo_projection: Any = None
     dataframe_sort: Optional[str] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":
-        mongo_collection = data.get("collection")
-        mongo_filter = data.get("mongo_filter")
         columns = data.get("columns", [])
         extractors_raw = data.get("extractors", [])
         extractors = [RowExtractorSpec.from_dict(extractors_raw) for extractor_raw in extractors_raw]
-        return DataFrameSpec(mongo_collection=mongo_collection, mongo_filter=mongo_filter, columns=columns, extractors=extractors)
+        return DataFrameSpec(columns=columns, extractors=extractors)
 
     def validate(self) -> bool:
         return True  # todo implement

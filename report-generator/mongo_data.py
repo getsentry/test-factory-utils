@@ -1,14 +1,13 @@
 """
 Testing data extraction from MongoDb
 """
-from typing import Optional
+from typing import Optional, List, Any
 
 import jmespath
 import pandas as pd
 import pymongo
 
-
-from report_spec import DataFrameSpec
+from report_spec import DataFrameSpec, DocStreamSpec
 from value_converters import get_converter
 
 
@@ -17,10 +16,10 @@ def get_db(mongo_url):
     return client.main
 
 
-def to_data_frame(coll_it, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
+def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     column_values = [[] for x in spec.columns]
 
-    for doc in coll_it:
+    for doc in docs:
         for extractor in spec.extractors:
             bad_sample = False
             temp_row = []
@@ -66,16 +65,24 @@ def to_data_frame(coll_it, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     return df
 
 
-def load_data_frame(db, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
-    if not spec.validate():
-        return None
+def labels_to_filter(labels):
+    if len(labels) > 0:
+        return {
+            "$and": [{"metadata.labels": {"$elemMatch": {"name": name, "value": value}}} for name, value in labels]
+        }
+    else:
+        return {}
 
-    collection = db[spec.mongo_collection]
 
-    query = spec.mongo_filter if spec.mongo_filter is not None else {}
-    projection = spec.mongo_projection if spec.mongo_projection is not None else {}
+def get_docs(db, labels) -> List[Any]:
+    """
+    Returns the mongo documents extracted for the particular label
+    """
+    mongo_filter = labels_to_filter(labels)
+    mongo_sort = [("metadata.timeUpdated", pymongo.ASCENDING)]
+    collection = db["sdk_report"]
 
-    it = collection.find(query, projection)
-    if spec.mongo_sort:
-        it = it.sort(spec.mongo_sort)
-    return to_data_frame(it, spec)
+    # for now materialize the cursor so we can reuse the collection in multiple
+    # extractions
+    coll = [c for c in collection.find(mongo_filter, {}).sort(mongo_sort)]
+    return coll

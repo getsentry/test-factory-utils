@@ -1,17 +1,12 @@
 import pandas as pd
 
-from mongo_data import load_data_frame, get_db
-from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec, ConverterSpec
-import pymongo
+from mongo_data import to_data_frame
+from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec, ConverterSpec, DocStreamSpec
 
 
-def get_ram_usage(db, mongo_filter) -> pd.DataFrame:
+def get_ram_usage(docs) -> pd.DataFrame:
     spec = DataFrameSpec(
-        mongo_collection="sdk_report",
-        mongo_filter=mongo_filter,
-        mongo_projection={},
         dataframe_sort="commit_count",
-        mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
         columns=["commit_date", "commit_count", "measurement", "value"],
         extractors=[
             RowExtractorSpec(
@@ -52,17 +47,13 @@ def get_ram_usage(db, mongo_filter) -> pd.DataFrame:
             ),
         ],
     )
-    ret_val = load_data_frame(db, spec)
+    ret_val = to_data_frame(docs, spec)
     ret_val.drop_duplicates(subset=["commit_count", "measurement"], inplace=True, keep='last')
     return ret_val
 
 
-def get_cpu_usage(db, mongo_filter) -> pd.DataFrame:
+def get_cpu_usage(docs) -> pd.DataFrame:
     spec = DataFrameSpec(
-        mongo_collection="sdk_report",
-        mongo_filter=mongo_filter,
-        mongo_projection={},
-        mongo_sort=[("metadata.timeUpdated", pymongo.ASCENDING)],
         dataframe_sort="commit_count",
         columns=["commit_date", "commit_count", "measurement", "value"],
         extractors=[
@@ -104,6 +95,6 @@ def get_cpu_usage(db, mongo_filter) -> pd.DataFrame:
             ),
         ],
     )
-    ret_val = load_data_frame(db, spec)
+    ret_val = to_data_frame(docs, spec)
     ret_val.drop_duplicates(subset=["commit_count", "measurement"], inplace=True, keep='last')
     return ret_val
