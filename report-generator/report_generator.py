@@ -96,7 +96,7 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
 
     filters_used = ""
     for name, value in filters:
-        filters_used += f"**{name}**='{value}'\n\n"
+        filters_used += f"**{name}**: '{value}'\n\n"
 
     content = f"""
 # About SDK report
