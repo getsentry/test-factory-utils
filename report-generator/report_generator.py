@@ -1,4 +1,4 @@
-from typing import  Mapping
+from typing import Mapping, List, Tuple
 from datetime import datetime
 
 import datapane as dp
@@ -7,6 +7,7 @@ from google.cloud import storage
 import click
 
 from mongo_data import get_db, get_docs
+import jmespath
 
 from sdk_performance_datasets import get_cpu_usage, get_ram_usage
 from report_generator_graphs import trend_plot
@@ -37,6 +38,7 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha):
     ram_usage_current = get_ram_usage(current_docs)
 
     report = dp.Report(
+        about_page(filters, git_sha, current_docs),
         trends_page(cpu_usage_trend, ram_usage_trend),
         last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
     )
@@ -65,6 +67,41 @@ def get_last(dataframe, measurements) -> Mapping[str, float]:
         if len(vals) > 0:
             ret_val[measurement] = vals.iloc[-1].value
     return ret_val
+
+
+def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
+    if len(current_docs) == 0:
+        current_doc_info = f"Test for commit:'{git_sha}' not found"
+    else:
+        current_doc = current_docs[-1]
+        commit_date = jmespath.search("metadata.labels[?name=='commit_date'].value|[0]", current_doc)
+        run_date = jmespath.search("context.run.startTimestamp", current_doc)
+        current_doc_info = f"""
+**commit:** '{git_sha}'
+
+**commit date:** '{commit_date}'
+
+**ran at:** '{run_date}'
+                
+"""
+
+    filters_used = ""
+    for name, value in filters:
+        filters_used += f"**{name}**='{value}'\n\n"
+
+    content = f"""
+# About SDK report
+
+## Filters used:
+{filters_used}
+
+## Current document info:
+{current_doc_info}
+"""
+    return dp.Page(
+        title="About",
+        blocks=[content]
+    )
 
 
 def last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current):
