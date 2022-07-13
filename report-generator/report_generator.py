@@ -43,13 +43,22 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha):
         last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
     )
 
-    report.save(report_name, open=True, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
-    # upload_to_gcs(report_name, bucket_name)
+    environment = "unknown-environment"
+    platform = "unknown-platform"
+
+    for key,value in filters:
+        if key == 'environment':
+            environment = value
+        if key == 'platform':
+            platform = value
+
+    report.save(report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    upload_to_gcs(report_name, environment, platform, bucket_name)
 
 
-def upload_to_gcs(file_name, bucket_name):
+def upload_to_gcs(file_name, environment, platform, bucket_name):
     date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
-    blob_file_name = f"python/django/sdk_report_{date_s}.html"
+    blob_file_name = f"{platform}/{environment}/sdk_report_{date_s}.html"
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
