@@ -160,7 +160,7 @@ Last release stats
 
 def trends_page(cpu_usage, ram_usage):
     text = """
-# SKD Trends
+# SDK Trends
 SDK evolution.
         """
 
