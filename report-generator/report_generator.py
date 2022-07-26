@@ -164,17 +164,32 @@ def trends_page(cpu_usage, ram_usage):
 SDK evolution.
         """
 
-    cpu_usage_plot = trend_plot(cpu_usage, x="commit_date", y="value", time_series="measurement", title="cpu usage")
-    ram_usage_plot = trend_plot(ram_usage, x="commit_date", y="value", time_series="measurement", title="mem_usage")
+    if cpu_usage.shape[0] == 0:
+        cpu_text = "# CPU info \nNo data found."
+        cpu_blocks = [dp.Text(cpu_text)]
+    else:
+        cpu_usage_plot = trend_plot(cpu_usage, x="commit_date:T", y="value:Q", time_series="measurement:N", title="cpu usage")
+        cpu_blocks = [
+            dp.Plot(cpu_usage_plot),
+            dp.DataTable(cpu_usage),
+        ]
+
+    if ram_usage.shape[0] == 0:
+        ram_text = "# RAM info \nNo data found."
+        ram_blocks = [dp.Text(ram_text)]
+    else:
+        ram_usage_plot = trend_plot(ram_usage, x="commit_date:T", y="value:Q", time_series="measurement:N", title="ram usage")
+        ram_blocks = [
+            dp.Plot(ram_usage_plot),
+            dp.DataTable(ram_usage),
+        ]
 
     return dp.Page(
         title="Trends",
         blocks=[
             text,
-            dp.Plot(cpu_usage_plot),
-            dp.DataTable(cpu_usage),
-            dp.Plot(ram_usage_plot),
-            dp.DataTable(ram_usage)
+            *cpu_blocks,
+            *ram_blocks,
         ]
     )
 
