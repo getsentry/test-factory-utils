@@ -38,16 +38,18 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload):
     ram_usage_trend = get_ram_usage(trend_docs)
     ram_usage_current = get_ram_usage(current_docs)
 
+    description = report_description(filters, git_sha)
+
     report = dp.Report(
+        trends_page(description, cpu_usage_trend, ram_usage_trend),
+        last_release_page(description, cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
         about_page(filters, git_sha, current_docs),
-        trends_page(cpu_usage_trend, ram_usage_trend),
-        last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
     )
 
     environment = "unknown-environment"
     platform = "unknown-platform"
 
-    for key,value in filters:
+    for key, value in filters:
         if key == 'environment':
             environment = value
         if key == 'platform':
@@ -56,6 +58,11 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload):
     report.save(report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
     if not no_upload:
         upload_to_gcs(report_name, environment, platform, bucket_name)
+
+
+def report_description(filters, git_sha):
+    filter_description = ", ".join(f"{name}: **{value}**" for name, value in filters)
+    return f"SDK report for commit: **{git_sha}** with filters: {filter_description}"
 
 
 def upload_to_gcs(file_name, environment, platform, bucket_name):
@@ -115,12 +122,13 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
     )
 
 
-def last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current):
-    intro = """
+def last_release_page(description: str, cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current):
+    intro = f"""
 # Last Release
 
 Last release stats
     
+{description}    
 """
     cpu_intro = "## Cpu Usage"
     mem_intro = "## Memory Usage"
@@ -160,10 +168,12 @@ Last release stats
     )
 
 
-def trends_page(cpu_usage, ram_usage):
-    text = """
+def trends_page(description: str, cpu_usage, ram_usage):
+    text = f"""
 # SDK Trends
 SDK evolution.
+
+{description}
         """
 
     if cpu_usage.shape[0] == 0:
