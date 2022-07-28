@@ -19,7 +19,8 @@ from report_generator_graphs import trend_plot
 @click.option("--report-name", "-r", envvar="REPORT_NAME", default="report.html", help="path to the name of the report file")
 @click.option("--filters", "-f", multiple=True, type=(str, str))
 @click.option("--git-sha", "-s", envvar="REFERENCE_SHA", required=True, help="the git sha of the version of interest")
-def main(mongo_url, bucket_name, report_name, filters, git_sha):
+@click.option("--no-upload", is_flag=True, help="if passed will not upload the report to GCS")
+def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload):
     db = get_db(mongo_url)
 
     trend_filters = [*filters, ("is_default_branch", "1")]
@@ -53,7 +54,8 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha):
             platform = value
 
     report.save(report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
-    upload_to_gcs(report_name, environment, platform, bucket_name)
+    if not no_upload:
+        upload_to_gcs(report_name, environment, platform, bucket_name)
 
 
 def upload_to_gcs(file_name, environment, platform, bucket_name):

@@ -28,6 +28,8 @@ def main():
         remote_collection = remote_db[collection]
 
         for doc in remote_collection.find():
+            del doc["_id"]
+            del doc["raw"]
             local_collection.insert_one(doc)
 
 
