@@ -1,5 +1,4 @@
-# WIP. Every image directory needs a new trigger that points to this Cloudbuild and sets a few overrides
-# test
+# The build triggers for all tools are defined in https://github.com/getsentry/test-factory/tree/main/terraform/sentry-st-testing/cloud-build
 
 # Expects the following substitution variables (can be passed from the trigger or from CLI):
 # * _BUILD_DIR  -- Build directory (normally where Dockerfile is located)
