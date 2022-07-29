@@ -1,5 +1,9 @@
 # WIP. Every image directory needs a new trigger that points to this Cloudbuild and sets a few overrides
 
+# Expects the following substitution variables (can be passed from the trigger or from CLI):
+# * _BUILD_DIR  -- Build directory (normally where Dockerfile is located)
+# * _IMAGE_NAME -- Image name (without tags) that is used for the given service/image
+
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
