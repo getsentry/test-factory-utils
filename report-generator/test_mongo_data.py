@@ -1,4 +1,3 @@
-import pytest
 from mongo_data import to_data_frame
 from report_spec import DataFrameSpec, ValueExtractorSpec, RowExtractorSpec
 
