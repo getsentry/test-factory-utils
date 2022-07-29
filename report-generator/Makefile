@@ -1,5 +1,5 @@
 test:
-	py.test test_*.py
+	py.test ./tests
 
 format:
 	black .
