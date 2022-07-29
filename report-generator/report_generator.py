@@ -125,7 +125,7 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
 **commit date:** '{commit_date}'
 
 **ran at:** '{run_date}'
-                
+
 """
 
     filters_used = ""
@@ -151,7 +151,7 @@ def last_release_page(
 # Last Release
 
 Last release stats
-    
+
 """
     cpu_intro = "## Cpu Usage"
     mem_intro = "## Memory Usage"
