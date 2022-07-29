@@ -7,7 +7,7 @@ import jmespath
 import pandas as pd
 import pymongo
 
-from report_spec import DataFrameSpec, DocStreamSpec
+from report_spec import DataFrameSpec
 from value_converters import get_converter
 
 
