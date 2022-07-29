@@ -14,11 +14,37 @@ from report_generator_graphs import trend_plot
 
 
 @click.command()
-@click.option("--mongo-db", "-m", "mongo_url", envvar='MONGO_DB', required=True, help="url of mongo db (something like: 'mongodb://mongo-server/27017')")
-@click.option("--gcs-bucket-name", "-b", 'bucket_name', envvar='GCS_BUCKET_NAME', default="sentry-testing-bucket-test-sdk-reports", help="GCS bucket name for saving the report")
-@click.option("--report-name", "-r", envvar="REPORT_NAME", default="report.html", help="path to the name of the report file")
+@click.option(
+    "--mongo-db",
+    "-m",
+    "mongo_url",
+    envvar="MONGO_DB",
+    required=True,
+    help="url of mongo db (something like: 'mongodb://mongo-server/27017')",
+)
+@click.option(
+    "--gcs-bucket-name",
+    "-b",
+    "bucket_name",
+    envvar="GCS_BUCKET_NAME",
+    default="sentry-testing-bucket-test-sdk-reports",
+    help="GCS bucket name for saving the report",
+)
+@click.option(
+    "--report-name",
+    "-r",
+    envvar="REPORT_NAME",
+    default="report.html",
+    help="path to the name of the report file",
+)
 @click.option("--filters", "-f", multiple=True, type=(str, str))
-@click.option("--git-sha", "-s", envvar="REFERENCE_SHA", required=True, help="the git sha of the version of interest")
+@click.option(
+    "--git-sha",
+    "-s",
+    envvar="REFERENCE_SHA",
+    required=True,
+    help="the git sha of the version of interest",
+)
 def main(mongo_url, bucket_name, report_name, filters, git_sha):
     db = get_db(mongo_url)
 
@@ -40,19 +66,23 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha):
     report = dp.Report(
         about_page(filters, git_sha, current_docs),
         trends_page(cpu_usage_trend, ram_usage_trend),
-        last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
+        last_release_page(
+            cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current
+        ),
     )
 
     environment = "unknown-environment"
     platform = "unknown-platform"
 
-    for key,value in filters:
-        if key == 'environment':
+    for key, value in filters:
+        if key == "environment":
             environment = value
-        if key == 'platform':
+        if key == "platform":
             platform = value
 
-    report.save(report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM))
+    report.save(
+        report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM)
+    )
     upload_to_gcs(report_name, environment, platform, bucket_name)
 
 
@@ -66,13 +96,15 @@ def upload_to_gcs(file_name, environment, platform, bucket_name):
 
     with open(file_name, "rb") as my_file:
         blob.upload_from_file(my_file, content_type="text/html")
-    print(f"Uploaded to GCS at: https://storage.cloud.google.com/{bucket_name}/{blob_file_name}")
+    print(
+        f"Uploaded to GCS at: https://storage.cloud.google.com/{bucket_name}/{blob_file_name}"
+    )
 
 
 def get_last(dataframe, measurements) -> Mapping[str, float]:
     ret_val = {}
     for measurement in measurements:
-        vals = dataframe[dataframe['measurement'].isin([measurement])]
+        vals = dataframe[dataframe["measurement"].isin([measurement])]
         if len(vals) > 0:
             ret_val[measurement] = vals.iloc[-1].value
     return ret_val
@@ -83,7 +115,9 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
         current_doc = current_docs[-1]
-        commit_date = jmespath.search("metadata.labels[?name=='commit_date'].value|[0]", current_doc)
+        commit_date = jmespath.search(
+            "metadata.labels[?name=='commit_date'].value|[0]", current_doc
+        )
         run_date = jmespath.search("context.run.startTimestamp", current_doc)
         current_doc_info = f"""
 **commit:** '{git_sha}'
@@ -107,13 +141,12 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
 ## Current document info:
 {current_doc_info}
 """
-    return dp.Page(
-        title="About",
-        blocks=[content]
-    )
+    return dp.Page(title="About", blocks=[content])
 
 
-def last_release_page(cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current):
+def last_release_page(
+    cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current
+):
     intro = """
 # Last Release
 
@@ -134,17 +167,23 @@ Last release stats
     cpu_widgets = []
 
     for measurement in measurements:
-        memory_widgets.append(big_number(
-            heading=measurement,
-            current=memory_current.get(measurement),
-            previous=memory_trend.get(measurement),
-            bigger_is_better=False))
+        memory_widgets.append(
+            big_number(
+                heading=measurement,
+                current=memory_current.get(measurement),
+                previous=memory_trend.get(measurement),
+                bigger_is_better=False,
+            )
+        )
 
-        cpu_widgets.append(big_number(
-            heading=measurement,
-            current=cpu_current.get(measurement),
-            previous=cpu_trend.get(measurement),
-            bigger_is_better=False))
+        cpu_widgets.append(
+            big_number(
+                heading=measurement,
+                current=cpu_current.get(measurement),
+                previous=cpu_trend.get(measurement),
+                bigger_is_better=False,
+            )
+        )
 
     return dp.Page(
         title="Last Release",
@@ -154,7 +193,7 @@ Last release stats
             dp.Group(columns=2, blocks=memory_widgets),
             mem_intro,
             dp.Group(columns=2, blocks=cpu_widgets),
-        ]
+        ],
     )
 
 
@@ -168,7 +207,13 @@ SDK evolution.
         cpu_text = "# CPU info \nNo data found."
         cpu_blocks = [dp.Text(cpu_text)]
     else:
-        cpu_usage_plot = trend_plot(cpu_usage, x="commit_date:T", y="value:Q", time_series="measurement:N", title="cpu usage")
+        cpu_usage_plot = trend_plot(
+            cpu_usage,
+            x="commit_date:T",
+            y="value:Q",
+            time_series="measurement:N",
+            title="cpu usage",
+        )
         cpu_blocks = [
             dp.Plot(cpu_usage_plot),
             dp.DataTable(cpu_usage),
@@ -178,7 +223,13 @@ SDK evolution.
         ram_text = "# RAM info \nNo data found."
         ram_blocks = [dp.Text(ram_text)]
     else:
-        ram_usage_plot = trend_plot(ram_usage, x="commit_date:T", y="value:Q", time_series="measurement:N", title="ram usage")
+        ram_usage_plot = trend_plot(
+            ram_usage,
+            x="commit_date:T",
+            y="value:Q",
+            time_series="measurement:N",
+            title="ram usage",
+        )
         ram_blocks = [
             dp.Plot(ram_usage_plot),
             dp.DataTable(ram_usage),
@@ -190,7 +241,7 @@ SDK evolution.
             text,
             *cpu_blocks,
             *ram_blocks,
-        ]
+        ],
     )
 
 
@@ -219,14 +270,15 @@ def big_number(heading, current, previous, bigger_is_better):
             change=change_str,
             prev_value=previous,
             is_positive_intent=positive_intent,
-            is_upward_change=upward_change
+            is_upward_change=upward_change,
         )
     else:
-        return dp.BigNumber(heading=heading,
-                            value=f"{current:.{4}}" if current is not None else "No Value",
-                            prev_value=f"{previous:.{4}}" if previous is not None else "No Value",
-                            )
+        return dp.BigNumber(
+            heading=heading,
+            value=f"{current:.{4}}" if current is not None else "No Value",
+            prev_value=f"{previous:.{4}}" if previous is not None else "No Value",
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

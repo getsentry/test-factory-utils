@@ -186,9 +186,7 @@ def del_at(obj, *args) -> bool:
 
 
 def _get_at_path(obj, path: List[Union[str, int]], default) -> Any:
-    """
-
-    """
+    """ """
     if path is None or len(path) == 0:
         return obj
 

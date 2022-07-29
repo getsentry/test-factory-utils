@@ -26,7 +26,9 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
             for value_extractor in extractor.columns:
                 if value_extractor.path is not None:
                     if value_extractor.compiledPath is None:
-                        value_extractor.compiledPath = jmespath.compile(value_extractor.path)
+                        value_extractor.compiledPath = jmespath.compile(
+                            value_extractor.path
+                        )
                     value = value_extractor.compiledPath.search(doc)
                     if value_extractor.converter is not None:
                         converter = value_extractor.converter
@@ -68,7 +70,10 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
 def labels_to_filter(labels):
     if len(labels) > 0:
         return {
-            "$and": [{"metadata.labels": {"$elemMatch": {"name": name, "value": value}}} for name, value in labels]
+            "$and": [
+                {"metadata.labels": {"$elemMatch": {"name": name, "value": value}}}
+                for name, value in labels
+            ]
         }
     else:
         return {}

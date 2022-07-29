@@ -71,7 +71,9 @@ class GroupSpec:
     def from_dict(data):
         data = data.copy()
         contents_raw = data.get("contents", [])
-        data['contents'] = [dict_to_basic_unit(element_raw) for element_raw in contents_raw]
+        data["contents"] = [
+            dict_to_basic_unit(element_raw) for element_raw in contents_raw
+        ]
         GroupSpec(**data)
 
 
@@ -84,7 +86,9 @@ class PageSpec:
     def from_dict(data) -> "PageSpec":
         data = data.copy()
         elements_raw = data.get("elements", [])
-        data["elements"] = [dict_to_basic_unit(element_raw) for element_raw in elements_raw]
+        data["elements"] = [
+            dict_to_basic_unit(element_raw) for element_raw in elements_raw
+        ]
         return PageSpec(**data)
 
 
@@ -134,7 +138,9 @@ class RowExtractorSpec:
     def from_dict(data) -> "RowExtractorSpec":
         accepts_null = data.get("accepts_null", False)
         columns_raw = data.get("columns", [])
-        columns = [ValueExtractorSpec.from_dict(column_raw) for column_raw in columns_raw]
+        columns = [
+            ValueExtractorSpec.from_dict(column_raw) for column_raw in columns_raw
+        ]
         return RowExtractorSpec(accepts_null=accepts_null, columns=columns)
 
 
@@ -149,7 +155,9 @@ class DocStreamSpec:
     def from_dict(data) -> "DocStreamSpec":
         mongo_collection = data.get("collection")
         mongo_filter = data.get("mongo_filter")
-        return DocStreamSpec(mongo_collection=mongo_collection, mongo_filter=mongo_filter)
+        return DocStreamSpec(
+            mongo_collection=mongo_collection, mongo_filter=mongo_filter
+        )
 
 
 @dataclass
@@ -166,13 +174,18 @@ class DataFrameSpec:
     extractors: List[RowExtractorSpec]
     # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
     column_types: Optional[List[Optional[str]]] = None
-    dataframe_sort: Optional[str] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+    dataframe_sort: Optional[
+        str
+    ] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":
         columns = data.get("columns", [])
         extractors_raw = data.get("extractors", [])
-        extractors = [RowExtractorSpec.from_dict(extractors_raw) for extractor_raw in extractors_raw]
+        extractors = [
+            RowExtractorSpec.from_dict(extractors_raw)
+            for extractor_raw in extractors_raw
+        ]
         return DataFrameSpec(columns=columns, extractors=extractors)
 
     def validate(self) -> bool:
@@ -189,7 +202,10 @@ class ReportSpec:
         pages_raw = data.get("pages", [])
         pages = [PageSpec.from_dict(page_raw) for page_raw in pages_raw]
         data_frames_raw = data.get("data_frames", [])
-        data_frames = [DataFrameSpec.from_dict(data_frame_raw) for data_frame_raw in data_frames_raw]
+        data_frames = [
+            DataFrameSpec.from_dict(data_frame_raw)
+            for data_frame_raw in data_frames_raw
+        ]
         return ReportSpec(pages=pages, data_frames=data_frames)
 
 
@@ -198,5 +214,5 @@ _basic_unit_dispatch = {
     "text": TextSpec,
     "plot": PlotSpec,
     "table": TableSpec,
-    "bigNumber": BigNumberSpec
+    "bigNumber": BigNumberSpec,
 }

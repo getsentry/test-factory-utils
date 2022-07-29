@@ -13,8 +13,12 @@ def trend_plot(data_frame, x, y, time_series, title):
     dots = chart.mark_point()
     line = chart.mark_line()
 
-    return alt.layer(dots, line).properties(
-        width=850,
-        height=400,
-        title=title,
-    ).interactive()
+    return (
+        alt.layer(dots, line)
+        .properties(
+            width=850,
+            height=400,
+            title=title,
+        )
+        .interactive()
+    )
