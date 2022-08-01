@@ -6,28 +6,19 @@ import datetime
 from typing import Callable, Any
 from dateutil.parser import parse
 
-from report_spec import ConverterSpec
+
+def datetime_converter(val):
+    return parse(val).astimezone(datetime.timezone.utc)
 
 
-def _datetime_converter_generator(spec: ConverterSpec):
-    def converter(val):
-        return parse(val).astimezone(datetime.timezone.utc)
-
-    return converter
-
-
-def ident_generator(spec):
-    def ident(val):
-        return val
-
-    return ident
+def ident(val):
+    return val
 
 
 _converter_generator = {
-    "datetime": _datetime_converter_generator,
+    "datetime": datetime_converter,
 }
 
 
-def get_converter(spec: ConverterSpec) -> Callable[[Any], Any]:
-    gen = _converter_generator.get(spec.type, ident_generator)
-    return gen(spec)
+def get_converter(name: str) -> Callable[[Any], Any]:
+    return _converter_generator.get(name, ident)

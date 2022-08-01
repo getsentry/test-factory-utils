@@ -7,7 +7,7 @@ import jmespath
 import pandas as pd
 import pymongo
 
-from report_spec import DataFrameSpec, DocStreamSpec
+from report_spec import DataFrameSpec
 from value_converters import get_converter
 
 
@@ -25,9 +25,9 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
             temp_row = []
             for value_extractor in extractor.columns:
                 if value_extractor.path is not None:
-                    if value_extractor.compiledPath is None:
-                        value_extractor.compiledPath = jmespath.compile(value_extractor.path)
-                    value = value_extractor.compiledPath.search(doc)
+                    if value_extractor.compiled_path is None:
+                        value_extractor.compiled_path = jmespath.compile(value_extractor.path)
+                    value = value_extractor.compiled_path.search(doc)
                     if value_extractor.converter is not None:
                         converter = value_extractor.converter
                         if converter.func is None:
@@ -56,12 +56,16 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
                 column_name = spec.columns[idx]
                 df[column_name] = df[column_name].astype(data_type)
     if spec.dataframe_sort is not None:
-        column = spec.dataframe_sort
-        ascending = True
-        if spec.dataframe_sort.startswith("-"):
-            ascending = False
-            column = column[1:]
-        df.sort_values(by=[column], inplace=True, ascending=ascending)
+        columns = []
+        sort_order = []
+        for column in spec.dataframe_sort:
+            ascending = True
+            if column.startswith("-"):
+                ascending = False
+                column = column[1:]
+            columns.append(column)
+            sort_order.append(ascending)
+        df.sort_values(by=columns, inplace=True, ascending=sort_order)
     return df
 
 

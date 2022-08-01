@@ -1,0 +1,58 @@
+pages:
+  - title: page 1
+    elements:
+      - type: group
+        name: g1
+        label: l1
+        columns: 3
+        content:
+          - type: text
+            content: g1-t1
+
+      - type: text
+        content: some text
+
+      - type: plot
+        name: the-plot
+        caption: the-plot-caption
+        responsive: true
+        params: { 'a': 1 }
+
+      - type: table
+        caption: the-table-caption
+        label: the-table-label
+        name: the-table
+        data_frame: the-table-data-frame
+
+      - type: bigNumber
+        caption: the-big-number-caption
+        label: the-big-number-label
+        name: the-big-number
+        data_frame: the-big-number-data-frame
+        extractor: the-big-number-extractor
+        params: { 'a': 1 }
+data_frames:
+  - name: first-data-frame
+    columns: [ c1, c2,c3 ]
+    column_types: [float, int ,str]
+    dataframe_sort: [c1,c2,-c3]
+    extractors:
+          - accepts_null: false
+            columns:
+              - path: path1
+              - value: inline-value1
+                converter_name: converter1
+              - name: value-extractor1
+          - accepts_null: true
+            columns:
+              - path: path2
+              - value: inline-value2
+              - name: value-extractor2
+value_extractors:
+  - name: value-extractor1
+    path: extractor-path
+    converter_name: converter2
+  - name: value-extractor2
+    value: v2
+
+

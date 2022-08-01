@@ -9,7 +9,8 @@ import click
 from mongo_data import get_db, get_docs
 import jmespath
 
-from sdk_performance_datasets import get_cpu_usage, get_ram_usage
+from report_spec import read_spec
+from sdk_performance_datasets import get_cpu_usage, get_ram_usage, get_data_frame
 from report_generator_graphs import trend_plot
 
 
@@ -20,8 +21,11 @@ from report_generator_graphs import trend_plot
 @click.option("--filters", "-f", multiple=True, type=(str, str))
 @click.option("--git-sha", "-s", envvar="REFERENCE_SHA", required=True, help="the git sha of the version of interest")
 @click.option("--no-upload", is_flag=True, help="if passed will not upload the report to GCS")
-def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload):
+@click.option("--config", "-c", "spec_file_name", required=True, help="the file name for the report specification")
+def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, spec_file_name):
     db = get_db(mongo_url)
+
+    spec = read_spec(spec_file_name)
 
     trend_filters = [*filters, ("is_default_branch", "1")]
     current_filters = [*filters, ("commit_sha", git_sha)]
@@ -32,11 +36,20 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload):
     # we only need the last doc
     current_docs = current_docs[-1:]
 
-    cpu_usage_trend = get_cpu_usage(trend_docs)
-    cpu_usage_current = get_cpu_usage(current_docs)
+    cpu_spec = None
+    ram_spec = None
 
-    ram_usage_trend = get_ram_usage(trend_docs)
-    ram_usage_current = get_ram_usage(current_docs)
+    for df_spec in spec.data_frames:
+        if df_spec.name == "cpu_usage":
+            cpu_spec = df_spec
+        elif df_spec.name == "ram_usage":
+            ram_spec = df_spec
+
+    cpu_usage_trend = get_data_frame(trend_docs, cpu_spec)
+    cpu_usage_current = get_data_frame(current_docs, cpu_spec)
+
+    ram_usage_trend = get_data_frame(trend_docs, ram_spec)
+    ram_usage_current = get_data_frame(current_docs, ram_spec)
 
     description = report_description(filters, git_sha)
 
