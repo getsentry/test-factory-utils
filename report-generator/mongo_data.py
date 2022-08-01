@@ -82,7 +82,7 @@ def get_docs(db, labels) -> List[Any]:
     mongo_sort = [("metadata.timeUpdated", pymongo.ASCENDING)]
     collection = db["sdk_report"]
 
-    # for now materialize the cursor so we can reuse the collection in multiple
+    # for now materialize the cursor so that we can reuse the collection in multiple
     # extractions
     coll = [c for c in collection.find(mongo_filter, {}).sort(mongo_sort)]
     return coll
