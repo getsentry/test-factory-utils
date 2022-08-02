@@ -77,12 +77,11 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, spec_
     ram_usage_trend = get_data_frame(trend_docs, ram_spec)
     ram_usage_current = get_data_frame(current_docs, ram_spec)
 
-    description = report_description(filters, git_sha)
+    introduction = intro(filters, git_sha, current_docs)
 
     report = dp.Report(
-        trends_page(description, cpu_usage_trend, ram_usage_trend),
-        last_release_page(description, cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
-        about_page(filters, git_sha, current_docs),
+        last_release_page(introduction, cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current),
+        trends_page(cpu_usage_trend, ram_usage_trend),
     )
 
     environment = "unknown-environment"
@@ -130,7 +129,7 @@ def get_last(dataframe, measurements) -> Mapping[str, float]:
     return ret_val
 
 
-def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
+def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs)->str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
@@ -139,12 +138,19 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
             "metadata.labels[?name=='commit_date'].value|[0]", current_doc
         )
         run_date = jmespath.search("context.run.startTimestamp", current_doc)
+
+        dashboard_link = jmespath.search("results.data.dashboard_link", current_doc)
+        argo_link = jmespath.search("context.argo.workflowUrl", current_doc)
         current_doc_info = f"""
 **commit:** '{git_sha}'
 
 **commit date:** '{commit_date}'
 
 **ran at:** '{run_date}'
+
+## Grafana [dashboard]({dashboard_link})
+
+## Argo [workflow]({argo_link})
 
 """
 
@@ -161,17 +167,17 @@ def about_page(filters: List[Tuple[str, str]], git_sha: str, current_docs):
 ## Current document info:
 {current_doc_info}
 """
-    return dp.Page(title="About", blocks=[content])
+    return content
 
 
 def last_release_page(
     description: str, cpu_usage_trend, cpu_usage_current, ram_usage_trend, ram_usage_current):
     intro = f"""
+{description}
 # Last Release
 
 Last release stats
 
-{description}
 """
     cpu_intro = "## Cpu Usage"
     mem_intro = "## Memory Usage"
@@ -217,12 +223,11 @@ Last release stats
     )
 
 
-def trends_page(description: str, cpu_usage, ram_usage):
+def trends_page( cpu_usage, ram_usage):
     text = f"""
 # SDK Trends
 SDK evolution.
 
-{description}
         """
 
     if cpu_usage.shape[0] == 0:
