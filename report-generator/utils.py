@@ -97,7 +97,7 @@ def _set_at_path(obj, val, path: List[Union[str, int]]) -> bool:
     elif isinstance(obj, abc.MutableSequence):
         try:
             first = int(first)
-        except:
+        except Exception:
             return False  # trying to set a non int index into a sequence
 
         # ensure enough space in array
@@ -125,7 +125,7 @@ def _create_new(val, path):
 
     try:
         first = int(first)
-    except:
+    except Exception:
         pass  # tried to see if we have an array index
 
     if isinstance(first, int):
@@ -180,7 +180,7 @@ def del_at(obj, *args) -> bool:
         if sub_obj is not None and path[-1] in sub_obj:
             del sub_obj[path[-1]]
             return True
-    except:
+    except Exception:
         return False
     return False
 
@@ -212,7 +212,7 @@ def _navigate(obj, idx: Union[str, int], default):
             if idx < len(obj):
                 return obj[idx]
             return default
-        except:
+        except Exception:
             return default
 
     return default

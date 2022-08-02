@@ -41,7 +41,7 @@ def get_versions(version_strings: Sequence[str]) -> List[Version]:
             s = ver_str.split(".")
 
             return Version(int(s[0]), int(s[1]), int(s[2]))
-        except:
+        except Exception:
             return None
 
     ret_val = []
@@ -121,5 +121,5 @@ def _split_version(release: str):
     r = release.split(".")
     try:
         return f"{r[0]}.{r[1]}", int(r[2])
-    except:
+    except Exception:
         return None, None

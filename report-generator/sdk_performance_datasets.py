@@ -6,7 +6,6 @@ from report_spec import (
     RowExtractorSpec,
     ValueExtractorSpec,
     ConverterSpec,
-    DocStreamSpec,
 )
 
 
