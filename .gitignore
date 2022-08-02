@@ -41,3 +41,6 @@ logfiles/
 **/yarn-error.log*
 **/.pnp
 **/.pnp.js
+
+# Vim
+.*.swp

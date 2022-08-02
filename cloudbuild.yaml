@@ -1,0 +1,27 @@
+# The build triggers for all tools are defined in https://github.com/getsentry/test-factory/tree/main/terraform/sentry-st-testing/cloud-build
+
+# Expects the following substitution variables (can be passed from the trigger or from CLI):
+# * _BUILD_DIR  -- Build directory (normally where Dockerfile is located)
+# * _IMAGE_NAME -- Image name (without tags) that is used for the given service/image
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args: [
+    '-c',
+    'docker pull ${_IMAGE_NAME}:buildcache || true',
+  ]
+- name: 'gcr.io/cloud-builders/docker'
+  dir: "${_BUILD_DIR}"
+  args: [
+    'build',
+    '-t', '${_IMAGE_NAME}:buildcache',
+    '-t', '${_IMAGE_NAME}:$COMMIT_SHA',
+    '--cache-from', '${_IMAGE_NAME}:buildcache',
+    '.'
+  ]
+images: [
+    '${_IMAGE_NAME}:buildcache',
+    '${_IMAGE_NAME}:$COMMIT_SHA',
+  ]
+timeout: 3600s

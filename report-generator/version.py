@@ -61,18 +61,27 @@ def get_versions(version_strings: Sequence[str]) -> List[Version]:
     return ret_val
 
 
-def get_previous(v: Version, vs: Sequence[Version], level: VersionLevel) -> Optional[Version]:
+def get_previous(
+    v: Version, vs: Sequence[Version], level: VersionLevel
+) -> Optional[Version]:
     candidate = None
     if level == VersionLevel.Major:
+
         def test(v, elm):
             return v.major > elm.major
+
     elif level == VersionLevel.Minor:
+
         def test(v, elm):
             return v.major == elm.major and v.minor > elm.minor
+
     elif level == VersionLevel.Patch:
+
         def test(v, elm):
             return v.major == elm.major and v.minor == elm.minor and v.patch > elm.patch
+
     else:
+
         def test(_v, _elm):
             return False
 
