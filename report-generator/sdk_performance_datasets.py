@@ -1,7 +1,7 @@
 import pandas as pd
 
 from mongo_data import to_data_frame
-from report_spec import DataFrameSpec, RowExtractorSpec, ValueExtractorSpec
+from report_spec import   DataFrameSpec
 
 
 def get_data_frame(docs, spec: DataFrameSpec) -> pd.DataFrame:
