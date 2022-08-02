@@ -35,6 +35,7 @@ data_frames:
   - name: cpu_usage
     columns: [ "commit_date", "commit_count","measurement", "value" ]
     dataframe_sort: ["commit_count"]
+    unique_columns: ["commit_count", "measurement"]
     extractors:
           - accepts_null: false
             columns:
@@ -63,6 +64,7 @@ data_frames:
   - name: ram_usage
     columns: [ "commit_date", "commit_count","measurement", "value" ]
     dataframe_sort: ["commit_count"]
+    unique_columns: ["commit_count", "measurement"]
     extractors:
           - accepts_null: false
             columns:

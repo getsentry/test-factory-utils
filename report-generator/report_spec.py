@@ -211,6 +211,7 @@ class DataFrameSpec:
     dataframe_sort: Optional[
         List[str
     ]] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+    unique_columns: Optional[List[str]] = None
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":
@@ -223,7 +224,8 @@ class DataFrameSpec:
         ]
         column_types = data.get("column_types", None)
         dataframe_sort = data.get("dataframe_sort", None)
-        return DataFrameSpec(name=name, columns=columns, extractors=extractors, column_types=column_types, dataframe_sort=dataframe_sort)
+        unique_columns = data.get("unique_columns", None)
+        return DataFrameSpec(name=name, columns=columns, extractors=extractors, column_types=column_types, dataframe_sort=dataframe_sort, unique_columns=unique_columns)
 
     # consolidates the extractors with globally defined extractors
     def consolidate(self, global_extractors: Mapping[str, ValueExtractorSpec]):
