@@ -1,0 +1,11 @@
+data_frames:
+  - name: cpu_usage
+    measurement: cpu_usage
+    labels: [ "commit_date", "commit_count" ]
+  - name: memory_usage
+    measurement: memory_usage
+    labels: [ "commit_date", "commit_count" ]
+pages:
+  - title: Performance Report
+    elements:
+      - type: report-summary
