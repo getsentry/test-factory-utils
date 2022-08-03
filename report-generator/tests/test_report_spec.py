@@ -1,8 +1,10 @@
+import os.path
 
 from report_spec import (
     read_spec, ReportSpec, PlotSpec, TextSpec, TableSpec, BigNumberSpec,
     GroupSpec, PageSpec, RowExtractorSpec, DataFrameSpec, ValueExtractorSpec,
 )
+from tests.test_utils import to_absolute_path
 
 
 def expected_spec():
@@ -96,7 +98,8 @@ def expected_spec():
         ]
     )
 
+
 def test_report_spec():
-    spec = read_spec("test-fixture/simple-report.yaml")
+    spec = read_spec(to_absolute_path("../test-fixture/simple-report.yaml"))
     expected = expected_spec()
     assert spec == expected

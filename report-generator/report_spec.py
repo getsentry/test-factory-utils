@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Any, Union, Optional, Callable, Mapping
+from typing import List, Any, Union, Optional, Callable, Mapping, Tuple
 
+import jmespath
 from yaml import load
 from jmespath.parser import ParsedResult
 
@@ -129,8 +130,8 @@ class ValueExtractorSpec:
     path: Optional[str] = None
     value: Optional[Any] = None
     compiled_path: Optional[ParsedResult] = None
-    converter_name: Optional[str] = None
-    converter: Optional[Callable[[Any], Any]] = None
+    converter_name: Optional[str] = None  # obsolete
+    converter: Optional[Callable[[Any], Any]] = None  # obsolete
 
     @staticmethod
     def from_dict(data) -> "ValueExtractorSpec":
@@ -151,6 +152,25 @@ class ValueExtractorSpec:
         self.converter_name = reference.converter_name
 
 
+def v(value: Any, name: Optional[str] = None) -> ValueExtractorSpec:
+    """returns a value extractor spec with a fixed value"""
+    return ValueExtractorSpec(value=value, name=name)
+
+
+def l(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
+    """returns a value extractor that extracts a label value"""
+    path = f"metadata.labels[?name=='{label}'].value|[0]"
+    compile_path = jmespath.compile(path)
+    return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
+
+
+def m(measure: str, attribute: str, name=Optional[str]) -> ValueExtractorSpec:
+    """returns an extractor that extracts a measurement """
+    path = f'results.measurements."{measure}"."{attribute}"'
+    compile_path = jmespath.compile(path)
+    return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
+
+
 @dataclass
 class RowExtractorSpec:
     accepts_null: bool = False
@@ -169,13 +189,26 @@ class RowExtractorSpec:
         ]
         return RowExtractorSpec(accepts_null=accepts_null, columns=columns)
 
-    def consolidate(self, global_extractors:Mapping[str, ValueExtractorSpec]):
+    def consolidate(self, global_extractors: Mapping[str, ValueExtractorSpec]):
         for column in self.columns:
             if column.is_reference():
                 ref_extractor = global_extractors.get(column.name)
                 if ref_extractor is not None:
                     column.load_reference(ref_extractor)
 
+
+def generate_extractors(labels: List[str], value_name: str, measurements: List[Union[str, Tuple[str,str]]])->List[RowExtractorSpec]:
+    extractors = []
+    for measurement in measurements:
+        if isinstance(measurement, str):
+            measurement = (measurement, measurement)
+        columns = []
+        for label in labels:
+            columns.append(l(label, name=label))
+        columns.append(v(measurement[1], name="measurement"))
+        columns.append(m(value_name, measurement[0], name="value"))
+        extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))
+    return extractors
 
 # TODO RaduW do I still need this?
 # @dataclass
@@ -210,7 +243,7 @@ class DataFrameSpec:
     column_types: Optional[List[Optional[str]]] = None
     dataframe_sort: Optional[
         List[str
-    ]] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+        ]] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
     unique_columns: Optional[List[str]] = None
 
     @staticmethod
