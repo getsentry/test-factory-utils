@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Any, Union, Optional, Callable, Mapping, Tuple
+from typing import List, Any, Union, Optional, Mapping, Tuple
 
 import jmespath
 from jmespath.parser import ParsedResult
@@ -80,16 +80,16 @@ class RowExtractorSpec:
                     column.load_reference(ref_extractor)
 
 
-def generate_extractors(labels: List[str], value_name: str, measurements: List[Union[str, Tuple[str,str]]])->List[RowExtractorSpec]:
+def generate_extractors(labels: List[str], measurement_name: str, aggregations: List[Union[str, Tuple[str, str]]])->List[RowExtractorSpec]:
     extractors = []
-    for measurement in measurements:
+    for measurement in aggregations:
         if isinstance(measurement, str):
             measurement = (measurement, measurement)
         columns = []
         for label in labels:
             columns.append(make_label(label, name=label))
         columns.append(make_value(measurement[1], name="measurement"))
-        columns.append(make_measure(value_name, measurement[0], name="value"))
+        columns.append(make_measure(measurement_name, measurement[0], name="value"))
         extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))
     return extractors
 

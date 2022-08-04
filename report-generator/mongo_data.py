@@ -2,7 +2,7 @@
 Testing data extraction from MongoDb
 """
 from functools import cache
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple
 from dateutil.parser import parse
 import datetime
 
@@ -12,6 +12,22 @@ import pymongo
 from jmespath.parser import ParsedResult
 
 from report_spec import DataFrameSpec
+from dataclasses import dataclass
+
+from utils import get_at
+
+
+@dataclass
+class MeasurementInfo:
+    name: str
+    aggregations: List[str]
+
+    def __eq__(self, other):
+        if type(other) != MeasurementInfo:
+            return False
+        if self.name != other.name:
+            return False
+        return set(self.aggregations) == set(other.aggregations)
 
 
 def get_db(mongo_url):
@@ -144,27 +160,6 @@ def get_test_id(doc):
 
 
 @cache
-def _get_paths_for_conversion():
-    """
-    Returns compiled-paths, converter-function tuples for test documents
-    """
-    paths_to_convert = [
-        ("metadata.labels[?name=='commit_date'].value|[0]", datetime_converter),
-        ("metadata.labels[?name=='commit_count'].value|[0]", datetime_converter),
-        ("metadata.context.argo.creationTimestamp", datetime_converter),
-        ("metadata.context.argo.startTimestamp", datetime_converter),
-        ("metadata.context.run.startTimestamp", datetime_converter),
-        ("metadata.context.run.endTimestamp", datetime_converter),
-        ("metadata.context.run.stageStartTimestamp", datetime_converter),
-        ("metadata.context.run.stageEndTimestamp", datetime_converter),
-    ]
-
-    return [(jmespath.compile(path), converter) for path, converter in paths_to_convert]
-
-
-
-
-@cache
 def _identity_paths() -> List[ParsedResult]:
     labels = [
         "commit_sha",
@@ -193,3 +188,17 @@ def int_converter(val):
         return int(val)
     except ValueError:
         return 0
+
+
+def get_measurements(docs) -> List[MeasurementInfo]:
+    measurements_raw = {}
+    for doc in docs:
+        measurements = get_at(doc, "results.measurements")
+        if measurements is not None:
+            for name, measurement in measurements.items():
+                if name not in measurements_raw:
+                    measurements_raw[name] = set()
+                for aggregation in measurement.keys():
+                    measurements_raw[name].add(aggregation)
+    ret_val = [MeasurementInfo(name=name, aggregations=tuple(aggregations)) for name, aggregations in measurements_raw.items()]
+    return ret_val

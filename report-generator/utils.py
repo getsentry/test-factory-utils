@@ -2,8 +2,13 @@ from collections import abc
 from typing import Any, List, Union
 
 
+def chain(*sequences):
+    for seq in sequences:
+        yield from seq
+
+
 def get_path_separator() -> str:
-    return ".."
+    return "."
 
 
 def get_at(obj, *args, **kwargs) -> Any:
@@ -13,25 +18,25 @@ def get_at(obj, *args, **kwargs) -> Any:
     >>> x = { "a":[{"x":{ "w": [1,2,3]}}], "y": {"x":"abc", "w":123}}
     >>> get_at(x, "a", default="NOPE")
     [{'x': {'w': [1, 2, 3]}}]
-    >>> get_at(x, "a", 0, "x..w..0")
+    >>> get_at(x, "a", 0, "x.w.0")
     1
-    >>> get_at(x, "a", 0, "x..w")
+    >>> get_at(x, "a", 0, "x.w")
     [1, 2, 3]
     >>> get_at(x, "a", 0, "x")
     {'w': [1, 2, 3]}
-    >>> get_at(x, "a..0..x")
+    >>> get_at(x, "a.0.x")
     {'w': [1, 2, 3]}
-    >>> get_at(x, "a..2..x", default="NOPE")
+    >>> get_at(x, "a.2.x", default="NOPE")
     'NOPE'
-    >>> get_at(x, "a..1..x", default="NOPE")
+    >>> get_at(x, "a.1.x", default="NOPE")
     'NOPE'
-    >>> get_at(x, "a..0..x", default="NOPE")
+    >>> get_at(x, "a.0.x", default="NOPE")
     {'w': [1, 2, 3]}
     >>> get_at(x, "y", default="NOPE")
     {'x': 'abc', 'w': 123}
     >>> get_at(x, "y","x", default="NOPE")
     'abc'
-    >>> get_at(x, "y..x", default="NOPE")
+    >>> get_at(x, "y.x", default="NOPE")
     'abc'
     """
     path = _to_path(args)
@@ -55,17 +60,17 @@ def _to_path(args) -> List[Union[str, int]]:
 def set_at(obj, val, *args) -> bool:
     """
     >>> x = { "a":[{"x":{ "w": [1,2,3]}}], "y": {"x":"abc", "w":123}}
-    >>> set_at(x, 12, "x..w")
+    >>> set_at(x, 12, "x.w")
     True
-    >>> get_at(x, "x..w")
+    >>> get_at(x, "x.w")
     12
-    >>> set_at(x, 22, "a", 0, "x..w..0")
+    >>> set_at(x, 22, "a", 0, "x.w.0")
     True
-    >>> get_at(x, "a..0..x..w")
+    >>> get_at(x, "a.0.x.w")
     [22, 2, 3]
-    >>> set_at(x, {"m": "n"}, "y..w")
+    >>> set_at(x, {"m": "n"}, "y.w")
     True
-    >>> get_at(x, "y..w")
+    >>> get_at(x, "y.w")
     {'m': 'n'}
     """
     path = _to_path(args)
@@ -155,9 +160,9 @@ def append_at(obj, val, *args) -> bool:
 def del_at(obj, *args) -> bool:
     """
     >>> x = { "a":[{"x":{ "w": [1,2,3]}}], "y": {"x":"abc", "w":123}}
-    >>> del_at(x , "y..w")
+    >>> del_at(x , "y.w")
     True
-    >>> get_at(x , "y..w", default="Nope")
+    >>> get_at(x , "y.w", default="Nope")
     'Nope'
     >>> del_at(x , "y")
     True
@@ -165,9 +170,9 @@ def del_at(obj, *args) -> bool:
     'Nope'
     >>> del_at(x , "y")
     False
-    >>> del_at(x, "a..0..x..w")
+    >>> del_at(x, "a.0.x.w")
     True
-    >>> get_at(x, "a..0..x")
+    >>> get_at(x, "a.0.x")
     {}
 
     """
