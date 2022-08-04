@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List, Any, Union, Optional, Callable, Mapping, Tuple
 
 import jmespath
-from yaml import load
 from jmespath.parser import ParsedResult
 
 try:
@@ -11,127 +10,12 @@ except ImportError:
     from yaml import Loader
 
 
-def read_spec(file_name):
-    with open(file_name, mode="r") as f:
-        data = load(f, Loader=Loader)
-        return ReportSpec.from_dict(data)
-
-
-@dataclass
-class PlotSpec:
-    name: str
-    caption: str
-    responsive: bool
-    params: Any
-
-    @staticmethod
-    def from_dict(data):
-        return PlotSpec(
-            name=data.get("name"),
-            caption=data.get("caption"),
-            responsive=data.get("responsive"),
-            params=data.get("params"),
-        )
-
-
-@dataclass
-class TextSpec:
-    content: str
-
-    @staticmethod
-    def from_dict(data):
-        return TextSpec(content=data.get("content", ""))
-
-
-@dataclass
-class TableSpec:
-    data_frame: str
-    name: str
-    label: str
-    caption: str
-
-    @staticmethod
-    def from_dict(data):
-        return TableSpec(
-            data_frame=data.get("data_frame"),
-            name=data.get("name"),
-            label=data.get("label"),
-            caption=data.get("caption"),
-        )
-
-
-@dataclass
-class BigNumberSpec:
-    caption: Optional[str]
-    label: Optional[str]
-    name: Optional[str]
-    extractor: Optional[str]
-    data_frame: str
-    params: Any
-
-    @staticmethod
-    def from_dict(data):
-        return BigNumberSpec(
-            caption=data.get("caption"),
-            label=data.get("label"),
-            name=data.get("name"),
-            extractor=data.get("extractor"),
-            data_frame=data.get("data_frame"),
-            params=data.get("params"),
-        )
-
-
-BasicUnits = Union["GroupSpec", TextSpec, PlotSpec, TableSpec, BigNumberSpec]
-
-
-def dict_to_basic_unit(data):
-    ty = data.get("type")
-    unit_type = _basic_unit_dispatch.get(ty)
-
-    if unit_type is None:
-        return None
-    else:
-        return unit_type.from_dict(data)
-
-
-@dataclass
-class GroupSpec:
-    name: str
-    label: str
-    columns: int
-    content: List[BasicUnits]
-
-    @staticmethod
-    def from_dict(data):
-        data = data.copy()
-        contents_raw = data.get("content", [])
-        data['content'] = [dict_to_basic_unit(element_raw) for element_raw in contents_raw]
-        return GroupSpec(**{k: data.get(k) for k in ['name', 'label', 'columns', 'content']})
-
-
-@dataclass
-class PageSpec:
-    title: str
-    elements: List[BasicUnits]
-
-    @staticmethod
-    def from_dict(data) -> "PageSpec":
-        data = data.copy()
-        elements_raw = data.get("elements", [])
-        data["elements"] = [
-            dict_to_basic_unit(element_raw) for element_raw in elements_raw
-        ]
-        return PageSpec(**{k: data.get(k) for k in ['title', 'elements']})
-
-
 @dataclass
 class ValueExtractorSpec:
     name: Optional[str] = None
     path: Optional[str] = None
     value: Optional[Any] = None
     compiled_path: Optional[ParsedResult] = None
-    converter_name: Optional[str] = None  # obsolete
-    converter: Optional[Callable[[Any], Any]] = None  # obsolete
 
     @staticmethod
     def from_dict(data) -> "ValueExtractorSpec":
@@ -140,7 +24,7 @@ class ValueExtractorSpec:
         converter_name = data.get("converter_name")
         name = data.get("name")
 
-        return ValueExtractorSpec(path=path, value=value, converter_name=converter_name, name=name)
+        return ValueExtractorSpec(path=path, value=value, name=name)
 
     # check if this is a full extractor spec or only just a reference (and must be resolved before usage)
     def is_reference(self):
@@ -149,22 +33,21 @@ class ValueExtractorSpec:
     def load_reference(self, reference: "ValueExtractorSpec"):
         self.path = reference.path
         self.value = reference.value
-        self.converter_name = reference.converter_name
 
 
-def v(value: Any, name: Optional[str] = None) -> ValueExtractorSpec:
+def make_value(value: Any, name: Optional[str] = None) -> ValueExtractorSpec:
     """returns a value extractor spec with a fixed value"""
     return ValueExtractorSpec(value=value, name=name)
 
 
-def l(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
+def make_label(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
     """returns a value extractor that extracts a label value"""
     path = f"metadata.labels[?name=='{label}'].value|[0]"
     compile_path = jmespath.compile(path)
     return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
 
 
-def m(measure: str, attribute: str, name=Optional[str]) -> ValueExtractorSpec:
+def make_measure(measure: str, attribute: str, name=Optional[str]) -> ValueExtractorSpec:
     """returns an extractor that extracts a measurement """
     path = f'results.measurements."{measure}"."{attribute}"'
     compile_path = jmespath.compile(path)
@@ -204,35 +87,12 @@ def generate_extractors(labels: List[str], value_name: str, measurements: List[U
             measurement = (measurement, measurement)
         columns = []
         for label in labels:
-            columns.append(l(label, name=label))
-        columns.append(v(measurement[1], name="measurement"))
-        columns.append(m(value_name, measurement[0], name="value"))
+            columns.append(make_label(label, name=label))
+        columns.append(make_value(measurement[1], name="measurement"))
+        columns.append(make_measure(value_name, measurement[0], name="value"))
         extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))
     return extractors
 
-# TODO RaduW do I still need this?
-# @dataclass
-# class DocStreamSpec:
-#     mongo_collection: str
-#     mongo_filter: Any = None
-#     mongo_sort: Any = None  # mongo db cursor sort (use it if you can)
-#     mongo_projection: Any = None
-#
-#     @staticmethod
-#     def from_dict(data) -> "DocStreamSpec":
-#         mongo_collection = data.get("collection")
-#         mongo_filter = data.get("mongo_filter")
-#         return DocStreamSpec(
-#             mongo_collection=mongo_collection, mongo_filter=mongo_filter
-#         )
-#
-#
-# @dataclass
-# class DiffSpec:
-#     base: DocStreamSpec
-#     base_doc_filter: str
-#     current: DocStreamSpec
-#     current_doc_filter: str
 
 @dataclass
 class DataFrameSpec:
@@ -267,37 +127,3 @@ class DataFrameSpec:
 
     def validate(self) -> bool:
         return True  # todo implement
-
-
-@dataclass
-class ReportSpec:
-    pages: List[PageSpec]
-    data_frames: List[DataFrameSpec]
-    value_extractors: Optional[List[ValueExtractorSpec]] = None
-
-    @staticmethod
-    def from_dict(data) -> "ReportSpec":
-        pages_raw = data.get("pages", [])
-        pages = [PageSpec.from_dict(page_raw) for page_raw in pages_raw]
-        data_frames_raw = data.get("data_frames", [])
-        data_frames = [
-            DataFrameSpec.from_dict(data_frame_raw)
-            for data_frame_raw in data_frames_raw
-        ]
-        value_extractors_raw = data.get("value_extractors", [])
-        value_extractors = [ValueExtractorSpec.from_dict(value_extractor_raw) for value_extractor_raw in value_extractors_raw]
-
-        extractor_map = {extractor.name: extractor for extractor in value_extractors}
-        for data_frame in data_frames:
-            data_frame.consolidate(extractor_map)
-
-        return ReportSpec(pages=pages, data_frames=data_frames, value_extractors=value_extractors)
-
-
-_basic_unit_dispatch = {
-    "group": GroupSpec,
-    "text": TextSpec,
-    "plot": PlotSpec,
-    "table": TableSpec,
-    "bigNumber": BigNumberSpec,
-}

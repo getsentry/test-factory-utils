@@ -12,7 +12,6 @@ import pymongo
 from jmespath.parser import ParsedResult
 
 from report_spec import DataFrameSpec
-from value_converters import get_converter
 
 
 def get_db(mongo_url):
@@ -34,11 +33,6 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
                             value_extractor.path
                         )
                     value = value_extractor.compiled_path.search(doc)
-                    if value_extractor.converter is not None:
-                        converter = value_extractor.converter
-                        if converter.func is None:
-                            converter.func = get_converter(converter)
-                        value = converter.func(value)
                 else:
                     value = value_extractor.value
                 if not extractor.accepts_null and value is None:

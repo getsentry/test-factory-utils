@@ -45,7 +45,6 @@ from mongo_data import get_db, get_docs
 def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name):
     db = get_db(mongo_url)
 
-
     trend_filters = [*filters, ("is_default_branch", "1")]
     current_filters = [*filters, ("commit_sha", git_sha)]
 

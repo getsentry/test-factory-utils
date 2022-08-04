@@ -32,6 +32,7 @@ def _empty_doc():
         }
     }
 
+
 @pytest.mark.parametrize(
     "doc, expected",
     [
