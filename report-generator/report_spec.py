@@ -80,7 +80,7 @@ class RowExtractorSpec:
                     column.load_reference(ref_extractor)
 
 
-def generate_extractors(labels: List[str], measurement_name: str, aggregations: List[Union[str, Tuple[str, str]]])->List[RowExtractorSpec]:
+def generate_extractors(labels: List[str], measurement_name: str, aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
     extractors = []
     for measurement in aggregations:
         if isinstance(measurement, str):

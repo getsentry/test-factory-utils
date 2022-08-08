@@ -21,13 +21,13 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
 
     for measurement in measurements:
         extractors = generate_extractors(
-            labels=["commit_date", "commit_count"],
+            labels=["commit_date", "commit_count", "test_name"],
             measurement_name=measurement.name,
             aggregations=measurement.aggregations
         )
         data_frame_spec = DataFrameSpec(
             name=measurement.name,
-            columns=["commit_date", "commit_count", "measurement", "value"],
+            columns=["commit_date", "commit_count", "test_name","measurement", "value"],
             extractors=extractors,
         )
 
@@ -144,6 +144,7 @@ SDK evolution.
             x="commit_date:T",
             y="value:Q",
             time_series="measurement:N",
+            split_by="test_name",
             title=series.info.name)
         blocks.append(plot)
 

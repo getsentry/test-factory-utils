@@ -6,7 +6,9 @@ from mongo_data import to_data_frame
 from report_spec import DataFrameSpec
 
 
-def trend_plot(data_frame, x, y, time_series, title):
+def trend_plot(data_frame, x, y, time_series, split_by, title):
+    test_selection = alt.binding_select(options=data_frame[split_by].unique(), name=split_by)
+    selection = alt.selection_single(fields=[split_by], bind=test_selection)
 
     chart = alt.Chart(data_frame).encode(
         x=x,
@@ -20,6 +22,8 @@ def trend_plot(data_frame, x, y, time_series, title):
 
     return (
         alt.layer(dots, line)
+        .transform_filter(selection)
+        .add_selection(selection)
         .properties(
             width=850,
             height=400,
@@ -32,7 +36,7 @@ def trend_plot(data_frame, x, y, time_series, title):
 def get_data_frame(docs, spec: DataFrameSpec) -> pd.DataFrame:
     ret_val = to_data_frame(docs, spec)
 
-    if spec.unique_columns is not None and len (spec.unique_columns) > 0:
+    if spec.unique_columns is not None and len(spec.unique_columns) > 0:
         ret_val.drop_duplicates(subset=spec.unique_columns, inplace=True, keep='last')
     return ret_val
 
