@@ -27,7 +27,7 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
         )
         data_frame_spec = DataFrameSpec(
             name=measurement.name,
-            columns=["commit_date", "commit_count", "test_name","measurement", "value"],
+            columns=["commit_date", "commit_count", "test_name", "measurement", "value"],
             extractors=extractors,
         )
 
@@ -36,7 +36,7 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
 
         measurement_series.append(MeasurementSeries(info=measurement, trend=trend_frame, current=current_test_frame))
 
-    introduction = intro(filters, commit_sha, [current_doc])
+    introduction = intro(filters, commit_sha, [current_doc], trend_docs)
 
     report = dp.Report(
         last_release_page(introduction, measurement_series),
@@ -59,10 +59,27 @@ def get_last(dataframe, measurements) -> Mapping[str, float]:
     return ret_val
 
 
-def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs) -> str:
+def get_commit_info(docs):
+    if docs is None or len(docs) == 0:
+        return None, None, None
+    last_doc = docs[-1]
+    commit_date = jmespath.search(
+        "metadata.labels[?name=='commit_date'].value|[0]", last_doc
+    )
+    sha = jmespath.search(
+        "metadata.labels[?name=='commit_sha'].value|[0]", last_doc
+    )
+    run_date = jmespath.search("context.run.startTimestamp", last_doc)
+    return commit_date, sha, run_date
+
+
+def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs, trend_docs) -> str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
+        commit_date, sha, run_date = get_commit_info(current_docs)
+        t_commit_date, t_sha, t_run_date = get_commit_info(trend_docs)
+
         current_doc = current_docs[-1]
         commit_date = jmespath.search(
             "metadata.labels[?name=='commit_date'].value|[0]", current_doc
@@ -72,11 +89,19 @@ def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs) -> str:
         dashboard_link = jmespath.search("results.data.dashboard_link", current_doc)
         argo_link = jmespath.search("context.argo.workflowUrl", current_doc)
         current_doc_info = f"""
-**commit:** '{git_sha}'
+**commit:** '{sha}'
 
 **commit date:** '{commit_date}'
 
 **ran at:** '{run_date}'
+
+## Trend info:
+
+**commit:** '{t_sha}'
+
+**commit date:** '{t_commit_date}'
+
+**ran at:** '{t_run_date}'
 
 ## Grafana [dashboard]({dashboard_link})
 
