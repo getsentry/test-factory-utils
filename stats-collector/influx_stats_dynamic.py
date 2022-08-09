@@ -70,15 +70,17 @@ class MetricQuery:
             filter_statement = "drop(columns: [])"
 
         # Quantiles
-        for requested_quantile in self.args.quantiles:
-            if type(requested_quantile) == str:
-                assert requested_quantile in ["min", "max", "median", "mean"]
-                quantile_statement = f"{requested_quantile}()"
-            elif type(requested_quantile) == float:
-                assert 0.0 <= requested_quantile <= 1.0
-                quantile_statement = f"quantile(q: {requested_quantile})"
+        for aggregation in self.args.quantiles:
+            if type(aggregation) == str:
+                assert aggregation in ["min", "max", "median", "mean"]
+                quantile_statement = f"{aggregation}()"
+                attribute_name = aggregation
+            elif type(aggregation) == float:
+                assert 0.0 <= aggregation <= 1.0
+                quantile_statement = f"quantile(q: {aggregation})"
+                attribute_name = f"q{str(aggregation)}"
             else:
-                raise ValueError(f"Invalid quantile type: {requested_quantile}")
+                raise ValueError(f"Invalid quantile type: {aggregation}")
 
             query = self.flux_query.format(
                 bucket="statsd",
@@ -87,7 +89,7 @@ class MetricQuery:
                 quantile=quantile_statement,
                 filters=filter_statement,
             )
-            yield query, [f"quantile-{str(requested_quantile)}"]
+            yield query, [attribute_name]
 
 
 @dataclass
