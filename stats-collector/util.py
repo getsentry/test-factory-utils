@@ -6,7 +6,6 @@ from dateutil.tz import tzlocal, UTC
 from typing import Optional, Callable, Any
 from datetime import timedelta, datetime
 
-
 logger = logging.getLogger(__name__)
 
 TIMEDELTA_REGEX = (
@@ -30,16 +29,16 @@ def parse_timedelta(delta: str) -> Optional[timedelta]:
     * Xm minutes
     * Xs seconds
 
-    >>> parse_timedelta("2s")
-    datetime.timedelta(0, 2)
-    >>> parse_timedelta("1h1s")
-    datetime.timedelta(0, 3601)
-    >>> parse_timedelta("1d1s")
-    datetime.timedelta(1, 1)
-    >>> parse_timedelta("2w17s")
-    datetime.timedelta(14, 17)
-    >>> parse_timedelta("-1s") + parse_timedelta("2s")
-    datetime.timedelta(0, 1)
+    >>> parse_timedelta("2s") == timedelta(seconds=2)
+    True
+    >>> parse_timedelta("1h1s")== timedelta(hours=1, seconds=1)
+    True
+    >>> parse_timedelta("1d1s") == timedelta(days=1, seconds=1)
+    True
+    >>> parse_timedelta("2w17s") == timedelta(weeks=2, seconds=17)
+    True
+    >>> parse_timedelta("-1s") + parse_timedelta("2s") == timedelta(seconds=1)
+    True
     """
     match = TIMEDELTA_PATTERN.match(delta)
     if match:
@@ -51,32 +50,37 @@ def parse_timedelta(delta: str) -> Optional[timedelta]:
 
 
 def pretty_timedelta(delta: timedelta) -> str:
+    """
+    Convert into a human-readable timedelta that is also parsable by
+    parse_timedelta and golang time.ParseDuration.
+
+    >>> pretty_timedelta(timedelta(seconds=1))
+    '1.0s'
+    >>> pretty_timedelta(timedelta(weeks=1, days=1, hours=1, seconds=1, microseconds=1))
+    '193h1.000001s'
+    """
     if delta is None:
         return "NONE"
-    retVal = ""
+    ret_val = ""
     if delta < timedelta():
         # negative timedelta
         delta = -delta
-        retVal += "-"
-    weeks = delta.days // 7
-    days = delta.days % 7
-    hours = delta.seconds // (60 * 60)
+        ret_val += "-"
+    hours_from_days = delta.days * 24
+    hours_from_seconds = delta.seconds // (60 * 60)
+    hours = hours_from_days + hours_from_seconds
     minutes = delta.seconds // 60 % 60
     seconds = delta.seconds % 60
-    fraction = delta.microseconds / (10**6)
+    fraction = delta.microseconds / (10 ** 6)
 
-    if weeks != 0:
-        retVal += f"{weeks}w"
-    if days != 0:
-        retVal += f"{days}d"
     if hours != 0:
-        retVal += f"{hours}h"
+        ret_val += f"{hours}h"
     if minutes != 0:
-        retVal += f"{minutes}w"
+        ret_val += f"{minutes}m"
     if seconds != 0 or fraction != 0:
         seconds = seconds + fraction
-        retVal += f"{seconds}s"
-    return retVal
+        ret_val += f"{seconds}s"
+    return ret_val
 
 
 def load_flux_file(file_name: str) -> str:
@@ -108,7 +112,6 @@ def to_optional_datetime(d: Optional[datetime]) -> str:
 def get_scalar_from_result(
     result, column: str = "_value", condition: Optional[Callable[[Any], bool]] = None
 ) -> Optional[float]:
-
     tables_num = len(result)
 
     for table in result:
