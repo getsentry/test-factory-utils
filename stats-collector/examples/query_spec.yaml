@@ -38,3 +38,26 @@ metrics:
           |> yield(name: "unmodified")
           |> map(fn: (r) => ({{r with _value: r._value * r._value}}))
           |> yield(name: "squared")
+_meta:
+  metrics:
+    cpu_usage:
+      name: CPU Usage
+      description: CPU usage in nanocores
+      unit: nanocores
+      aggregations:
+        "0.5":
+            name: 0.5 quantile
+        "0.9":
+            name: 0.9 quantile
+        "1.0":
+            name: 1.0 quantile
+    ram_usage:
+      name: RAM Usage
+      description: RAM usage in bytes
+      unit: bytes
+      aggregations:
+        mean:
+            name: Mean
+            description: Mean memory usage in bytes
+        max:
+            name: Max
