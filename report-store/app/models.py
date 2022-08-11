@@ -23,12 +23,6 @@ class MetadataTree(CustomEmbeddedDocument):
     internalLabels = EmbeddedDocumentListField(NameValuePair, default=[])
 
 
-class ResultsTree(CustomEmbeddedDocument):
-    measurements = DictField()
-    # Arbitrary unstructured data, in the form of key-value pairs
-    data = DictField()
-
-
 ### Document Models
 REPORT_TYPE_SDK = "sdk"
 REPORT_TYPE_REGULAR = "regular"
@@ -42,7 +36,7 @@ class BaseReport(CustomDocument):
     name = StringField(required=True, unique=True)
     metadata = EmbeddedDocumentField(MetadataTree)
     context = DictField()
-    results = EmbeddedDocumentField(ResultsTree)
+    results = DictField()
     raw = DictField()
 
     def __str__(self):

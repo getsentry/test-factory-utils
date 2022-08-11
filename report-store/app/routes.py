@@ -11,7 +11,6 @@ from app.models import (
     Report,
     MetadataTree,
     NameValuePair,
-    ResultsTree,
     SdkReport,
     REPORT_TYPE_SDK,
 )
@@ -99,8 +98,7 @@ def store_report(ReportCls):
     ]
 
     ### Fill results
-    results_raw = content.get("results", {})
-    report.results = ResultsTree.from_dict(results_raw)
+    report.results = content.get("results", {})
 
     ### Fill context
     report.context = content.get("context")
