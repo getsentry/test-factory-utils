@@ -48,6 +48,7 @@ class TestRun:
     runner: Optional[str]
     spec: Dict[str, Any]
     metrics: List[MetricSummary]
+    metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self):
         ret_val = {
@@ -65,6 +66,8 @@ class TestRun:
         if self.runner:
             ret_val["runner"] = self.runner
 
+        if self.metadata:
+            ret_val["_meta"] = self.metadata
         return ret_val
 
 

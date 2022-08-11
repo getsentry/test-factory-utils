@@ -1,15 +1,13 @@
 import logging
 import yaml
 from datetime import datetime
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Any
 from dataclasses import dataclass
 
 from influxdb_client import InfluxDBClient
 
-
 from report import Report, MetricSummary, MetricValue
 from util import get_scalar_from_result, to_flux_datetime
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,7 @@ class MetricQueryArgs:
     filters: Dict[str, str]
 
     @staticmethod
-    def from_dict(d: dict) -> "MetricQuery":
+    def from_dict(d: dict) -> "MetricQueryArgs":
         assert type(d) is dict
 
         quantiles = d.get("quantiles", [])
@@ -70,15 +68,17 @@ class MetricQuery:
             filter_statement = "drop(columns: [])"
 
         # Quantiles
-        for requested_quantile in self.args.quantiles:
-            if type(requested_quantile) == str:
-                assert requested_quantile in ["min", "max", "median", "mean"]
-                quantile_statement = f"{requested_quantile}()"
-            elif type(requested_quantile) == float:
-                assert 0.0 <= requested_quantile <= 1.0
-                quantile_statement = f"quantile(q: {requested_quantile})"
+        for aggregation in self.args.quantiles:
+            if type(aggregation) == str:
+                assert aggregation in ["min", "max", "median", "mean"]
+                quantile_statement = f"{aggregation}()"
+                attribute_name = aggregation
+            elif type(aggregation) == float:
+                assert 0.0 <= aggregation <= 1.0
+                quantile_statement = f"quantile(q: {aggregation})"
+                attribute_name = f"q{str(aggregation)}"
             else:
-                raise ValueError(f"Invalid quantile type: {requested_quantile}")
+                raise ValueError(f"Invalid quantile type: {aggregation}")
 
             query = self.flux_query.format(
                 bucket="statsd",
@@ -87,12 +87,13 @@ class MetricQuery:
                 quantile=quantile_statement,
                 filters=filter_statement,
             )
-            yield query, [f"quantile-{str(requested_quantile)}"]
+            yield query, [attribute_name]
 
 
 @dataclass
 class DynamicQueryProfile:
-    metrics = Dict[str, MetricQuery]
+    metrics: Dict[str, MetricQuery]
+    metadata: Dict[str, Any]  # kept as an opaque dict since we only pass it along to the report
 
     @staticmethod
     def load(path: str) -> "DynamicQueryProfile":
@@ -109,16 +110,14 @@ class DynamicQueryProfile:
         Load the profile from the given string
         """
         raw = yaml.safe_load(s)
-        res = DynamicQueryProfile()
         metrics_dict = {}
+        res = DynamicQueryProfile(metrics=metrics_dict, metadata=raw.get("_meta", None))
 
         metrics_raw = raw.get("metrics", {})
         assert type(metrics_raw) is dict
 
         for metric_key, metric_dict in metrics_raw.items():
             metrics_dict[metric_key] = MetricQuery.from_dict(metric_dict)
-
-        res.metrics = metrics_dict
 
         return res
 
@@ -167,3 +166,5 @@ def extend_report_with_query_file(
                 summary.values.append(MetricValue(value=result, attributes=attrs))
 
         test_run.metrics = metrics
+        test_run.metadata = prof.metadata
+
