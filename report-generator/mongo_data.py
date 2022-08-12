@@ -263,13 +263,13 @@ def get_measurements(docs) -> List[MeasurementInfo]:
     ret_val = []
     for _id, measurement_raw in measurements_raw.items():
         meta = measurements_meta_raw.get(_id)
-        name = None
-        description = None
+        measurement_name = None
+        measurement_description = None
         unit = None
 
         if meta is not None:
-            name = meta.get("name")
-            description = meta.get("description")
+            measurement_name = meta.get("name")
+            measurement_description = meta.get("description")
             unit = meta.get("unit")
 
             bigger_is_better = meta.get("bigger_is_better", False)
@@ -288,6 +288,6 @@ def get_measurements(docs) -> List[MeasurementInfo]:
             aggregations.append(AggregationInfo(id=aggregation_id, name=aggregation_name, description=aggregation_description))
 
         ret_val.append(
-            MeasurementInfo(_id, name=name, description=description, unit=unit, bigger_is_better=bigger_is_better, aggregations=aggregations))
+            MeasurementInfo(_id, name=measurement_name, description=measurement_description, unit=unit, bigger_is_better=bigger_is_better, aggregations=aggregations))
 
     return ret_val

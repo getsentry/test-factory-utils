@@ -3,6 +3,7 @@ from typing import Mapping, List, Tuple
 import datapane as dp
 import jmespath
 import pandas as pd
+import altair as alt
 
 from mongo_data import MeasurementInfo
 from report_generator_support import trend_plot, get_data_frame, big_number
@@ -171,16 +172,20 @@ SDK evolution.
 
     blocks = [text]
     for series in measurement_series:
-        # TODO see what you need to use here now MeasurementInfo has id,name description and unit
-        blocks.append(f"## {series.info.id}\n\n")
+        info = series.info
+        description = info.description if info.description is not None else info.name
+        if info.unit is not None:
+            unit = f"{info.unit}"
+        else:
+            unit = ""
+        blocks.append(f"## {description}\n\n")
         plot = trend_plot(
             series.trend,
-            x="commit_date:T",
-            y="value:Q",
+            x=alt.X('commit_date:T', axis=alt.Axis(title='Commit Date')),
+            y=alt.Y('value:Q', axis=alt.Axis(title=unit)),
             time_series="measurement:N",
             split_by="test_name",
-            # TODO fix here ( see TODO above)
-            title=series.info.id)
+            title=info.name)
         blocks.append(plot)
 
     return dp.Page(
