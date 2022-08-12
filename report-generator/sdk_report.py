@@ -20,13 +20,14 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
     measurement_series = []
 
     for measurement in measurements:
+        aggregations_ids = [agg.id for agg in measurement.aggregations]
         extractors = generate_extractors(
             labels=["commit_date", "commit_count", "test_name"],
-            measurement_name=measurement.name,
-            aggregations=measurement.aggregations
+            measurement_name=measurement.id,
+            aggregations=aggregations_ids,
         )
         data_frame_spec = DataFrameSpec(
-            name=measurement.name,
+            name=measurement.id,
             columns=["commit_date", "commit_count", "test_name", "measurement", "value"],
             extractors=extractors,
         )
@@ -136,16 +137,23 @@ Last release stats
 """
     blocks = [intro]
     for series in measurement_series:
-        series_intro = f"## {series.info.name}"
+        info = series.info
+        if info.description is not None:
+            description = info.description
+        else:
+            if info.unit is not None:
+                description = f"{info.name} in ({info.unit})"
+        series_intro = f"## {description}"
         blocks.append(series_intro)
-        trend = get_last(series.trend, series.info.aggregations)
-        current = get_last(series.current, series.info.aggregations)
+        aggregations_id = [agg.id for agg in info.aggregations]
+        trend = get_last(series.trend, aggregations_id)
+        current = get_last(series.current, aggregations_id)
         widgets = []
-        for aggregation in series.info.aggregations:
-            widgets.append(big_number(heading=aggregation,
-                                      current=current.get(aggregation),
-                                      previous=trend.get(aggregation),
-                                      bigger_is_better=False))  # TODO bigger_is_better should come form metadata
+        for aggregation in info.aggregations:
+            widgets.append(big_number(heading=aggregation.name,
+                                      current=current.get(aggregation.id),
+                                      previous=trend.get(aggregation.id),
+                                      bigger_is_better=info.bigger_is_better))
         blocks.append(dp.Group(columns=2, blocks=widgets))
 
     return dp.Page(
@@ -163,14 +171,16 @@ SDK evolution.
 
     blocks = [text]
     for series in measurement_series:
-        blocks.append(f"## {series.info.name}\n\n")
+        # TODO see what you need to use here now MeasurementInfo has id,name description and unit
+        blocks.append(f"## {series.info.id}\n\n")
         plot = trend_plot(
             series.trend,
             x="commit_date:T",
             y="value:Q",
             time_series="measurement:N",
             split_by="test_name",
-            title=series.info.name)
+            # TODO fix here ( see TODO above)
+            title=series.info.id)
         blocks.append(plot)
 
     return dp.Page(

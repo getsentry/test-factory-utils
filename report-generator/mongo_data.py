@@ -18,14 +18,31 @@ from utils import get_at
 
 
 @dataclass
+class AggregationInfo:
+    id: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+
+@dataclass
 class MeasurementInfo:
-    name: str
-    aggregations: List[str]
+    id: str
+    aggregations: List[AggregationInfo]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    unit: Optional[str] = None
+    bigger_is_better: bool = False
 
     def __eq__(self, other):
         if type(other) != MeasurementInfo:
             return False
-        if self.name != other.name:
+        if self.id != other.name:
             return False
         return set(self.aggregations) == set(other.aggregations)
 
@@ -191,14 +208,86 @@ def int_converter(val):
 
 
 def get_measurements(docs) -> List[MeasurementInfo]:
-    measurements_raw = {}
+    measurements_raw = {}  # {"id": set("aggregation_id")}
+    measurements_meta_raw = {}  # { "id": { "name": str, "unit": str, "description": str , aggregations: { "id": {"name":str, "description":str}} }
     for doc in docs:
         measurements = get_at(doc, "results.measurements")
         if measurements is not None:
-            for name, measurement in measurements.items():
-                if name not in measurements_raw:
-                    measurements_raw[name] = set()
+            for _id, measurement in measurements.items():
+                if _id not in measurements_raw:
+                    measurements_raw[_id] = set()
                 for aggregation in measurement.keys():
-                    measurements_raw[name].add(aggregation)
-    ret_val = [MeasurementInfo(name=name, aggregations=tuple(aggregations)) for name, aggregations in measurements_raw.items()]
+                    measurements_raw[_id].add(aggregation)
+
+        meta = get_at(doc, "results._meta.measurements")
+        if meta is not None:
+            for _id, measurement_meta in meta.items():
+                if _id not in measurements_meta_raw:
+                    measurements_meta_raw[_id] = {"aggregations": {}}
+
+                curr_meta = measurements_meta_raw[_id]
+                curr_aggregations = curr_meta["aggregations"]
+
+                name = measurement_meta.get("name")
+                if name is not None:
+                    curr_meta["name"] = name
+
+                description = measurement_meta.get("description")
+                if description is not None:
+                    curr_meta["description"] = description
+
+                unit = measurement_meta.get("unit")
+                if unit is not None:
+                    curr_meta["unit"] = unit
+
+                aggregations_meta = measurement_meta.get("aggregations", {})
+                for aggregation_id, aggregation_meta in aggregations_meta.items():
+                    if aggregation_id not in curr_aggregations:
+                        curr_aggregations[aggregation_id] = {}
+
+                    current_aggregation = curr_aggregations[aggregation_id]
+
+                    name = aggregation_meta.get("name")
+                    if name is not None:
+                        current_aggregation["name"] = name
+
+                    description = aggregation_meta.get("description")
+                    if description is not None:
+                        current_aggregation["description"] = description
+
+                    bigger_is_better = aggregation_meta.get("bigger_is_better")
+                    if bigger_is_better is not None:
+                        current_aggregation["bigger_is_better"] = bigger_is_better
+
+    # now we have the raw measurements and potentially meat data for them, augment measurements with the metadata
+    ret_val = []
+    for _id, measurement_raw in measurements_raw.items():
+        meta = measurements_meta_raw.get(_id)
+        name = None
+        description = None
+        unit = None
+
+        if meta is not None:
+            name = meta.get("name")
+            description = meta.get("description")
+            unit = meta.get("unit")
+
+            bigger_is_better = meta.get("bigger_is_better", False)
+
+        aggregations = []
+        aggregations_meta = meta.get("aggregations", {})
+        for aggregation_id in measurement_raw:
+            aggregation_name = aggregation_id
+            aggregation_description = None
+            if meta is not None:
+                aggregation_meta = aggregations_meta.get(aggregation_id, {})
+                name = aggregation_meta.get("name")
+                if name is not None:
+                    aggregation_name = name
+                aggregation_description = aggregation_meta.get("description")
+            aggregations.append(AggregationInfo(id=aggregation_id, name=aggregation_name, description=aggregation_description))
+
+        ret_val.append(
+            MeasurementInfo(_id, name=name, description=description, unit=unit, bigger_is_better=bigger_is_better, aggregations=aggregations))
+
     return ret_val
