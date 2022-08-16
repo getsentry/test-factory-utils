@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Any, Union, Optional, Callable
+from typing import List, Any, Union, Optional, Mapping, Tuple
 
-from yaml import load
+import jmespath
 from jmespath.parser import ParsedResult
 
 try:
@@ -10,119 +10,48 @@ except ImportError:
     from yaml import Loader
 
 
-def read_spec(file_name):
-    with open(file_name, mode="r") as f:
-        data = load(f, Loader=Loader)
-        return ReportSpec.from_dict(data)
-
-
-@dataclass
-class PlotSpec:
-    name: str
-    caption: str
-    responsive: bool
-    params: Any
-
-
-@dataclass
-class TextSpec:
-    content: str
-
-
-@dataclass
-class TableSpec:
-    data_frame: str
-    name: str
-    label: str
-    caption: str
-
-
-@dataclass
-class BigNumberSpec:
-    caption: str
-    label: str
-    name: str
-    extractor: str
-    data_frame: str
-    params: Any
-
-
-BasicUnits = Union["GroupSpec", TextSpec, PlotSpec, TableSpec, BigNumberSpec]
-
-
-def dict_to_basic_unit(data):
-    ty = data.get("type")
-    unit_type = _basic_unit_dispatch.get(ty)
-
-    if unit_type is None:
-        return None
-    else:
-        return unit_type.from_dict(data)
-
-
-@dataclass
-class GroupSpec:
-    name: str
-    label: str
-    columns: int
-    content: List[BasicUnits]
-
-    @staticmethod
-    def from_dict(data):
-        data = data.copy()
-        contents_raw = data.get("contents", [])
-        data["contents"] = [
-            dict_to_basic_unit(element_raw) for element_raw in contents_raw
-        ]
-        GroupSpec(**data)
-
-
-@dataclass
-class PageSpec:
-    title: str
-    elements: List[BasicUnits]
-
-    @staticmethod
-    def from_dict(data) -> "PageSpec":
-        data = data.copy()
-        elements_raw = data.get("elements", [])
-        data["elements"] = [
-            dict_to_basic_unit(element_raw) for element_raw in elements_raw
-        ]
-        return PageSpec(**data)
-
-
-@dataclass
-class ConverterSpec:
-    type: str
-    extra: Optional[str] = None
-    func: Callable[[Any], Any] = None
-
-    @staticmethod
-    def from_dict(data):
-        type = data.get("type")
-        extra = data.get("extra")
-        return ConverterSpec(type=type, extra=extra)
-
-
 @dataclass
 class ValueExtractorSpec:
+    name: Optional[str] = None
     path: Optional[str] = None
     value: Optional[Any] = None
-    compiledPath: Optional[ParsedResult] = None
-    converter: Optional[ConverterSpec] = None
+    compiled_path: Optional[ParsedResult] = None
 
     @staticmethod
     def from_dict(data) -> "ValueExtractorSpec":
         path = data.get("path")
         value = data.get("value")
-        converter_dict = data.get("converter")
-        converter = None
-        if converter_dict is not None:
-            converter = ConverterSpec.from_dict(converter_dict)
+        converter_name = data.get("converter_name")
+        name = data.get("name")
 
-        # TODO finish implementation
-        return ValueExtractorSpec(path=path, value=value, converter=converter)
+        return ValueExtractorSpec(path=path, value=value, name=name)
+
+    # check if this is a full extractor spec or only just a reference (and must be resolved before usage)
+    def is_reference(self):
+        return self.path is None and self.value is None
+
+    def load_reference(self, reference: "ValueExtractorSpec"):
+        self.path = reference.path
+        self.value = reference.value
+
+
+def make_value(value: Any, name: Optional[str] = None) -> ValueExtractorSpec:
+    """returns a value extractor spec with a fixed value"""
+    return ValueExtractorSpec(value=value, name=name)
+
+
+def make_label(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
+    """returns a value extractor that extracts a label value"""
+    path = f"metadata.labels[?name=='{label}'].value|[0]"
+    compile_path = jmespath.compile(path)
+    return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
+
+
+def make_measure(measure: str, attribute: str, name=Optional[str]) -> ValueExtractorSpec:
+    """returns an extractor that extracts a measurement """
+    path = f'results.measurements."{measure}"."{attribute}"'
+    compile_path = jmespath.compile(path)
+    return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
 
 
 @dataclass
@@ -143,76 +72,58 @@ class RowExtractorSpec:
         ]
         return RowExtractorSpec(accepts_null=accepts_null, columns=columns)
 
-
-@dataclass
-class DocStreamSpec:
-    mongo_collection: str
-    mongo_filter: Any = None
-    mongo_sort: Any = None  # mongo db cursor sort (use it if you can)
-    mongo_projection: Any = None
-
-    @staticmethod
-    def from_dict(data) -> "DocStreamSpec":
-        mongo_collection = data.get("collection")
-        mongo_filter = data.get("mongo_filter")
-        return DocStreamSpec(
-            mongo_collection=mongo_collection, mongo_filter=mongo_filter
-        )
+    def consolidate(self, global_extractors: Mapping[str, ValueExtractorSpec]):
+        for column in self.columns:
+            if column.is_reference():
+                ref_extractor = global_extractors.get(column.name)
+                if ref_extractor is not None:
+                    column.load_reference(ref_extractor)
 
 
-@dataclass
-class DiffSpec:
-    base: DocStreamSpec
-    base_doc_filter: str
-    current: DocStreamSpec
-    current_doc_filter: str
+def generate_extractors(labels: List[str], measurement_name: str, aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
+    extractors = []
+    for measurement in aggregations:
+        if isinstance(measurement, str):
+            measurement = (measurement, measurement)
+        columns = []
+        for label in labels:
+            columns.append(make_label(label, name=label))
+        columns.append(make_value(measurement[1], name="measurement"))
+        columns.append(make_measure(measurement_name, measurement[0], name="value"))
+        extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))
+    return extractors
 
 
 @dataclass
 class DataFrameSpec:
+    name: str
     columns: List[str]
     extractors: List[RowExtractorSpec]
     # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
     column_types: Optional[List[Optional[str]]] = None
     dataframe_sort: Optional[
-        str
-    ] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+        List[str
+        ]] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+    unique_columns: Optional[List[str]] = None
 
     @staticmethod
     def from_dict(data) -> "DataFrameSpec":
+        name = data.get("name")
         columns = data.get("columns", [])
         extractors_raw = data.get("extractors", [])
         extractors = [
-            RowExtractorSpec.from_dict(extractors_raw)
+            RowExtractorSpec.from_dict(extractor_raw)
             for extractor_raw in extractors_raw
         ]
-        return DataFrameSpec(columns=columns, extractors=extractors)
+        column_types = data.get("column_types", None)
+        dataframe_sort = data.get("dataframe_sort", None)
+        unique_columns = data.get("unique_columns", None)
+        return DataFrameSpec(name=name, columns=columns, extractors=extractors, column_types=column_types, dataframe_sort=dataframe_sort, unique_columns=unique_columns)
+
+    # consolidates the extractors with globally defined extractors
+    def consolidate(self, global_extractors: Mapping[str, ValueExtractorSpec]):
+        for extractor in self.extractors:
+            extractor.consolidate(global_extractors)
 
     def validate(self) -> bool:
         return True  # todo implement
-
-
-@dataclass
-class ReportSpec:
-    pages: List[PageSpec]
-    data_frames: List[DataFrameSpec]
-
-    @staticmethod
-    def from_dict(data) -> "ReportSpec":
-        pages_raw = data.get("pages", [])
-        pages = [PageSpec.from_dict(page_raw) for page_raw in pages_raw]
-        data_frames_raw = data.get("data_frames", [])
-        data_frames = [
-            DataFrameSpec.from_dict(data_frame_raw)
-            for data_frame_raw in data_frames_raw
-        ]
-        return ReportSpec(pages=pages, data_frames=data_frames)
-
-
-_basic_unit_dispatch = {
-    "group": GroupSpec,
-    "text": TextSpec,
-    "plot": PlotSpec,
-    "table": TableSpec,
-    "bigNumber": BigNumberSpec,
-}

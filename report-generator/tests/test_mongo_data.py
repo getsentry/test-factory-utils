@@ -1,63 +1,34 @@
-from mongo_data import to_data_frame
-from report_spec import DataFrameSpec, ValueExtractorSpec, RowExtractorSpec
+from mongo_data import get_measurements, MeasurementInfo
 
 
-def f():
-    return 71
-
-
-def _get_docs():
-    return [
-        {
-            "a": 11,
-            "b": 12,
-            "f": 13,
-        },
-        {
-            "a": 21,
-            "b": 22,
-            "f": 23,
-        },
-        {
-            "a": 31,
-            "b": 32,
-        },
+def test_get_measurements():
+    docs = [
+        {"results": {"measurements": {
+            "cpu_usage": {"mean": 1, "q05": 2, "max": 4},
+            "ram_usage": {"mean": 1, "q051": 2, "q091": 3, "max": 4},
+        }}},
+        {"results": {"measurements": {
+            "cpu_usage": {"q05": 2, "q09": 3, "max": 4},
+            "disc_usage": {"mean": 1, "q05": 2, "max": 4},
+        }}},
+        {"results": {"measurements": {
+            "net_usage": {"mean": 1, "max": 4},
+        }}},
     ]
 
+    measurements = get_measurements(docs)
 
-def test_to_data_frame():
-    spec = DataFrameSpec(
-        mongo_filter="",
-        mongo_collection="",
-        mongo_projection="",
-        columns=["A", "B", "F", "C"],
-        extractors=[
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="a"),
-                    ValueExtractorSpec(path="b"),
-                    ValueExtractorSpec(path="f"),
-                    ValueExtractorSpec(value="direct"),
-                ],
-            ),
-            RowExtractorSpec(
-                accepts_null=False,
-                columns=[
-                    ValueExtractorSpec(path="b"),
-                    ValueExtractorSpec(path="a"),
-                    ValueExtractorSpec(path="f"),
-                    ValueExtractorSpec(value="inverted"),
-                ],
-            ),
-        ],
-    )
+    assert set([m.name for m in measurements]) == {"cpu_usage", "ram_usage", "net_usage", "disc_usage"}
 
-    result = to_data_frame(_get_docs(), spec)
-    tuples = [t for t in result.itertuples(index=False, name=None)]
-    assert tuples == [
-        (11, 12, 13, "direct"),
-        (12, 11, 13, "inverted"),
-        (21, 22, 23, "direct"),
-        (22, 21, 23, "inverted"),
-    ]
+    for measurement in measurements:
+        assert isinstance(measurement, MeasurementInfo)
+        assert measurement.name in ["cpu_usage", "ram_usage", "net_usage", "disc_usage"]
+        if measurement.name == "cpu_usage":
+            assert set(measurement.aggregations) == {"mean", "q05", "q09", "max"}
+        elif measurement.name == "ram_usage":
+            assert set(measurement.aggregations) == {"mean", "q051", "q091", "max"}
+        elif measurement.name == "net_usage":
+            assert set(measurement.aggregations) == {"mean", "max"}
+        elif measurement.name == "disc_usage":
+            assert set(measurement.aggregations) == {"mean", "q05", "max"}
+
