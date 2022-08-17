@@ -3,11 +3,18 @@ set +e
 
 
 {
-  rm -r docs/fakerelay
-  rm -r docs/helper-images
-  rm -r docs/influxdb-monitor
-  rm -r docs/ingest-metrics-generator
-  rm -r docs/load-starter
+  rm -r docs/*.md
 } > /dev/null 2>&1
 
-cp README.md docs/README.md
+cp README.md docs/index.md
+cp fakerelay/README.md docs/fakerelay.md
+cp helper-images/buildkit/README.md docs/buildkit.md
+cp helper-images/topicctl/README.md docs/topicctl.md
+cp influxdb-monitor/README.md docs/influxdb-monitor.md
+cp ingest-metrics-generator/README.md docs/ingest-metrics-generator.md
+cp load-starter/README.md docs/load-starter.md
+cp report-generator/README.md docs/report-generator.md
+cp report-store/README.md docs/report-store.md
+cp stats-collector/README.md docs/stats-collector.md
+cp vegeta2influx/README.md docs/vegeta2influx.md
+cp workflow-notifier/README.md docs/workflow-notifier.md

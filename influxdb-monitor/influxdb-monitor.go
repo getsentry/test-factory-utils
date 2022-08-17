@@ -198,8 +198,8 @@ func cliSetup() *cobra.Command {
 			}
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
-			//Horrible hack (probably I'm missing something on how cobra/viper integration is supposed to work)
-			//I would expect to have viper populate params automatically (somehow that's not happening)
+			// Horrible hack (probably I'm missing something on how cobra/viper integration is supposed to work)
+			// I would expect to have viper populate params automatically (somehow that's not happening)
 			*Params.influxDbToken = viper.GetString("influxdb-token")
 			*Params.influxDbServer = viper.GetString("influxdb-url")
 		},
@@ -213,7 +213,7 @@ func cliSetup() *cobra.Command {
 	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "InfluxDB organisation id")
 	Params.bucketName = rootCmd.Flags().StringP("bucket-name", "b", "statsd", "Bucket where the metric is stored")
 	Params.measurement = rootCmd.Flags().StringP("measurement", "m", "kafka_consumer_lag", "Name of the measurement (metric)")
-	Params.filters = rootCmd.Flags().StringSliceP("filter", "f", []string{}, "Measurement filters")
+	Params.filters = rootCmd.Flags().StringSliceP("filter", "f", []string{}, "Measurement filters (0 or more) in the format: filter-name=filter-value")
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
 	flags := rootCmd.Flags()

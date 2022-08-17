@@ -31,3 +31,8 @@ push-influxdb-monitor:
 push-all: push-influxdb-monitor push-ingest-metrics-generator push-load-starter push-stats-collector
 
 .PHONY: push-all
+
+
+local-docs:
+	cd docs; \
+	bundle exec jekyll serve
