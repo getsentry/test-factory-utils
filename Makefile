@@ -32,6 +32,9 @@ push-all: push-influxdb-monitor push-ingest-metrics-generator push-load-starter 
 
 .PHONY: push-all
 
+generate-docs:
+	cd ingest-metrics-generator && $(MAKE) update-docs
+	./make-docs.sh
 
 local-docs:
 	cd docs; \

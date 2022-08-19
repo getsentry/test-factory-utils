@@ -9,6 +9,7 @@ from yaml import load, dump, Dumper, Loader
 
 from metrics import generate_metric
 from util import parse_timedelta
+from readme_generator import generate_readme
 
 
 @click.command()
@@ -95,10 +96,15 @@ from util import parse_timedelta
     help="max number of items in collections (sets & distributions)",
 )
 @click.option("--dry-run", is_flag=True, help="if set only prints the settings")
+@click.option("--update-docs", is_flag=True,  help="creates a README.md  documentation file")
 def main(**kwargs):
     """
     Populates the ingest-metrics kafka topic with messages
     """
+    if kwargs["update_docs"]:
+        generate_readme()
+        return
+
     settings = get_settings(**kwargs)
 
     print("Settings:")
@@ -151,6 +157,7 @@ def get_settings(
     col_min: Optional[int],
     col_max: Optional[int],
     dry_run: bool,
+    **kwargs,
 ):
     # default settings
     settings = {
@@ -276,11 +283,12 @@ def get_settings(
 
 def _calculate_metrics_distribution(settings):
     """
-    Creates a helper array that has precalculated distributions for various metric types
+    Creates a helper array that has precalculated cumulative distributions for various metric types.
 
     Example:
     If original metric types relative distributions are: { "metric-1": 3, "metric-2": 1, "metric-3": 5 }
     The calculated metric distribution will be: dist= [ ("metric-1", 3), ("metric-2", 4), ("metric-3": 9)]
+    That is metric-1 = original metric-1, metric-2 = metric-1 + original metric-2, metric-3 = metric-2 + original metric-3
     Use the array like this:
     idx = random.randint(1, dist[len(dist)-1][1])
     for d in dist:

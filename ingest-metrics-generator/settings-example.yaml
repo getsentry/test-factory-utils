@@ -1,0 +1,15 @@
+kafka:
+  bootstrap.servers: "127.0.0.1:9092"
+org: 1
+projects: [ 5,6,7,8,9,10 ]
+spread: 2h              # time spread of timestamp from now ( will generate messages with timestamp anywhere between `now` and `now - spread` )
+releases: 20
+environments: 10
+repeatable: false       # if repeatable is true it will do a repeatable pseudo-random message generation (guarantees two runs with same settings will generate the same messages)
+metric_types:
+  session: 4,            # generate 4 times as many session metrics as 'session.error' or 'session.duration' metrics
+  user: 2,               # generate 2 times as many user metrics as 'session.error' metrics
+  "session.error": 1,
+  "session.duration": 1
+col_min: 3
+col_max: 7
