@@ -34,6 +34,8 @@ push-all: push-influxdb-monitor push-ingest-metrics-generator push-load-starter 
 
 generate-docs:
 	cd ingest-metrics-generator && $(MAKE) update-docs
+	cd load-starter && $(MAKE) update-docs
+	cd influxdb-monitor && $(MAKE) update-docs
 	./make-docs.sh
 
 local-docs:

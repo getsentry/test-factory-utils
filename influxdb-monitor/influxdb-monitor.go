@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -221,8 +223,46 @@ func cliSetup() *cobra.Command {
 	viper.BindPFlag("influxdb-token", flags.Lookup("influxdb-token"))
 	viper.BindPFlag("influxdb-url", flags.Lookup("influxdb-url"))
 
+	update_doc_cmd := &cobra.Command{
+		Use: "update-docs",
+        Short: "Update the documentation",
+        Long: "generates README.md file from README-template.md and progam usage.",
+		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+	}
+	rootCmd.AddCommand(update_doc_cmd)
+
 	return rootCmd
 }
+
+func updateDocs(cmd *cobra.Command) {
+	fmt.Println("Updating documentation...")
+
+	templateRaw, err := ioutil.ReadFile("README-template.md")
+	if err != nil {
+		fmt.Printf("Could not generate documentation, error reading README-template.md: %s\n", err)
+		return
+	}
+	parsedTemplate, err := template.New("template").Parse(string(templateRaw))
+	usage := cmd.UsageString()
+
+
+	readmeFile, err := os.Create("README.md")
+
+	params := struct{
+	    Usage string
+	    }{
+		Usage: usage,
+	}
+
+	parsedTemplate.Execute(readmeFile, params)
+	if err != nil {
+		fmt.Printf("Could not generate documentation, error creating README.md file: %s\n",err)
+		return
+	}
+
+	defer func() { _ = readmeFile.Close() }()
+}
+
 
 func main() {
 	var rootCmd = cliSetup()

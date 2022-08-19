@@ -5,32 +5,7 @@
 Here's the current usage:
 
 ```
-Usage:
-  load-starter --config config.py --report report.yaml  [flags]
-  load-starter [command]
-
-Available Commands:
-  completion  generate the autocompletion script for the specified shell
-  help        Help about any command
-  update-docs Update the documentation
-
-Flags:
-      --color                         Use color (only for console output).
-  -f, --config string                 Path to a skylark configuration file
-      --dry-run                       dry-run mode
-      --grafana-base string           Grafana base URL
-      --grafana-board string          Grafana board id
-      --grafana-organisation string   Grafana board id
-      --influx-base string            InfluxDB dashboard base URL
-      --influx-board string           InfluxDb board id
-      --influx-organisation string    InfluxDb organisation id
-      --load-server string            Load server endpoint (default "http://go-load-tester.default.svc.cluster.local")
-      --log string                    Log level: trace, debug, (info), warn, error, fatal, panic (default "info")
-  -r, --report string                 If provided: report will be written here
-  -s, --slack-message string          If provided: notification report (simply put, a formatted Slack message) will be written here
-
-Use "load-starter [command] --help" for more information about a command.
-
+{{ .Usage }}
 ```
 
 ## Building
@@ -137,42 +112,7 @@ If `--report FILE` argument is provided, a test report will be generated and wri
 Example report:
 
 ```yaml
-testRuns:
-  - runInfo:
-      name: 'Session test with Vegeta, on frequency: 100/sec'
-      description: Testing transactions with various params
-      duration: 2m0s
-      runner: vegeta
-      spec:
-        numMessages: 100
-        params:
-          maxBreadcrumbs: 25
-          maxSpans: 40
-          numReleases: 1000
-          numUsers: 2000
-        per: 1s
-        testType: transaction
-    startTime: 2022-05-10T16:01:19.816269586Z
-    endTime: 2022-05-10T16:03:19.859911674Z
-  - runInfo:
-      name: 'Session test with Vegeta, on frequency: 200/sec'
-      description: Testing transactions with various params
-      duration: 2m0s
-      runner: vegeta
-      spec:
-        numMessages: 200
-        params:
-          maxBreadcrumbs: 25
-          maxSpans: 40
-          numReleases: 1000
-          numUsers: 2000
-        per: 1s
-        testType: transaction
-    startTime: 2022-05-10T16:03:38.226848053Z
-    endTime: 2022-05-10T16:05:38.286043691Z
-startTime: 2022-05-10T16:00:59.89790197Z
-endTime: 2022-05-10T16:07:56.64842927Z
-
+{{ .ExampleReport }}
 ```
 
 ## Dry-run Mode

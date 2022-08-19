@@ -1,0 +1,35 @@
+testRuns:
+  - runInfo:
+      name: 'Session test with Vegeta, on frequency: 100/sec'
+      description: Testing transactions with various params
+      duration: 2m0s
+      runner: vegeta
+      spec:
+        numMessages: 100
+        params:
+          maxBreadcrumbs: 25
+          maxSpans: 40
+          numReleases: 1000
+          numUsers: 2000
+        per: 1s
+        testType: transaction
+    startTime: 2022-05-10T16:01:19.816269586Z
+    endTime: 2022-05-10T16:03:19.859911674Z
+  - runInfo:
+      name: 'Session test with Vegeta, on frequency: 200/sec'
+      description: Testing transactions with various params
+      duration: 2m0s
+      runner: vegeta
+      spec:
+        numMessages: 200
+        params:
+          maxBreadcrumbs: 25
+          maxSpans: 40
+          numReleases: 1000
+          numUsers: 2000
+        per: 1s
+        testType: transaction
+    startTime: 2022-05-10T16:03:38.226848053Z
+    endTime: 2022-05-10T16:05:38.286043691Z
+startTime: 2022-05-10T16:00:59.89790197Z
+endTime: 2022-05-10T16:07:56.64842927Z

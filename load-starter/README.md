@@ -6,16 +6,21 @@ Here's the current usage:
 
 ```
 Usage:
-  ./load-starter [flags]
+  load-starter --config config.py --report report.yaml  [flags]
+  load-starter [command]
+
+Available Commands:
+  completion  generate the autocompletion script for the specified shell
+  help        Help about any command
+  update-docs Update the documentation
 
 Flags:
       --color                         Use color (only for console output).
-  -f, --config string                 Path to configuration file
+  -f, --config string                 Path to a skylark configuration file
       --dry-run                       dry-run mode
       --grafana-base string           Grafana base URL
       --grafana-board string          Grafana board id
       --grafana-organisation string   Grafana board id
-  -h, --help                          help for app
       --influx-base string            InfluxDB dashboard base URL
       --influx-board string           InfluxDb board id
       --influx-organisation string    InfluxDb organisation id
@@ -23,6 +28,9 @@ Flags:
       --log string                    Log level: trace, debug, (info), warn, error, fatal, panic (default "info")
   -r, --report string                 If provided: report will be written here
   -s, --slack-message string          If provided: notification report (simply put, a formatted Slack message) will be written here
+
+Use "load-starter [command] --help" for more information about a command.
+
 ```
 
 ## Building
@@ -75,7 +83,7 @@ set_load_tester_url("http://go-load-tester.default.svc.cluster.local")
 ```
 
 ```
-add_locust_test( 
+add_locust_test(
     duration: Union[duration,str],
     users: int,
     spawn_rate: Optional[int],
@@ -84,7 +92,7 @@ add_locust_test(
     url: Optional[str],
     )
 ```
-This is an obsolete API. If possible please migrate to Vegeta tests. 
+This is an obsolete API. If possible please migrate to Vegeta tests.
 Creates a locust load test.
 
 ```
@@ -102,8 +110,8 @@ add_vegeta_test(
 
 Creates a Vegeta load test.
 
-The `freq` and `per` are used to control the intesity of the attack. `freq` represents number of requests sent and 
-`per` represents the amount of time in which to send the number of requests specified in `freq`, typically `per` is 
+The `freq` and `per` are used to control the intensity of the attack. `freq` represents number of requests sent and
+`per` represents the amount of time in which to send the number of requests specified in `freq`, typically `per` is
 `"1s"` in which case `freq` represents requests/sec.
 
 The `test_type` controls the type of test (the test types are defined in go-load-tester, see `go-load-tester` for details).
@@ -164,6 +172,7 @@ testRuns:
     endTime: 2022-05-10T16:05:38.286043691Z
 startTime: 2022-05-10T16:00:59.89790197Z
 endTime: 2022-05-10T16:07:56.64842927Z
+
 ```
 
 ## Dry-run Mode

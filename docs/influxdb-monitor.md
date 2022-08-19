@@ -17,20 +17,24 @@ The program will run until one of the following conditions is met:
 The following is the output of the program's help command:
 
 ```
-Waits for a condition in InfluxDB to become True or an expiration time
-
 Usage:
   influxdb-monitor [flags]
+  influxdb-monitor [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  update-docs Update the documentation
 
 Flags:
   -b, --bucket-name string      Bucket where the metric is stored (default "statsd")
       --dry-run                 dry-run mode
   -f, --filter strings          Measurement filters (0 or more) in the format: filter-name=filter-value
-  -h, --help                    help for influxdb-monitor
   -x, --influxdb-token string   InfluxDB access token
   -u, --influxdb-url string     InfluxDB URL (default "http://localhost:8086")
   -m, --measurement string      Name of the measurement (metric) (default "kafka_consumer_lag")
   -o, --organisation string     InfluxDB organisation id
 
+Use "influxdb-monitor [command] --help" for more information about a command.
 
 ```

@@ -13,3 +13,7 @@ test:
 fmt:
 	go fmt .
 .PHONY: fmt
+
+update-docs:
+	@echo "Updating influxdb-monitor docs"
+	go run . update-docs

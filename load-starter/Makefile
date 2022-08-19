@@ -17,3 +17,7 @@ fmt:
 lint:
 	go vet .
 .PHONY: lint
+
+update-docs:
+	@echo "Updating load-starter docs"
+	go run . update-docs
