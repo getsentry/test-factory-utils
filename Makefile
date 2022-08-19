@@ -36,6 +36,7 @@ generate-docs:
 	cd ingest-metrics-generator && $(MAKE) update-docs
 	cd load-starter && $(MAKE) update-docs
 	cd influxdb-monitor && $(MAKE) update-docs
+	cd vegeta2influx && $(MAKE) update-docs
 	./make-docs.sh
 
 local-docs:
