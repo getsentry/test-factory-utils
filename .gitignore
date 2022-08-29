@@ -30,6 +30,7 @@ logfiles/
 .dockervolumes
 
 # misc
+docs/
 **/.DS_Store
 **/.env.local
 **/.env.development.local
