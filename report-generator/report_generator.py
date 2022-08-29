@@ -6,7 +6,6 @@ import datapane as dp
 from google.cloud import storage
 import click
 from mongo_data import get_db, get_docs, get_measurements
-from utils import chain
 
 
 @click.command()
@@ -58,7 +57,7 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, repor
     else:
         current_doc = current_docs[-1]
 
-    measurements = get_measurements(chain(trend_docs, [current_doc]))
+    measurements = get_measurements(current_docs)
 
     module = importlib.import_module(report_file_name)
     report = module.generate_report(trend_docs, current_doc, measurements, filters, git_sha)
