@@ -1,11 +1,18 @@
+---
+layout: page
+title: stats-collector
+permalink: /stats-collector/
+---
+
+
 # Overview
 
 `stats-collector` is used to create reports from test runs.
 
-The basic idea is that the `stats-collector` program has a battery of flux scripts which are used to 
+The basic idea is that the `stats-collector` program has a battery of flux scripts which are used to
 extract basic report data.
 
-The collector takes an optional report containing run details and uses the flux scripts to extract 
+The collector takes an optional report containing run details and uses the flux scripts to extract
 and summarize data from each run.
 
 For usage help use `stats-collector --help` it will print documentation like:

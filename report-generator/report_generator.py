@@ -5,6 +5,7 @@ import datapane as dp
 
 from google.cloud import storage
 import click
+from click import get_current_context
 from mongo_data import get_db, get_docs, get_measurements
 
 
@@ -43,6 +44,7 @@ from mongo_data import get_db, get_docs, get_measurements
 @click.option("--no-upload", is_flag=True, help="if passed will not upload the report to GCS")
 @click.option("--report", "-r", "report_file_name", required=True, help="report generator python file")
 def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name):
+
     db = get_db(mongo_url)
 
     trend_filters = [*filters, ("is_default_branch", "1")]

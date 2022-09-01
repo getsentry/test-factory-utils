@@ -1,3 +1,10 @@
+---
+layout: page
+title: buildkit
+permalink: /buildkit/
+---
+
+
 # buildkit
 
 Wrapper around moby/buildkit that adds `docker-credential-gcr` and a few packages to facilitate troubleshooting.

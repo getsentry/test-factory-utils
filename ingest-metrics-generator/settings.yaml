@@ -1,6 +1,5 @@
 kafka:
   bootstrap.servers: "127.0.0.1:9092"
-ingest-metrics: ingest-metrics
 org: 1
 projects: [5,6,7,8,9,10]
 spread: 2h

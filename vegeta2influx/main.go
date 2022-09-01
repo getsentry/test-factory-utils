@@ -25,9 +25,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"io"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -190,7 +192,7 @@ Each line which is a JSON document of the form:
 {"attack":"at1","seq":19,"code":200,"timestamp":"2022-07-04T17:52:06.096582044+02:00","latency":306656,"bytes_out":0,"bytes_in":0,"error":"","body":"..."}
 Will be converted into a call to insert a point into influxDb.
 The point inserted will have the name specified with the measurement CLI parameter
-The date specified by the timestamp, the value will be latency field and attack and status fields will be saved as tags. 
+The date specified by the timestamp, the value will be latency field and attack and status fields will be saved as tags.
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			pushData()
@@ -231,6 +233,14 @@ The date specified by the timestamp, the value will be latency field and attack 
 	_ = viper.BindPFlag("org", rootCmd.PersistentFlags().Lookup("organisation"))
 	_ = viper.BindPFlag("bucket", rootCmd.PersistentFlags().Lookup("bucket-name"))
 	_ = viper.BindPFlag("measurement", rootCmd.PersistentFlags().Lookup("measurement"))
+
+	update_doc_cmd := &cobra.Command{
+		Use: "update-docs",
+        Short: "Update the documentation",
+        Long: "generates README.md file from README-template.md and progam usage.",
+		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+	}
+	rootCmd.AddCommand(update_doc_cmd)
 
 	return rootCmd
 }
@@ -286,4 +296,33 @@ func parseTags(tagsRaw []string) map[string]string {
 		}
 	}
 	return retVal
+}
+
+func updateDocs(cmd *cobra.Command) {
+	fmt.Println("Updating documentation...")
+
+	templateRaw, err := ioutil.ReadFile("README-template.md")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not generate documentation, error reading README-template.md: %s\n")
+		return
+	}
+	parsedTemplate, err := template.New("template").Parse(string(templateRaw))
+	usage := cmd.UsageString()
+
+	readmeFile, err := os.Create("README.md")
+
+
+	params := struct{
+	    Usage string
+	    }{
+		Usage: usage,
+	}
+
+	parsedTemplate.Execute(readmeFile, params)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not generate documentation, error creating README.md file: %s\n")
+		return
+	}
+
+	defer func() { _ = readmeFile.Close() }()
 }

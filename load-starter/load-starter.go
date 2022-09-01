@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -84,7 +86,10 @@ var Params CliParams
 
 func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Use: "app",
+		Short: "Drives load tests by sending commands to a load tester",
+		Long: `The sequence of load tests are specified in a starlark script.
+ingest-load-tester (a Locust based tool) and go-load-tester (a Vegeta based tool) are supported.`,
+		Use: "load-starter --config config.py --report report.yaml ",
 		Run: func(cmd *cobra.Command, args []string) { runLoadStarter() },
 	}
 	rootCmd.Flags()
@@ -107,7 +112,7 @@ func cliSetup() *cobra.Command {
 
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
-	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to configuration file")
+	Params.configFilePath = rootCmd.Flags().StringP("config", "f", "", "Path to a skylark configuration file")
 
 	Params.reportFilePath = rootCmd.Flags().StringP("report", "r", "", "If provided: report will be written here")
 
@@ -118,13 +123,21 @@ func cliSetup() *cobra.Command {
 
 	_ = rootCmd.Flags().MarkDeprecated("locust", "locust flag is deprecated, please use load-tester instead")
 
+	update_doc_cmd := &cobra.Command{
+		Use: "update-docs",
+        Short: "Update the documentation",
+        Long: "generates README.md file from README-template.md and progam usage.",
+		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+	}
+	rootCmd.AddCommand(update_doc_cmd)
+
 	cobra.OnInitialize(initConfig)
 	return rootCmd
 }
 
 // initConfig call after Cobra has read the configuration, all the settings should be ready in Params
 func initConfig() {
-	//setup logging
+	// setup logging
 	var consoleWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: Params.useColor,
 		TimeFormat: "15:04:05"}
 	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Caller().Logger()
@@ -342,4 +355,42 @@ func main() {
 		// fall back on printf (not sure if log is initialized)
 		fmt.Printf("Could not execute command %s", err)
 	}
+}
+
+func updateDocs(cmd *cobra.Command) {
+	fmt.Println("Updating documentation...")
+
+	templateRaw, err := ioutil.ReadFile("README-template.md")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not generate documentation, error reading README-template.md: %s\n")
+		return
+	}
+	parsedTemplate, err := template.New("template").Parse(string(templateRaw))
+	usage := cmd.UsageString()
+
+    var example_report_file_name = "example-report.yaml"
+    exampleReport, err := ioutil.ReadFile(example_report_file_name)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Could not generate documentation, error reading file:%s\n", example_report_file_name)
+		return
+	}
+
+	readmeFile, err := os.Create("README.md")
+
+
+	params := struct{
+	    Usage string
+	    ExampleReport string
+	    }{
+		Usage: usage,
+		ExampleReport: string(exampleReport),
+	}
+
+	parsedTemplate.Execute(readmeFile, params)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not generate documentation, error creating README.md file: %s\n")
+		return
+	}
+
+	defer func() { _ = readmeFile.Close() }()
 }

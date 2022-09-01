@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -198,8 +200,8 @@ func cliSetup() *cobra.Command {
 			}
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
-			//Horrible hack (probably I'm missing something on how cobra/viper integration is supposed to work)
-			//I would expect to have viper populate params automatically (somehow that's not happening)
+			// Horrible hack (probably I'm missing something on how cobra/viper integration is supposed to work)
+			// I would expect to have viper populate params automatically (somehow that's not happening)
 			*Params.influxDbToken = viper.GetString("influxdb-token")
 			*Params.influxDbServer = viper.GetString("influxdb-url")
 		},
@@ -213,7 +215,7 @@ func cliSetup() *cobra.Command {
 	Params.organisationId = rootCmd.Flags().StringP("organisation", "o", "", "InfluxDB organisation id")
 	Params.bucketName = rootCmd.Flags().StringP("bucket-name", "b", "statsd", "Bucket where the metric is stored")
 	Params.measurement = rootCmd.Flags().StringP("measurement", "m", "kafka_consumer_lag", "Name of the measurement (metric)")
-	Params.filters = rootCmd.Flags().StringSliceP("filter", "f", []string{}, "Measurement filters")
+	Params.filters = rootCmd.Flags().StringSliceP("filter", "f", []string{}, "Measurement filters (0 or more) in the format: filter-name=filter-value")
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
 	flags := rootCmd.Flags()
@@ -221,8 +223,46 @@ func cliSetup() *cobra.Command {
 	viper.BindPFlag("influxdb-token", flags.Lookup("influxdb-token"))
 	viper.BindPFlag("influxdb-url", flags.Lookup("influxdb-url"))
 
+	update_doc_cmd := &cobra.Command{
+		Use: "update-docs",
+        Short: "Update the documentation",
+        Long: "generates README.md file from README-template.md and progam usage.",
+		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+	}
+	rootCmd.AddCommand(update_doc_cmd)
+
 	return rootCmd
 }
+
+func updateDocs(cmd *cobra.Command) {
+	fmt.Println("Updating documentation...")
+
+	templateRaw, err := ioutil.ReadFile("README-template.md")
+	if err != nil {
+		fmt.Printf("Could not generate documentation, error reading README-template.md: %s\n", err)
+		return
+	}
+	parsedTemplate, err := template.New("template").Parse(string(templateRaw))
+	usage := cmd.UsageString()
+
+
+	readmeFile, err := os.Create("README.md")
+
+	params := struct{
+	    Usage string
+	    }{
+		Usage: usage,
+	}
+
+	parsedTemplate.Execute(readmeFile, params)
+	if err != nil {
+		fmt.Printf("Could not generate documentation, error creating README.md file: %s\n",err)
+		return
+	}
+
+	defer func() { _ = readmeFile.Close() }()
+}
+
 
 func main() {
 	var rootCmd = cliSetup()

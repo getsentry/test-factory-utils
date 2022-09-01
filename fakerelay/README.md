@@ -1,6 +1,13 @@
+---
+layout: default
+title: fakerelay
+permalink: /fakerelay/
+---
+
+
 # Fake Relay
 
-NOTE: this is almost 100% copied from https://github.com/getsentry/sentry-sdk-benchmark/tree/main/tool/fakerelay 
+NOTE: this is almost 100% copied from [https://github.com/getsentry/sentry-sdk-benchmark/tree/main/tool/fakerelay](https://github.com/getsentry/sentry-sdk-benchmark/tree/main/tool/fakerelay)
 
 NOTE: this is a temporary solution and we shouldn't rely on it too heavily.
 
