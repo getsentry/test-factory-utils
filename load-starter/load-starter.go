@@ -124,10 +124,10 @@ ingest-load-tester (a Locust based tool) and go-load-tester (a Vegeta based tool
 	_ = rootCmd.Flags().MarkDeprecated("locust", "locust flag is deprecated, please use load-tester instead")
 
 	update_doc_cmd := &cobra.Command{
-		Use: "update-docs",
-        Short: "Update the documentation",
-        Long: "generates README.md file from README-template.md and progam usage.",
-		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+		Use:   "update-docs",
+		Short: "Update the documentation",
+		Long:  "generates README.md file from README-template.md and progam usage.",
+		Run:   func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
 	}
 	rootCmd.AddCommand(update_doc_cmd)
 
@@ -260,6 +260,10 @@ func runLoadStarter() {
 	log.Info().Msg("Finished all test steps, preparing the report...")
 	writeReportToFile(report)
 	writeSlackMessage(report.StartTime, report.EndTime, config)
+	links := buildDashboardLinks(report.StartTime, report.EndTime, 30*time.Second)
+	for _, link := range links {
+		log.Info().Msgf("Url for %s\n    %s", link.name, link.url)
+	}
 }
 
 func buildDashboardLinks(startTime time.Time, endTime time.Time, buffer time.Duration) []DashboardLink {
@@ -368,8 +372,8 @@ func updateDocs(cmd *cobra.Command) {
 	parsedTemplate, err := template.New("template").Parse(string(templateRaw))
 	usage := cmd.UsageString()
 
-    var example_report_file_name = "example-report.yaml"
-    exampleReport, err := ioutil.ReadFile(example_report_file_name)
+	var example_report_file_name = "example-report.yaml"
+	exampleReport, err := ioutil.ReadFile(example_report_file_name)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not generate documentation, error reading file:%s\n", example_report_file_name)
 		return
@@ -377,12 +381,11 @@ func updateDocs(cmd *cobra.Command) {
 
 	readmeFile, err := os.Create("README.md")
 
-
-	params := struct{
-	    Usage string
-	    ExampleReport string
-	    }{
-		Usage: usage,
+	params := struct {
+		Usage         string
+		ExampleReport string
+	}{
+		Usage:         usage,
 		ExampleReport: string(exampleReport),
 	}
 
