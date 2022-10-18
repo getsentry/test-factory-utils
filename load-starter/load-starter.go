@@ -201,7 +201,11 @@ func executeConfig(config Config) CombinedReport {
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to run a test action: %s", action.GetName())
 			}
-			retVal.TestRuns = append(retVal.TestRuns, run)
+
+			if !testInfo.disableReport {
+				// if a normal test (i.e. not a warm-up or cool-down stage) add it to the report
+				retVal.TestRuns = append(retVal.TestRuns, run)
+			}
 		}
 
 	}

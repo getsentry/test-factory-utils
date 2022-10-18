@@ -4,6 +4,27 @@ VEGETA_URL = "http://localhost:7770"
 def add_vegeta_tests():
     add_sleep("10s")
     add_vegeta_test(
+        duration=duration("1m"),
+        test_type="session",
+        name="warm-up",
+        description="load the caches",
+        freq=22,
+        per=duration("1s"),
+        config={
+            "startedRange": "1m",
+            "durationRange": "2m",
+            "numReleases": 3,
+            "numEnvironments": 4,
+            "numUsers": 5,
+            "okWeight": 6,
+            "exitedWeight": 7,
+            "erroredWeight": 8,
+            "crashedWeight": 9,
+            "abnormalWeight": 10
+        },
+        produce_report=False,
+    )
+    add_vegeta_test(
         duration=duration("30s"),
         test_type="session",
         name="Test title",
@@ -22,7 +43,6 @@ def add_vegeta_tests():
             "crashedWeight": 9,
             "abnormalWeight": 10
         },
-
     )
     add_sleep(duration("20s"))
 

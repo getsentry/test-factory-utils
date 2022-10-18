@@ -402,11 +402,12 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 	var name starlark.Value
 	var description starlark.Value
 	var url starlark.Value
+	var produceReport starlark.Bool = starlark.True
 
 	retVal = starlark.None
 
 	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "users", &users,
-		"spawn_rate?", &spawnRate, "name?", &name, "description?", &description, "url?", &url); err != nil {
+		"spawn_rate?", &spawnRate, "name?", &name, "description?", &description, "url?", &url, "produce_report?", &produceReport); err != nil {
 		return
 	}
 
@@ -425,7 +426,7 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 	var spawnRateVal int64
 	spawnRateVal, err = toInt(spawnRate)
 	if err != nil {
-		//use default
+		// use default
 		spawnRateVal = usersVal / 4
 	}
 
@@ -437,7 +438,7 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 		urlVal = env.LoadTesterUrl
 	}
 
-	var locustAction = CreateLocustTestAction(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal)
+	var locustAction = CreateLocustTestAction(durationVal, nameVal, descriptionVal, urlVal, usersVal, spawnRateVal, bool(produceReport))
 	env.LoadTestActions = append(env.LoadTestActions, locustAction)
 
 	err = nil
@@ -445,7 +446,8 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 }
 
 // addVegetaTestBuiltin implements the builtin add_vegeta_test(duration:str|duration, freq:int, per:str|duration,
-//        config:dict, name:str|None=None, description:str|None=None)
+//
+//	config:dict, name:str|None=None, description:str|None=None)
 func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	var duration starlark.Value
 	var freq starlark.Int
@@ -455,11 +457,12 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	var description starlark.Value
 	var url starlark.Value
 	var testType starlark.String
+	var produceReport starlark.Bool = starlark.True
 
 	retVal = starlark.None
 
 	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
-		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url); err != nil {
+		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url, "produce_report?", &produceReport); err != nil {
 		return
 	}
 
@@ -498,7 +501,7 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	}
 
 	var vegetaAction VegetaTestAction
-	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal)
+	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal, bool(produceReport))
 	if err != nil {
 		return
 	}

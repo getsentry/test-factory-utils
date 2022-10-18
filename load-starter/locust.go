@@ -27,7 +27,7 @@ type LocustTestAction struct {
 }
 
 // CreateLocustTestAction creates a TestConfig for a Locust attack
-func CreateLocustTestAction(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64) LocustTestAction {
+func CreateLocustTestAction(duration time.Duration, name string, description string, loadTesterUrl string, users int64, spawnRate int64, produceReport bool) LocustTestAction {
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 
 	log.Trace().Msgf("duration=%v\nname=%v\ndescription=%v\nloadTesterUrl=%v\nusers=%v\nspawnRate=%v",
@@ -44,11 +44,12 @@ func CreateLocustTestAction(duration time.Duration, name string, description str
 
 	return LocustTestAction{
 		TestInfo: TestInfo{
-			Duration:    duration,
-			Name:        name,
-			Description: description,
-			Runner:      "locust",
-			Spec:        specParams,
+			Duration:      duration,
+			Name:          name,
+			Description:   description,
+			Runner:        "locust",
+			Spec:          specParams,
+			disableReport: !produceReport,
 		}, LoadTesterUrl: loadTesterUrl}
 }
 
