@@ -65,6 +65,7 @@ add_locust_test(
     name: Optional[str],
     description: Optional[str],
     url: Optional[str],
+    produce_report: Optional[bool]=True,
     )
 ```
 This is an obsolete API. If possible please migrate to Vegeta tests.
