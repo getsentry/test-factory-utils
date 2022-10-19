@@ -141,3 +141,146 @@ func TestAddVegetaTest(t *testing.T) {
 		}
 	}
 }
+
+const locustTestsScript = `
+add_locust_test(duration="1s", users=100, spawn_rate=10, name="n1", description="d1", url="some_url", produce_report=True)
+add_locust_test(duration="2s", users=200, produce_report=False)
+add_locust_test(duration="3s", users=300)
+`
+
+func TestAddLocustTest(t *testing.T) {
+	config, err := loadTestStarlarkConfig(locustTestsScript)
+
+	if err != nil {
+		t.Fatalf("failed to load config.\n%s", err)
+	}
+
+	if config == nil || config.RunActionList == nil || len(config.RunActionList) != 3 {
+		t.Fatalf("invalid config returned")
+	}
+	actions := config.RunActionList
+
+	for idx := 0; idx < len(actions); idx++ {
+		action, ok := (config.RunActionList[idx]).(LocustTestAction)
+
+		if !ok {
+			t.Fatalf("expected a LocustTestAction but got %T", config.RunActionList[0])
+		}
+
+		// number used in the test values
+		num := idx + 1
+
+		expectedDuration, _ := time.ParseDuration(fmt.Sprintf("%ds", num))
+		if action.Duration != expectedDuration {
+			t.Errorf("invalid duration expected: %s got %s", expectedDuration, action.Duration)
+		}
+
+		spec := action.Spec
+		users := spec["users"].(int64)
+		spawnRate := spec["spawnRate"]
+		expectedParam := int64(num)
+
+		if users != expectedParam*100 {
+			t.Errorf("unexpected number of users expected:%d got:%d", users, expectedParam*100)
+		}
+
+		switch idx {
+		case 0:
+			if spawnRate != expectedParam*10 {
+				t.Errorf("unexpected spwan rates expected:%d got:%d", expectedParam*10, spawnRate)
+			}
+			if action.Name != "n1" {
+				t.Errorf("bad name expected n1 got '%s'", action.Name)
+			}
+			if action.Description != "d1" {
+				t.Errorf("bad description expected d2 got '%s'", action.Description)
+			}
+			if action.Runner != "locust" {
+				t.Errorf("bad runner expected 'locust' got '%s'", action.Runner)
+			}
+			if action.LoadTesterUrl != "some_url" {
+				t.Errorf("bad url expected 'some_url' got '%s'", action.LoadTesterUrl)
+			}
+			if action.disableReport != false {
+				t.Errorf("unexpected produce report state for test 0 expected True got False")
+			}
+		case 1:
+			if action.disableReport != true {
+				t.Errorf("unexpected produce report state for test 1 expected False got True")
+			}
+			// if not explicitly provided spawnRate is numUsers/4
+			if spawnRate != users/4 {
+				t.Errorf("unexpected spwan rates expected:%d got:%d", expectedParam*10, spawnRate)
+			}
+
+		case 2:
+			if action.disableReport != false {
+				t.Errorf("unexpected produce report state for test 2 expected True got False")
+			}
+			// if not explicitly provided spawnRate is numUsers/4
+			if spawnRate != users/4 {
+				t.Errorf("unexpected spwan rates expected:%d got:%d", expectedParam*10, spawnRate)
+			}
+		}
+	}
+}
+
+const addRunExternal = `
+add_run_external(["ls","-al"])
+`
+
+func TestAddRunExternalTest(t *testing.T) {
+	config, err := loadTestStarlarkConfig(addRunExternal)
+
+	if err != nil {
+		t.Fatalf("failed to load config.\n%s", err)
+	}
+
+	if config == nil || config.RunActionList == nil || len(config.RunActionList) != 1 {
+		t.Fatalf("invalid config returned")
+	}
+
+	action, ok := (config.RunActionList[0]).(RunExternalAction)
+
+	if !ok {
+		t.Fatalf("expected a LocustTestAction but got %T", config.RunActionList[0])
+	}
+
+	cmd := action.cmd
+
+	if len(cmd) != 2 {
+		t.Fatalf("Expected 2 commands got %d", len(cmd))
+	}
+
+	if cmd[0] != "ls" || cmd[1] != "-al" {
+		t.Errorf("wrong values expected 'ls','-al' got '%s','%s'", cmd[0], cmd[1])
+	}
+
+}
+
+const addSleep = `
+add_sleep("20s")
+`
+
+func TestAddSleepTest(t *testing.T) {
+	config, err := loadTestStarlarkConfig(addSleep)
+
+	if err != nil {
+		t.Fatalf("failed to load config.\n%s", err)
+	}
+
+	if config == nil || config.RunActionList == nil || len(config.RunActionList) != 1 {
+		t.Fatalf("invalid config returned")
+	}
+
+	action, ok := (config.RunActionList[0]).(SleepAction)
+
+	if !ok {
+		t.Fatalf("expected a LocustTestAction but got %T", config.RunActionList[0])
+	}
+
+	if action.duration != time.Second*20 {
+		t.Errorf("sleep expected 20s got %s", action.duration.String())
+	}
+
+}
