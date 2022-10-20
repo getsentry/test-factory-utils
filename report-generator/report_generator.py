@@ -1,11 +1,9 @@
-from datetime import datetime
 import importlib
+from datetime import datetime
 
-import datapane as dp
-
-from google.cloud import storage
 import click
-from click import get_current_context
+import datapane as dp
+from google.cloud import storage
 from mongo_data import get_db, get_docs, get_measurements
 
 
@@ -41,9 +39,19 @@ from mongo_data import get_db, get_docs, get_measurements
     required=True,
     help="the git sha of the version of interest",
 )
-@click.option("--no-upload", is_flag=True, help="if passed will not upload the report to GCS")
-@click.option("--report", "-r", "report_file_name", required=True, help="report generator python file")
-def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name):
+@click.option(
+    "--no-upload", is_flag=True, help="if passed will not upload the report to GCS"
+)
+@click.option(
+    "--report",
+    "-r",
+    "report_file_name",
+    required=True,
+    help="report generator python file",
+)
+def main(
+    mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name
+):
 
     db = get_db(mongo_url)
 
@@ -62,7 +70,9 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, repor
     measurements = get_measurements(current_docs)
 
     module = importlib.import_module(report_file_name)
-    report = module.generate_report(trend_docs, current_doc, measurements, filters, git_sha)
+    report = module.generate_report(
+        trend_docs, current_doc, measurements, filters, git_sha
+    )
 
     environment = "unknown-environment"
     platform = "unknown-platform"

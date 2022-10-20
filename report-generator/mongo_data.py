@@ -1,19 +1,17 @@
 """
 Testing data extraction from MongoDb
 """
-from functools import cache
-from typing import Optional, List, Any, Tuple
-from dateutil.parser import parse
 import datetime
+from dataclasses import dataclass
+from functools import cache
+from typing import Any, List, Optional, Tuple
 
 import jmespath
 import pandas as pd
 import pymongo
+from dateutil.parser import parse
 from jmespath.parser import ParsedResult
-
 from report_spec import DataFrameSpec
-from dataclasses import dataclass
-
 from utils import get_at
 
 
@@ -158,7 +156,9 @@ def fix_test_types(doc):
     if context is not None:
         argo = context.get("argo")
         if argo is not None:
-            argo["creationTimestamp"] = datetime_converter(argo.get("creationTimestamp"))
+            argo["creationTimestamp"] = datetime_converter(
+                argo.get("creationTimestamp")
+            )
             argo["startTimestamp"] = datetime_converter(argo.get("startTimestamp"))
         run = context.get("run")
         if run is not None:
@@ -209,7 +209,9 @@ def int_converter(val):
 
 def get_measurements(docs) -> List[MeasurementInfo]:
     measurements_raw = {}  # {"id": set("aggregation_id")}
-    measurements_meta_raw = {}  # { "id": { "name": str, "unit": str, "description": str , aggregations: { "id": {"name":str, "description":str}} }
+    measurements_meta_raw = (
+        {}
+    )  # { "id": { "name": str, "unit": str, "description": str , aggregations: { "id": {"name":str, "description":str}} }
     for doc in docs:
         measurements = get_at(doc, "results.measurements")
         if measurements is not None:
@@ -285,9 +287,23 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                 if name is not None:
                     aggregation_name = name
                 aggregation_description = aggregation_meta.get("description")
-            aggregations.append(AggregationInfo(id=aggregation_id, name=aggregation_name, description=aggregation_description))
+            aggregations.append(
+                AggregationInfo(
+                    id=aggregation_id,
+                    name=aggregation_name,
+                    description=aggregation_description,
+                )
+            )
 
         ret_val.append(
-            MeasurementInfo(_id, name=measurement_name, description=measurement_description, unit=unit, bigger_is_better=bigger_is_better, aggregations=aggregations))
+            MeasurementInfo(
+                _id,
+                name=measurement_name,
+                description=measurement_description,
+                unit=unit,
+                bigger_is_better=bigger_is_better,
+                aggregations=aggregations,
+            )
+        )
 
     return ret_val

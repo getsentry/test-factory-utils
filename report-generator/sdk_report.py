@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Mapping, List, Tuple
+from typing import List, Mapping, Tuple
+
+import altair as alt
 import datapane as dp
 import jmespath
 import pandas as pd
-import altair as alt
-
 from mongo_data import MeasurementInfo
-from report_generator_support import trend_plot, get_data_frame, big_number
+from report_generator_support import big_number, get_data_frame, trend_plot
 from report_spec import DataFrameSpec, generate_extractors
 
 
@@ -17,7 +17,9 @@ class MeasurementSeries:
     current: pd.DataFrame
 
 
-def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo], filters, commit_sha):
+def generate_report(
+    trend_docs, current_doc, measurements: List[MeasurementInfo], filters, commit_sha
+):
     measurement_series = []
 
     for measurement in measurements:
@@ -29,14 +31,24 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
         )
         data_frame_spec = DataFrameSpec(
             name=measurement.id,
-            columns=["commit_date", "commit_count", "test_name", "measurement", "value"],
+            columns=[
+                "commit_date",
+                "commit_count",
+                "test_name",
+                "measurement",
+                "value",
+            ],
             extractors=extractors,
         )
 
         current_test_frame = get_data_frame([current_doc], data_frame_spec)
         trend_frame = get_data_frame(trend_docs, data_frame_spec)
 
-        measurement_series.append(MeasurementSeries(info=measurement, trend=trend_frame, current=current_test_frame))
+        measurement_series.append(
+            MeasurementSeries(
+                info=measurement, trend=trend_frame, current=current_test_frame
+            )
+        )
 
     introduction = intro(filters, commit_sha, [current_doc], trend_docs)
 
@@ -68,14 +80,14 @@ def get_commit_info(docs):
     commit_date = jmespath.search(
         "metadata.labels[?name=='commit_date'].value|[0]", last_doc
     )
-    sha = jmespath.search(
-        "metadata.labels[?name=='commit_sha'].value|[0]", last_doc
-    )
+    sha = jmespath.search("metadata.labels[?name=='commit_sha'].value|[0]", last_doc)
     run_date = jmespath.search("context.run.startTimestamp", last_doc)
     return commit_date, sha, run_date
 
 
-def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs, trend_docs) -> str:
+def intro(
+    filters: List[Tuple[str, str]], git_sha: str, current_docs, trend_docs
+) -> str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
@@ -127,8 +139,7 @@ def intro(filters: List[Tuple[str, str]], git_sha: str, current_docs, trend_docs
     return content
 
 
-def last_release_page(
-    description: str, measurement_series: List[MeasurementSeries]):
+def last_release_page(description: str, measurement_series: List[MeasurementSeries]):
     intro = f"""
 {description}
 # Last Release
@@ -151,10 +162,14 @@ Last release stats
         current = get_last(series.current, aggregations_id)
         widgets = []
         for aggregation in info.aggregations:
-            widgets.append(big_number(heading=aggregation.name,
-                                      current=current.get(aggregation.id),
-                                      previous=trend.get(aggregation.id),
-                                      bigger_is_better=info.bigger_is_better))
+            widgets.append(
+                big_number(
+                    heading=aggregation.name,
+                    current=current.get(aggregation.id),
+                    previous=trend.get(aggregation.id),
+                    bigger_is_better=info.bigger_is_better,
+                )
+            )
         blocks.append(dp.Group(columns=2, blocks=widgets))
 
     return dp.Page(
@@ -181,11 +196,12 @@ SDK evolution.
         blocks.append(f"## {description}\n\n")
         plot = trend_plot(
             series.trend,
-            x=alt.X('commit_date:T', axis=alt.Axis(title='Commit Date')),
-            y=alt.Y('value:Q', axis=alt.Axis(title=unit)),
+            x=alt.X("commit_date:T", axis=alt.Axis(title="Commit Date")),
+            y=alt.Y("value:Q", axis=alt.Axis(title=unit)),
             time_series="measurement:N",
             split_by="test_name",
-            title=info.name)
+            title=info.name,
+        )
         blocks.append(plot)
 
     return dp.Page(

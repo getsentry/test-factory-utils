@@ -1,6 +1,6 @@
 from pathlib import Path
-import pytest
 
+import pytest
 from mongo_data import get_test_id
 
 
@@ -26,18 +26,17 @@ def _doc1():
 
 
 def _empty_doc():
-    return {
-        "metadata": {
-            "labels": []
-        }
-    }
+    return {"metadata": {"labels": []}}
 
 
 @pytest.mark.parametrize(
     "doc, expected",
     [
-        (_doc1(), ('123', 'runner1', 'workflow1', 'template1', 'python', 'test-123', 'env1')),
-        (_empty_doc(), ('-', '-', '-', '-', '-', '-', '-')),
+        (
+            _doc1(),
+            ("123", "runner1", "workflow1", "template1", "python", "test-123", "env1"),
+        ),
+        (_empty_doc(), ("-", "-", "-", "-", "-", "-", "-")),
     ],
 )
 def test_identity(doc, expected):
