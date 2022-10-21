@@ -11,7 +11,7 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPT_DIR
 
-IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/main/sentry-vegeta"
+IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/public/sentry-vegeta"
 TAG=$(git rev-parse HEAD)
 
 docker build -t $IMAGE:$TAG .
