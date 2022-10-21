@@ -25,7 +25,13 @@ class AggregationInfo:
         return hash(self.id)
 
     def __eq__(self, other):
-        return self.id == other.id
+        if type(other) != AggregationInfo:
+            return False
+        return (
+            self.id == other.id
+            and self.name == other.name
+            and self.description == other.description
+        )
 
 
 @dataclass
@@ -40,7 +46,7 @@ class MeasurementInfo:
     def __eq__(self, other):
         if type(other) != MeasurementInfo:
             return False
-        if self.id != other.name:
+        if self.id != other.id:
             return False
         return set(self.aggregations) == set(other.aggregations)
 
@@ -265,19 +271,21 @@ def get_measurements(docs) -> List[MeasurementInfo]:
     ret_val = []
     for _id, measurement_raw in measurements_raw.items():
         meta = measurements_meta_raw.get(_id)
-        measurement_name = None
+        measurement_name = _id
         measurement_description = None
         unit = None
+        aggregations_meta = {}
+        bigger_is_better = False
 
         if meta is not None:
-            measurement_name = meta.get("name")
+            measurement_name = meta.get("name", _id)
             measurement_description = meta.get("description")
             unit = meta.get("unit")
 
             bigger_is_better = meta.get("bigger_is_better", False)
+            aggregations_meta = meta.get("aggregations", {})
 
         aggregations = []
-        aggregations_meta = meta.get("aggregations", {})
         for aggregation_id in measurement_raw:
             aggregation_name = aggregation_id
             aggregation_description = None
@@ -302,7 +310,7 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                 description=measurement_description,
                 unit=unit,
                 bigger_is_better=bigger_is_better,
-                aggregations=aggregations,
+                aggregations=sorted(aggregations, key=lambda agg: agg.id),
             )
         )
 
