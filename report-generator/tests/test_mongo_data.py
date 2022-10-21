@@ -41,13 +41,30 @@ def test_get_measurements():
         assert isinstance(measurement, MeasurementInfo)
         assert measurement.name in ["cpu_usage", "ram_usage", "net_usage", "disc_usage"]
         if measurement.name == "cpu_usage":
-            assert set(measurement.aggregations) == {"mean", "q05", "q09", "max"}
+            assert set(measurement.aggregations) == {
+                AggregationInfo(id="q05", name="q05", description=None),
+                AggregationInfo(id="q09", name="q09", description=None),
+                AggregationInfo(id="max", name="max", description=None),
+                AggregationInfo(id="mean", name="mean", description=None),
+            }
         elif measurement.name == "ram_usage":
-            assert set(measurement.aggregations) == {"mean", "q051", "q091", "max"}
+            assert set(measurement.aggregations) == {
+                AggregationInfo(id="q051", name="q051", description=None),
+                AggregationInfo(id="q091", name="q091", description=None),
+                AggregationInfo(id="max", name="max", description=None),
+                AggregationInfo(id="mean", name="mean", description=None),
+            }
         elif measurement.name == "net_usage":
-            assert set(measurement.aggregations) == {"mean", "max"}
+            assert set(measurement.aggregations) == {
+                AggregationInfo(id="max", name="max", description=None),
+                AggregationInfo(id="mean", name="mean", description=None),
+            }
         elif measurement.name == "disc_usage":
-            assert set(measurement.aggregations) == {"mean", "q05", "max"}
+            assert set(measurement.aggregations) == {
+                AggregationInfo(id="q05", name="q05", description=None),
+                AggregationInfo(id="max", name="max", description=None),
+                AggregationInfo(id="mean", name="mean", description=None),
+            }
 
 
 def test_measurements_metadata():
