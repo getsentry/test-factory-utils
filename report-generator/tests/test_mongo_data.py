@@ -29,7 +29,6 @@ def test_get_measurements():
     ]
 
     measurements = get_measurements(docs)
-    print(measurements)
 
     assert set([m.name for m in measurements]) == {
         "cpu_usage",
