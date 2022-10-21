@@ -25,7 +25,8 @@ type VegetaTestAction struct {
 }
 
 // CreateVegetaTestAction creates a TestConfig for a Vegeta attack
-func CreateVegetaTestAction(duration time.Duration, testType string, freq int64, per string, config map[string]interface{}, name string, description string, loadTesterUrl string) (VegetaTestAction, error) {
+func CreateVegetaTestAction(duration time.Duration, testType string, freq int64, per string, config map[string]interface{},
+	name string, description string, loadTesterUrl string, produceReport bool) (VegetaTestAction, error) {
 
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 
@@ -39,6 +40,7 @@ func CreateVegetaTestAction(duration time.Duration, testType string, freq int64,
 		"params":         config,
 		"testType":       testType,
 	}
+
 	if len(name) > 0 {
 		specParams["name"] = name
 	}
@@ -54,11 +56,12 @@ func CreateVegetaTestAction(duration time.Duration, testType string, freq int64,
 
 	return VegetaTestAction{
 		TestInfo: TestInfo{
-			Name:        name,
-			Description: description,
-			Duration:    duration,
-			Runner:      "vegeta",
-			Spec:        specParams,
+			Name:          name,
+			Description:   description,
+			Duration:      duration,
+			Runner:        "vegeta",
+			Spec:          specParams,
+			disableReport: !produceReport,
 		}, LoadTesterUrl: loadTesterUrl}, nil
 }
 
@@ -72,7 +75,9 @@ func (action VegetaTestAction) GetName() string {
 
 func (action VegetaTestAction) GetTestInfo() *TestInfo {
 	testInfo := TestInfo{}
-	DeepCopy(action.TestInfo, &testInfo)
+	DeepCopyPublicFields(action.TestInfo, &testInfo)
+	// manually copy private fields (fields not marshaled in JSON)
+	testInfo.disableReport = action.TestInfo.disableReport
 
 	fmt.Printf("%v\n", action.TestInfo)
 	fmt.Printf("%v\n", testInfo)

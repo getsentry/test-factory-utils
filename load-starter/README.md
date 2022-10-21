@@ -90,6 +90,7 @@ add_locust_test(
     name: Optional[str],
     description: Optional[str],
     url: Optional[str],
+    produce_report: Optional[bool]=True,
     )
 ```
 This is an obsolete API. If possible please migrate to Vegeta tests.
@@ -105,6 +106,7 @@ add_vegeta_test(
     name: Optional[str],
     description: Optional[str],
     url: Optional[str],
+    produce_report: Optional[bool]=True,
     )
 ```
 
@@ -118,6 +120,11 @@ The `test_type` controls the type of test (the test types are defined in go-load
 
 The `config` represents the configuration of the load test and is dependent on the `test_type` see `go-load-tester` documentation
 for details on the available test types and the configuration for each test type.
+
+The `produce_report` parameter controls the report generation.By default, each test will create an entry in the final report.
+Sometime stages are used to warm up caches or to wait for various queues to empty before a new test is run. Creating report
+results for these stages is not useful, they only add noise, and it is better if these stages are ignored and not further
+processed by downstream programs. For these cases specify `produce_report=False` for the tests.
 
 ```
 add_run_external( cmd: List[str])

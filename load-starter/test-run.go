@@ -15,15 +15,23 @@ type RunAction interface {
 	GetTestInfo() *TestInfo
 }
 
+// TestInfo represents a test configuration
 type TestInfo struct {
 	Name        string
 	Description string
-	Duration    time.Duration
-	Runner      string
-	Spec        map[string]any
+	// Duration represents the duration of the test
+	Duration time.Duration
+	// Runner the runner used for this test ( vegeta or locust)
+	Runner string
+	// Parameters passed to the test runner (passed as is and interpreted directly by the runner)
+	Spec map[string]any
+	// DisableReport if true will disable report generation for this test (used for warm-up or cool-down
+	// stages that do not generate useful measurements and would just produce noise)
+	// field should **NOT** be serialised
+	disableReport bool
 }
 
-// Represents a list of actions that are executed in one execution
+// Config Represents a list of actions that are executed in one execution
 type Config struct {
 	RunActionList []RunAction
 }
