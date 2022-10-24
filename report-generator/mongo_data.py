@@ -4,7 +4,7 @@ Testing data extraction from MongoDb
 import datetime
 from dataclasses import dataclass
 from functools import cache
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Mapping
 
 import jmespath
 import pandas as pd
@@ -25,7 +25,13 @@ class AggregationInfo:
         return hash(self.id)
 
     def __eq__(self, other):
-        return self.id == other.id
+        if type(other) != AggregationInfo:
+            return False
+        return (
+            self.id == other.id
+            and self.name == other.name
+            and self.description == other.description
+        )
 
 
 @dataclass
@@ -40,7 +46,15 @@ class MeasurementInfo:
     def __eq__(self, other):
         if type(other) != MeasurementInfo:
             return False
-        if self.id != other.name:
+        if self.id != other.id:
+            return False
+        if self.name != other.name:
+            return False
+        if self.description != other.description:
+            return False
+        if self.unit != other.unit:
+            return False
+        if self.bigger_is_better != other.bigger_is_better:
             return False
         return set(self.aggregations) == set(other.aggregations)
 
@@ -208,11 +222,27 @@ def int_converter(val):
 
 
 def get_measurements(docs) -> List[MeasurementInfo]:
-    measurements_raw = {}  # {"id": set("aggregation_id")}
-    measurements_meta_raw = (
-        {}
-    )  # { "id": { "name": str, "unit": str, "description": str , aggregations: { "id": {"name":str, "description":str}} }
+    """
+    Extracts measurement definitions (MeasurementInfo) from a list of documents by looking at all the
+    measurements and augmenting them with any available metadata about the measurement.
+    At the end we should get a list of measurements and the aggregations associated with the measurements from
+    all the documents. If there are different definitions (i.e. names or descriptions) for a measurement or a
+    aggregation then the last definition wins.
+    """
+
+    # {"id": set("aggregation_id")}
+    measurements_raw = {}
+
+    # { "id": {
+    #       "name": str,
+    #       "unit": str,
+    #       "description": str ,
+    #       aggregations: { "id": {"name":str, "description":str}}
+    #       }
+    # }
+    measurements_meta_raw = {}
     for doc in docs:
+        # add to global measurements_raw dictionary  all the measurements and the aggregations present in the current doc
         measurements = get_at(doc, "results.measurements")
         if measurements is not None:
             for _id, measurement in measurements.items():
@@ -221,6 +251,7 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                 for aggregation in measurement.keys():
                     measurements_raw[_id].add(aggregation)
 
+        # add to  global measurements_meta_raw dictionary all the measurements metadata present in the current doc
         meta = get_at(doc, "results._meta.measurements")
         if meta is not None:
             for _id, measurement_meta in meta.items():
@@ -242,6 +273,10 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                 if unit is not None:
                     curr_meta["unit"] = unit
 
+                bigger_is_better = measurement_meta.get("bigger_is_better")
+                if bigger_is_better is not None:
+                    curr_meta["bigger_is_better"] = bigger_is_better
+
                 aggregations_meta = measurement_meta.get("aggregations", {})
                 for aggregation_id, aggregation_meta in aggregations_meta.items():
                     if aggregation_id not in curr_aggregations:
@@ -257,36 +292,64 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                     if description is not None:
                         current_aggregation["description"] = description
 
-                    bigger_is_better = aggregation_meta.get("bigger_is_better")
-                    if bigger_is_better is not None:
-                        current_aggregation["bigger_is_better"] = bigger_is_better
 
-    # now we have the raw measurements and potentially meat data for them, augment measurements with the metadata
+    # now we have the raw measurements and potentially meta-data for them, augment measurements with the metadata
+    ret_val = _join_measurements_info(measurements_raw, measurements_meta_raw)
+    return ret_val
+
+
+def _join_measurements_info(measurements_raw: Mapping[str, Any], measurements_meta_raw: Mapping[str, Any]) -> List[MeasurementInfo]:
+    """
+    Consolidates two dictionaries containing measurements information
+    extracted from measurement data and measurement metadata into a list of MeasurementInfo
+
+    measurements_raw: a dictionary of measurement_id to a set of aggregation_ids for the measurement
+        eg: {"cpu_usage": set("mean","q0.5", "quantile-0.9"), "ram_usage": set("mean","q0.5", "max")}
+
+    measurements_meta_raw: a dictionary of measurement_id to a dictionary with measurement metadata
+        eg: { "cpu_usage": {"name": "CPU usage", "description": "...", "unit": "nanocores",
+                             "aggregations":{ "mean": {"name": "Mean", "description: "Mean..."}}
+                            },
+             "ram_usage": {....}
+        }
+    """
     ret_val = []
+
+    if measurements_raw is None:
+        return ret_val
+
+    if measurements_meta_raw is None:
+        measurements_meta_raw = {}
+
     for _id, measurement_raw in measurements_raw.items():
         meta = measurements_meta_raw.get(_id)
-        measurement_name = None
+        measurement_name = _id
         measurement_description = None
         unit = None
+        aggregations_meta = {}
+        bigger_is_better = False
 
         if meta is not None:
-            measurement_name = meta.get("name")
+            # augment measurement with metadata information
+            measurement_name = meta.get("name", _id)
             measurement_description = meta.get("description")
             unit = meta.get("unit")
 
             bigger_is_better = meta.get("bigger_is_better", False)
+            aggregations_meta = meta.get("aggregations", {})
 
         aggregations = []
-        aggregations_meta = meta.get("aggregations", {})
         for aggregation_id in measurement_raw:
             aggregation_name = aggregation_id
             aggregation_description = None
             if meta is not None:
+                # augment aggregation with metadata information
                 aggregation_meta = aggregations_meta.get(aggregation_id, {})
                 name = aggregation_meta.get("name")
                 if name is not None:
                     aggregation_name = name
                 aggregation_description = aggregation_meta.get("description")
+
             aggregations.append(
                 AggregationInfo(
                     id=aggregation_id,
@@ -302,7 +365,7 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                 description=measurement_description,
                 unit=unit,
                 bigger_is_better=bigger_is_better,
-                aggregations=aggregations,
+                aggregations=sorted(aggregations, key=lambda agg: agg.id),
             )
         )
 
