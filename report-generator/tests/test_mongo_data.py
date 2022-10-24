@@ -73,22 +73,45 @@ def test_measurements_metadata():
             "results": {
                 "_meta": {
                     "measurements": {
+                        # meta and data present
                         "cpu_usage": {
                             "aggregations": {
+                                # aggregation meta and data
                                 "mean": {
                                     "name": "mean_extended",
                                     "description": "some description",
+                                },
+                                # aggregation meta only
+                                "q9": {
+                                    "name": "90th quantile",
+                                    "description": "90 q description",
                                 }
                             },
                             "unit": "cores",
                             "name": "CPU Usage",
                             "description": "CPU Usage in cores",
+                            "bigger_is_better": True
                         },
-                        "ram_usage": {},
+                        # only meta no measurement
+                        "ram_usage": {
+                            "aggregations": {
+                                "mean": {
+                                    "name": "mean_extended",
+                                    "description": "some description",
+                                },
+                            },
+                            "unit": "mega bytes",
+                            "name": "mem usage",
+                            "description": "memory usage",
+
+                        },
                     }
                 },
                 "measurements": {
+                    # meta and measurement present
                     "cpu_usage": {"mean": 1, "max": 4},
+                    # measurement present no meta
+                    "disk_usage": {"mean": 1, "max": 4},
                 },
             }
         }
@@ -108,6 +131,15 @@ def test_measurements_metadata():
             name="CPU Usage",
             description="CPU Usage in cores",
             unit="cores",
-            bigger_is_better=False,
-        )
+            bigger_is_better=True,
+        ),
+        MeasurementInfo(
+            id='disk_usage',
+            aggregations=[
+                AggregationInfo(id='max', name='max', description=None),
+                AggregationInfo(id='mean', name='mean', description=None)],
+            name='disk_usage',
+            description=None,
+            unit=None,
+            bigger_is_better=False),
     ]
