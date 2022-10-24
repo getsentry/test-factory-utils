@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Mapping, List, Tuple
 import datapane as dp
 import jmespath
@@ -17,7 +18,29 @@ class MeasurementSeries:
     current: pd.DataFrame
 
 
-def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo], filters, commit_sha):
+def get_report_file_name(filters: Mapping[str, str])->str:
+    """
+    Returns the file name under which the report will be saved in the GCS bucket
+    All report files should export this function
+    """
+    environment = "unknown-environment"
+    platform = "unknown-platform"
+
+    for key, value in filters:
+        if key == "environment":
+            environment = value
+        if key == "platform":
+            platform = value
+
+    date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
+    blob_file_name = f"{platform}/{environment}/sdk_report_{date_s}.html"
+    return blob_file_name
+
+
+def generate_report(report_name: str, trend_docs, current_doc, measurements: List[MeasurementInfo], filters, commit_sha):
+    """
+    Generates the report
+    """
     measurement_series = []
 
     for measurement in measurements:
@@ -44,7 +67,9 @@ def generate_report(trend_docs, current_doc, measurements: List[MeasurementInfo]
         last_release_page(introduction, measurement_series),
         trends_page(measurement_series),
     )
-    return report
+    report.save(
+        report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM)
+    )
 
 
 def report_description(filters, git_sha):
