@@ -1,5 +1,6 @@
-from report_generator import main
 import click
+from report_generator import main
+
 
 # TODO really ugly hack try to fix!!!!
 #    see if we can get generate_readme to be a subcommand of main that does *NOT* need all required arguments of
@@ -16,5 +17,6 @@ def generate_readme():
     with open("README.md", "w") as f:
         f.write(content)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     generate_readme()

@@ -90,8 +90,9 @@ func SendHttpRequest(method string, url string, body string, headers map[string]
 	return nil
 }
 
-// DeepCopy deepcopies a to b using json marshaling
-func DeepCopy(a, b interface{}) {
+// DeepCopyPublicFields deep-copies a to b using json marshaling
+// Note: Does not copy unexported fields
+func DeepCopyPublicFields(a, b interface{}) {
 	byt, _ := json.Marshal(a)
 	json.Unmarshal(byt, b)
 }

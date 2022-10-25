@@ -1,13 +1,14 @@
 import altair as alt
 import datapane as dp
 import pandas as pd
-
 from mongo_data import to_data_frame
 from report_spec import DataFrameSpec
 
 
 def trend_plot(data_frame, x, y, time_series, split_by, title):
-    test_selection = alt.binding_select(options=data_frame[split_by].unique(), name=split_by)
+    test_selection = alt.binding_select(
+        options=data_frame[split_by].unique(), name=split_by
+    )
     selection = alt.selection_single(fields=[split_by], bind=test_selection)
 
     chart = alt.Chart(data_frame).encode(
@@ -37,7 +38,7 @@ def get_data_frame(docs, spec: DataFrameSpec) -> pd.DataFrame:
     ret_val = to_data_frame(docs, spec)
 
     if spec.unique_columns is not None and len(spec.unique_columns) > 0:
-        ret_val.drop_duplicates(subset=spec.unique_columns, inplace=True, keep='last')
+        ret_val.drop_duplicates(subset=spec.unique_columns, inplace=True, keep="last")
     return ret_val
 
 

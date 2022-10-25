@@ -15,11 +15,10 @@ localhost:5000/api/reports?type=sdk
 This will return a list of documents that can be inserted in the local mongodb
 
 """
-from pymongo import MongoClient
 import requests
-
+from mongo_const import REPORT_COLLECTION, SDK_REPORT_COLLECTION, URL
+from pymongo import MongoClient
 from utils import del_at
-from mongo_const import URL, SDK_REPORT_COLLECTION, REPORT_COLLECTION
 
 
 def main():
@@ -54,5 +53,5 @@ def add_docs(collection, docs):
     collection.insert_many(docs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

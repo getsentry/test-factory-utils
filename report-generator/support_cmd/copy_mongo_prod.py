@@ -9,8 +9,9 @@ In order to access the production mongodb you need to proxy into it
 Then you can connect to the remote mongodb at 27000 and to the local mongodb at 27017
 
 """
+from mongo_const import REPORT_COLLECTION, SDK_REPORT_COLLECTION
 from pymongo import MongoClient
-from mongo_const import SDK_REPORT_COLLECTION, REPORT_COLLECTION
+
 REMOTE_PORT = 27000
 
 
@@ -33,6 +34,5 @@ def main():
             local_collection.insert_one(doc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

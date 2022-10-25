@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.8.12-slim
+FROM python:3.9.12-slim
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends build-essential \

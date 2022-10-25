@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Any, Union, Optional, Mapping, Tuple
+from typing import Any, List, Mapping, Optional, Tuple, Union
 
 import jmespath
 from jmespath.parser import ParsedResult
@@ -47,8 +47,10 @@ def make_label(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
     return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
 
 
-def make_measure(measure: str, attribute: str, name=Optional[str]) -> ValueExtractorSpec:
-    """returns an extractor that extracts a measurement """
+def make_measure(
+    measure: str, attribute: str, name=Optional[str]
+) -> ValueExtractorSpec:
+    """returns an extractor that extracts a measurement"""
     path = f'results.measurements."{measure}"."{attribute}"'
     compile_path = jmespath.compile(path)
     return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
@@ -80,7 +82,11 @@ class RowExtractorSpec:
                     column.load_reference(ref_extractor)
 
 
-def generate_extractors(labels: List[str], measurement_name: str, aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
+def generate_extractors(
+    labels: List[str],
+    measurement_name: str,
+    aggregations: List[Union[str, Tuple[str, str]]],
+) -> List[RowExtractorSpec]:
     extractors = []
     for measurement in aggregations:
         if isinstance(measurement, str):
@@ -102,8 +108,8 @@ class DataFrameSpec:
     # None or one of  the pandas types specified as a string: "float, int, str, datetime[ns/ms/s...],timestamp[ns/ms...] ; only necessary for datetime
     column_types: Optional[List[Optional[str]]] = None
     dataframe_sort: Optional[
-        List[str
-        ]] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
+        List[str]
+    ] = None  # sort the dataframe by column (use it if you can't use mongo sort), use -column to sort descending
     unique_columns: Optional[List[str]] = None
 
     @staticmethod
@@ -118,7 +124,14 @@ class DataFrameSpec:
         column_types = data.get("column_types", None)
         dataframe_sort = data.get("dataframe_sort", None)
         unique_columns = data.get("unique_columns", None)
-        return DataFrameSpec(name=name, columns=columns, extractors=extractors, column_types=column_types, dataframe_sort=dataframe_sort, unique_columns=unique_columns)
+        return DataFrameSpec(
+            name=name,
+            columns=columns,
+            extractors=extractors,
+            column_types=column_types,
+            dataframe_sort=dataframe_sort,
+            unique_columns=unique_columns,
+        )
 
     # consolidates the extractors with globally defined extractors
     def consolidate(self, global_extractors: Mapping[str, ValueExtractorSpec]):
