@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Mapping, Tuple
+from typing import List, Mapping
+
 
 import altair as alt
+import click
 import datapane as dp
 import jmespath
 import pandas as pd
-from mongo_data import MeasurementInfo
+from mongo_data import MeasurementInfo, get_docs, get_measurements
 from report_generator_support import big_number, get_data_frame, trend_plot
 from report_spec import DataFrameSpec, generate_extractors
 
@@ -18,7 +20,7 @@ class MeasurementSeries:
     current: pd.DataFrame
 
 
-def get_report_file_name(filters: Mapping[str, str])->str:
+def get_report_file_name(filters: Mapping[str, str]) -> str:
     """
     Returns the file name under which the report will be saved in the GCS bucket
     All report files should export this function
@@ -37,10 +39,35 @@ def get_report_file_name(filters: Mapping[str, str])->str:
     return blob_file_name
 
 
-def generate_report(report_name: str, trend_docs, current_doc, measurements: List[MeasurementInfo], filters, commit_sha):
+def generate_report(db,
+                    report_name: str,
+                    filters: Mapping[str, str],
+                    custom: Mapping[str, str]):
     """
     Generates the report
     """
+
+    trend_filters = {k: v for k, v in filters.items()}
+    trend_filters["is_default_branch"] = "1"
+
+    current_filters = {k: v for k, v in filters.items()}
+    commit_sha = custom.get("git-sha")
+    if commit_sha is not None:
+        current_filters["commit_sha"] = commit_sha
+    else:
+        raise click.UsageError("Missing git sha, provide it via -c git-sha XXXX  option")
+
+    trend_docs = get_docs(db, trend_filters)
+    current_docs = get_docs(db, current_filters)
+
+    # we only need the last doc
+    if len(current_docs) == 0:
+        current_doc = None
+    else:
+        current_doc = current_docs[-1]
+
+    measurements = get_measurements(current_docs)
+
     measurement_series = []
 
     for measurement in measurements:
@@ -82,9 +109,9 @@ def generate_report(report_name: str, trend_docs, current_doc, measurements: Lis
     )
 
 
-def report_description(filters, git_sha):
-    filter_description = ", ".join(f"{name}: **{value}**" for name, value in filters)
-    return f"SDK report for commit: **{git_sha}** with filters: {filter_description}"
+# def report_description(filters, git_sha):
+#     filter_description = ", ".join(f"{name}: **{value}**" for name, value in filters)
+#     return f"SDK report for commit: **{git_sha}** with filters: {filter_description}"
 
 
 def get_last(dataframe, measurements) -> Mapping[str, float]:
@@ -109,7 +136,7 @@ def get_commit_info(docs):
 
 
 def intro(
-    filters: List[Tuple[str, str]], git_sha: str, current_docs, trend_docs
+    filters: Mapping[str, str], git_sha: str, current_docs, trend_docs
 ) -> str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
@@ -147,7 +174,7 @@ def intro(
 """
 
     filters_used = ""
-    for name, value in filters:
+    for name, value in filters.items():
         filters_used += f"**{name}**: '{value}'\n\n"
 
     content = f"""

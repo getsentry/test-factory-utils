@@ -114,19 +114,19 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     return df
 
 
-def labels_to_filter(labels):
+def labels_to_filter(labels: Mapping[str, str]):
     if len(labels) > 0:
         return {
             "$and": [
                 {"metadata.labels": {"$elemMatch": {"name": name, "value": value}}}
-                for name, value in labels
+                for name, value in labels.items()
             ]
         }
     else:
         return {}
 
 
-def get_docs(db, labels) -> List[Any]:
+def get_docs(db, labels: Mapping[str, str]) -> List[Any]:
     """
     Returns the mongo documents extracted for the particular label
     """
@@ -291,7 +291,6 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                     description = aggregation_meta.get("description")
                     if description is not None:
                         current_aggregation["description"] = description
-
 
     # now we have the raw measurements and potentially meta-data for them, augment measurements with the metadata
     ret_val = _join_measurements_info(measurements_raw, measurements_meta_raw)

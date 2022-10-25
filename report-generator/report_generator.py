@@ -29,13 +29,18 @@ from mongo_data import get_db, get_docs, get_measurements
     default="report.html",
     help="path to the name of the report file",
 )
-@click.option("--filters", "-f", multiple=True, type=(str, str))
+@click.option(
+    "--filters",
+    "-f", multiple=True,
+    type=(str, str),
+    help="(labelName,labelValue) pairs to use as filter, will the labels present in `metadata.labels` "
+)
 @click.option(
     "--git-sha",
     "-s",
     envvar="REFERENCE_SHA",
     required=True,
-    help="the git sha of the version of interest",
+    help="the git sha of the version of interest, (OBSOLETE) use -c git-sha option for newer implementations",
 )
 @click.option(
     "--no-upload", is_flag=True, help="if passed will not upload the report to GCS"
@@ -47,25 +52,24 @@ from mongo_data import get_db, get_docs, get_measurements
     required=True,
     help="report generator python file",
 )
-def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name):
+@click.option(
+    "--custom",
+    "-c",
+    multiple=True,
+    type=(str, str),
+    help="report specific (name,value) parameters. The specific report deals with them appropriately"
+)
+def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name, custom):
     db = get_db(mongo_url)
 
-    trend_filters = [*filters, ("is_default_branch", "1")]
-    current_filters = [*filters, ("commit_sha", git_sha)]
+    filters_dict = {k: v for (k, v) in filters}
 
-    trend_docs = get_docs(db, trend_filters)
-    current_docs = get_docs(db, current_filters)
-
-    # we only need the last doc
-    if len(current_docs) == 0:
-        current_doc = None
-    else:
-        current_doc = current_docs[-1]
-
-    measurements = get_measurements(current_docs)
+    custom_options_dict = {k: v for (k, v) in custom}
+    if git_sha is not None:
+        custom_options_dict["git-sha"] = git_sha
 
     module = importlib.import_module(report_file_name)
-    module.generate_report(report_name, trend_docs, current_doc, measurements, filters, git_sha)
+    module.generate_report(db, report_name, filters_dict, custom_options_dict)
 
     if not no_upload:
         upload_to_gcs(report_name, filters, bucket_name, module.get_report_file_name)
@@ -83,6 +87,7 @@ def upload_to_gcs(file_name, filters, bucket_name, get_report_file_name):
     print(
         f"Uploaded to GCS at: https://storage.cloud.google.com/{bucket_name}/{blob_file_name}"
     )
+
 
 if __name__ == "__main__":
     main()
