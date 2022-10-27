@@ -28,10 +28,14 @@ def main():
         local_collection = local_db[collection]
         remote_collection = remote_db[collection]
 
+        i = 0
         for doc in remote_collection.find():
+            if (i+1)%100 == 0:
+                print(f"Copy doc {i+1}")
             del doc["_id"]
             del doc["raw"]
             local_collection.insert_one(doc)
+            i +=1
 
 
 if __name__ == "__main__":
