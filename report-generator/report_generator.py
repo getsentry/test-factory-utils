@@ -40,7 +40,7 @@ from mongo_data import get_db, get_docs, get_measurements
     "-s",
     envvar="REFERENCE_SHA",
     required=True,
-    help="the git sha of the version of interest, (OBSOLETE) use -c git-sha option for newer implementations",
+    help="the git sha of the version of interest",
 )
 @click.option(
     "--no-upload", is_flag=True, help="if passed will not upload the report to GCS"
@@ -65,11 +65,9 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, repor
     filters_dict = {k: v for (k, v) in filters}
 
     custom_options_dict = {k: v for (k, v) in custom}
-    if git_sha is not None:
-        custom_options_dict["git-sha"] = git_sha
 
     module = importlib.import_module(report_file_name)
-    module.generate_report(db, report_name, filters_dict, custom_options_dict)
+    module.generate_report(db, report_name, filters_dict, git_sha, custom_options_dict)
 
     if not no_upload:
         upload_to_gcs(report_name, filters, bucket_name, module.get_report_file_name)

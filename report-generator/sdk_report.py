@@ -42,6 +42,7 @@ def get_report_file_name(filters: Mapping[str, str]) -> str:
 def generate_report(db,
                     report_name: str,
                     filters: Mapping[str, str],
+                    commit_sha: str,
                     custom: Mapping[str, str]):
     """
     Generates the report
@@ -51,11 +52,7 @@ def generate_report(db,
     trend_filters["is_default_branch"] = "1"
 
     current_filters = {k: v for k, v in filters.items()}
-    commit_sha = custom.get("git-sha")
-    if commit_sha is not None:
-        current_filters["commit_sha"] = commit_sha
-    else:
-        raise click.UsageError("Missing git sha, provide it via -c git-sha XXXX  option")
+    current_filters["commit_sha"] = commit_sha
 
     trend_docs = get_docs(db, trend_filters)
     current_docs = get_docs(db, current_filters)
