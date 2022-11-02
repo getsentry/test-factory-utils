@@ -9,7 +9,7 @@ different tests rather than the same test across time.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Mapping
+from typing import List, Mapping, Optional
 
 import altair as alt
 import click
@@ -17,7 +17,7 @@ import datapane as dp
 import jmespath
 import pandas as pd
 from mongo_data import MeasurementInfo, get_docs, get_measurements
-from report_generator_support import big_number, get_data_frame, trend_plot
+from report_generator_support import big_number, get_data_frame, trend_plot, filter_data_frame
 from report_spec import DataFrameSpec, generate_extractors
 
 
@@ -76,12 +76,6 @@ def generate_report(db,
     if instrumented_name is None:
         raise click.UsageError("Missing instrumented custom option, provide it like this: -c instrumented instrumented_test_name.sh")
 
-    # we only need the last doc
-    if len(current_docs) == 0:
-        current_doc = None
-    else:
-        current_doc = current_docs[-1]
-
     measurements = get_measurements(current_docs)
 
     measurement_series = []
@@ -111,7 +105,7 @@ def generate_report(db,
             extractors=extractors,
         )
 
-        current_test_frame = get_data_frame([current_doc], data_frame_spec, grouping)
+        current_test_frame = get_data_frame(current_docs, data_frame_spec, grouping)
         trend_frame = get_data_frame(trend_docs, data_frame_spec, grouping)
 
         measurement_series.append(
@@ -120,10 +114,10 @@ def generate_report(db,
             )
         )
 
-    introduction = intro(filters, commit_sha, [current_doc], trend_docs)
+    introduction = intro(filters, commit_sha, current_docs)
 
     report = dp.Report(
-        last_release_page(introduction, measurement_series),
+        last_release_page(introduction, measurement_series, base_name=base_name, instrumented_name=instrumented_name),
         trends_page(measurement_series),
     )
     report.save(
@@ -136,13 +130,11 @@ def generate_report(db,
 #     return f"SDK report for commit: **{git_sha}** with filters: {filter_description}"
 
 
-def get_last(dataframe, measurements) -> Mapping[str, float]:
-    ret_val = {}
-    for measurement in measurements:
-        vals = dataframe[dataframe["measurement"].isin([measurement])]
-        if len(vals) > 0:
-            ret_val[measurement] = vals.iloc[-1].value
-    return ret_val
+def get_value(df: pd.DataFrame, measurement: str, test_name: str) -> Optional[float]:
+    selection = filter_data_frame(df, {'measurement': measurement, "test_name": test_name})
+    if len(selection) != 1:
+        return None  # not unique or non existent
+    return selection["value"].iloc[0]
 
 
 def get_commit_info(docs):
@@ -158,13 +150,12 @@ def get_commit_info(docs):
 
 
 def intro(
-    filters: Mapping[str, str], git_sha: str, current_docs, trend_docs
+    filters: Mapping[str, str], git_sha: str, current_docs
 ) -> str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
         commit_date, sha, run_date = get_commit_info(current_docs)
-        t_commit_date, t_sha, t_run_date = get_commit_info(trend_docs)
 
         current_doc = current_docs[-1]
         commit_date = jmespath.search(
@@ -181,13 +172,6 @@ def intro(
 
 **ran at:** '{run_date}'
 
-## Trend info:
-
-**commit:** '{t_sha}'
-
-**commit date:** '{t_commit_date}'
-
-**ran at:** '{t_run_date}'
 
 ## Grafana [dashboard]({dashboard_link})
 
@@ -211,7 +195,7 @@ def intro(
     return content
 
 
-def last_release_page(description: str, measurement_series: List[MeasurementSeries]):
+def last_release_page(description: str, measurement_series: List[MeasurementSeries], base_name: str, instrumented_name: str):
     intro = f"""
 {description}
 # Last Release
@@ -229,16 +213,15 @@ Last release stats
                 description = f"{info.name} in ({info.unit})"
         series_intro = f"## {description}"
         blocks.append(series_intro)
-        aggregations_id = [agg.id for agg in info.aggregations]
-        trend = get_last(series.trend, aggregations_id)
-        current = get_last(series.current, aggregations_id)
         widgets = []
         for aggregation in info.aggregations:
+            base = get_value(series.current, measurement=aggregation.id, test_name=base_name)
+            instrumented = get_value(series.current, measurement=aggregation.id, test_name=instrumented_name)
             widgets.append(
                 big_number(
                     heading=aggregation.name,
-                    current=current.get(aggregation.id),
-                    previous=trend.get(aggregation.id),
+                    current=instrumented,
+                    previous=base,
                     bigger_is_better=info.bigger_is_better,
                 )
             )

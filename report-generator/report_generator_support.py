@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Mapping, Any
 
 import altair as alt
 import datapane as dp
@@ -91,3 +91,13 @@ def big_number(heading, current, previous, bigger_is_better):
             value=f"{current:.{4}}" if current is not None else "No Value",
             prev_value=f"{previous:.{4}}" if previous is not None else "No Value",
         )
+
+
+def filter_data_frame(df: pd.DataFrame, conditions: Mapping[str, Any]):
+    selection_condition = None
+    for key, value in conditions.items():
+        if selection_condition is None:
+            selection_condition = df[key] == value
+        else:
+            selection_condition &= (df[key] == value)
+    return df[selection_condition]
