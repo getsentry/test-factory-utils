@@ -1,7 +1,15 @@
+"""
+SDK report
+
+This started as a copy of sdk_report it changes in generating reports in which we compare
+different tests rather than the same test across time.
+
+
+"""
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Mapping
-
 
 import altair as alt
 import click
@@ -58,6 +66,16 @@ def generate_report(db,
     trend_docs = get_docs(db, trend_filters)
     current_docs = get_docs(db, current_filters)
 
+    base_name = custom.get("base")
+
+    if base_name is None:
+        raise click.UsageError("Missing base custom option, provide it like this: -c base base_test_name.sh")
+
+    instrumented_name = custom.get("instrumented")
+
+    if instrumented_name is None:
+        raise click.UsageError("Missing instrumented custom option, provide it like this: -c instrumented instrumented_test_name.sh")
+
     # we only need the last doc
     if len(current_docs) == 0:
         current_doc = None
@@ -94,8 +112,8 @@ def generate_report(db,
             extractors=extractors,
         )
 
-        current_test_frame = get_data_frame([current_doc], data_frame_spec)
-        trend_frame = get_data_frame(trend_docs, data_frame_spec)
+        current_test_frame = get_data_frame([current_doc], data_frame_spec, grouping)
+        trend_frame = get_data_frame(trend_docs, data_frame_spec, grouping)
 
         measurement_series.append(
             MeasurementSeries(

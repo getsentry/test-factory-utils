@@ -56,6 +56,13 @@ def make_measure(
     return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
 
 
+def extractor_from_path(
+    path: str, name:str
+) -> ValueExtractorSpec:
+    compile_path = jmespath.compile(path)
+    return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
+
+
 @dataclass
 class RowExtractorSpec:
     accepts_null: bool = False
@@ -85,8 +92,7 @@ class RowExtractorSpec:
 def generate_extractors(
     labels: List[str],
     measurement_name: str,
-    aggregations: List[Union[str, Tuple[str, str]]],
-) -> List[RowExtractorSpec]:
+    aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
     extractors = []
     for measurement in aggregations:
         if isinstance(measurement, str):
@@ -94,6 +100,7 @@ def generate_extractors(
         columns = []
         for label in labels:
             columns.append(make_label(label, name=label))
+        columns.append(extractor_from_path("metadata.timeCreated", "timeCreated"))
         columns.append(make_value(measurement[1], name="measurement"))
         columns.append(make_measure(measurement_name, measurement[0], name="value"))
         extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))

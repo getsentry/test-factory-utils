@@ -1,3 +1,5 @@
+from typing import Optional
+
 import altair as alt
 import datapane as dp
 import pandas as pd
@@ -34,11 +36,25 @@ def trend_plot(data_frame, x, y, time_series, split_by, title):
     )
 
 
-def get_data_frame(docs, spec: DataFrameSpec) -> pd.DataFrame:
+def get_data_frame(docs, spec: DataFrameSpec, grouping: Optional[str] = None) -> pd.DataFrame:
     ret_val = to_data_frame(docs, spec)
 
     if spec.unique_columns is not None and len(spec.unique_columns) > 0:
-        ret_val.drop_duplicates(subset=spec.unique_columns, inplace=True, keep="last")
+        if grouping in [None, "latest"]:
+            ret_val.drop_duplicates(subset=spec.unique_columns, inplace=True, keep="last")
+            return ret_val
+
+        if grouping in ["max", "min", "mean"]:
+            group = ret_val.groupby(spec.unique_columns)
+            if grouping == "max":
+                ret_val = group.max()
+            elif grouping == "min":
+                ret_val = group.min()
+            else: # grouping == "mean":
+                ret_val = group.mean()
+            # now all the grouping columns are part of the index,
+            # reset the index to turn them back into normal columns
+            ret_val = ret_val.reset_index()
     return ret_val
 
 

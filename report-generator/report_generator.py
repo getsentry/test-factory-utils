@@ -59,7 +59,14 @@ from mongo_data import get_db, get_docs, get_measurements
     type=(str, str),
     help="report specific (name,value) parameters. The specific report deals with them appropriately"
 )
-def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name, custom):
+@click.option(
+    "--grouping",
+    "-g",
+    type=click.Choice(["latest", "min", "max", "mean"], case_sensitive=False),
+    default="latest",
+    help="Specifies how to aggregate when multiple values exist for the same measurement",
+)
+def main(mongo_url, bucket_name, report_name, filters, git_sha, grouping, no_upload, report_file_name, custom):
     db = get_db(mongo_url)
 
     filters_dict = {k: v for (k, v) in filters}
@@ -67,7 +74,7 @@ def main(mongo_url, bucket_name, report_name, filters, git_sha, no_upload, repor
     custom_options_dict = {k: v for (k, v) in custom}
 
     module = importlib.import_module(report_file_name)
-    module.generate_report(db, report_name, filters_dict, git_sha, custom_options_dict)
+    module.generate_report(db, report_name, filters_dict, git_sha, grouping, custom_options_dict)
 
     if not no_upload:
         upload_to_gcs(report_name, filters, bucket_name, module.get_report_file_name)
