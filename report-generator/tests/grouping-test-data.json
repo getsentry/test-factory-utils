@@ -1,0 +1,170 @@
+[
+  {
+    "metadata": {
+      "timeCreated": "2022-10-31T10:00:00.000+0000",
+      "timeUpdated": "2022-10-31T10:00:02.000+0000",
+      "labels": [
+        {
+          "name": "commit_count",
+          "value": "5531"
+        },
+        {
+          "name": "commit_date",
+          "value": "2022-10-31 15:23:32 +0100"
+        },
+        {
+          "name": "test_name",
+          "value": "test-run-node-app-baseline.sh"
+        }
+      ]
+    },
+    "context": {
+      "argo": {
+        "creationTimestamp": "2022-10-31T10:00:00Z",
+        "startTimestamp": "2022-10-31T10:00:00Z"
+      },
+      "run": {
+        "startTimestamp": "2022-10-31T10:00:00Z",
+        "endTimestamp": "2022-10-31T10:00:00Z",
+        "stageStartTimestamp": "2022-10-31T10:00:00Z",
+        "stageEndTimestamp": "2022-10-31T10:00:00Z"
+      }
+    },
+    "results": {
+      "measurements": {
+        "cpu_usage": {
+          "mean": 0.40,
+          "q0.5": 0.50,
+          "q0.9": 0.90,
+          "q1.0": 1.0
+        }
+      }
+    }
+  },
+  {
+    "metadata": {
+      "timeCreated": "2022-10-31T10:30:00.000+0000",
+      "timeUpdated": "2022-10-31T10:30:02.000+0000",
+      "labels": [
+        {
+          "name": "commit_count",
+          "value": "5531"
+        },
+        {
+          "name": "commit_date",
+          "value": "2022-10-31 15:23:32 +0100"
+        },
+        {
+          "name": "test_name",
+          "value": "test-run-node-app-test.sh"
+        }
+      ]
+    },
+    "context": {
+      "argo": {
+        "creationTimestamp": "2022-10-31T10:30:00Z",
+        "startTimestamp": "2022-10-31T10:30:00Z"
+      },
+      "run": {
+        "startTimestamp": "2022-10-31T10:30:00Z",
+        "endTimestamp": "2022-10-31T10:30:00Z",
+        "stageStartTimestamp": "2022-10-31T10:30:00Z",
+        "stageEndTimestamp": "2022-10-31T10:30:00Z"
+      }
+    },
+    "results": {
+      "measurements": {
+        "cpu_usage": {
+          "mean": 1.40,
+          "q0.5": 1.50,
+          "q0.9": 1.90,
+          "q1.0": 2.0
+        }
+      }
+    }
+  },
+  {
+    "metadata": {
+      "timeCreated": "2022-10-31T11:00:00.000+0000",
+      "timeUpdated": "2022-10-31T11:00:02.000+0000",
+      "labels": [
+        {
+          "name": "commit_count",
+          "value": "5531"
+        },
+        {
+          "name": "commit_date",
+          "value": "2022-10-31 15:23:32 +0100"
+        },
+        {
+          "name": "test_name",
+          "value": "test-run-node-app-baseline.sh"
+        }
+      ]
+    },
+    "context": {
+      "argo": {
+        "creationTimestamp": "2022-10-31T11:00:00Z",
+        "startTimestamp": "2022-10-31T11:00:00Z"
+      },
+      "run": {
+        "startTimestamp": "2022-10-31T11:00:00Z",
+        "endTimestamp": "2022-10-31T11:00:00Z",
+        "stageStartTimestamp": "2022-10-31T11:00:00Z",
+        "stageEndTimestamp": "2022-10-31T11:00:00Z"
+      }
+    },
+    "results": {
+      "measurements": {
+        "cpu_usage": {
+          "mean": 0.45,
+          "q0.5": 0.55,
+          "q0.9": 0.95,
+          "q1.0": 1.05
+        }
+      }
+    }
+  },
+  {
+    "metadata": {
+      "timeCreated": "2022-10-31T11:30:00.000+0000",
+      "timeUpdated": "2022-10-31T11:30:02.000+0000",
+      "labels": [
+        {
+          "name": "commit_count",
+          "value": "5531"
+        },
+        {
+          "name": "commit_date",
+          "value": "2022-10-31 15:23:32 +0100"
+        },
+        {
+          "name": "test_name",
+          "value": "test-run-node-app-test.sh"
+        }
+      ]
+    },
+    "context": {
+      "argo": {
+        "creationTimestamp": "2022-10-31T11:30:00Z",
+        "startTimestamp": "2022-10-31T11:30:00Z"
+      },
+      "run": {
+        "startTimestamp": "2022-10-31T11:30:00Z",
+        "endTimestamp": "2022-10-31T11:30:00Z",
+        "stageStartTimestamp": "2022-10-31T11:30:00Z",
+        "stageEndTimestamp": "2022-10-31T11:30:00Z"
+      }
+    },
+    "results": {
+      "measurements": {
+        "cpu_usage": {
+          "mean": 1.45,
+          "q0.5": 1.55,
+          "q0.9": 1.95,
+          "q1.0": 2.05
+        }
+      }
+    }
+  }
+]

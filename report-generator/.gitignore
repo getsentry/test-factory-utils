@@ -1,5 +1,5 @@
 .venv
 .idea
 .ipynb_checkpoints
-*.csv
+data_explore/*.csv
 *.html
