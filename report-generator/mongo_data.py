@@ -133,22 +133,16 @@ def get_docs(db, labels: Mapping[str, str]) -> List[Any]:
     mongo_filter = labels_to_filter(labels)
     # get the tests in the reverse order of their run so that we can get to the last run tests first
     # we will discard the test results for old runs of the same test
-    mongo_sort = [("metadata.timeUpdated", pymongo.DESCENDING)]
+    mongo_sort = [("metadata.timeUpdated", pymongo.ASCENDING)]
     collection = db["sdk_report"]
 
     # materialize the cursor so that we can reuse the collection in multiple extractions
-    coll = []
-    doc_identity = {}
+    docs = []
     for doc in collection.find(mongo_filter, sort=mongo_sort):
-        ident = get_test_id(doc)
-        if ident not in doc_identity:
-            doc_identity[ident] = True
-            doc = fix_test_types(doc)
-            coll.append(doc)
+        doc = fix_test_types(doc)
+        docs.append(doc)
 
-    # put them back in the order of their run
-    coll.reverse()
-    return coll
+    return docs
 
 
 def fix_test_types(doc):
@@ -159,6 +153,8 @@ def fix_test_types(doc):
     metadata = doc.get("metadata")
     if metadata is not None:
         labels = metadata.get("labels")
+        metadata["timeUpdated"] = datetime_converter(metadata.get("timeUpdated"))
+        metadata["timeCreated"] = datetime_converter(metadata.get("timeCreated"))
         if labels is not None:
             for label in labels:
                 name = label.get("name")
