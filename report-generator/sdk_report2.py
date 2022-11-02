@@ -253,8 +253,8 @@ SDK evolution.
             series.trend,
             x=alt.X("commit_date:T", axis=alt.Axis(title="Commit Date")),
             y=alt.Y("value:Q", axis=alt.Axis(title=unit)),
-            time_series="measurement:N",
-            split_by="test_name",
+            time_series="test_name:N",
+            split_by="measurement",
             title=info.name,
         )
         blocks.append(plot)
