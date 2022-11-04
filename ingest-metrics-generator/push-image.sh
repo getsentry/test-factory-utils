@@ -14,6 +14,6 @@ cd $SCRIPT_DIR
 IMAGE="europe-west3-docker.pkg.dev/sentry-st-testing/main/ingest-metrics-generator"
 TAG=$(git rev-parse HEAD)
 
-docker build -t $IMAGE:$TAG .
+docker buildx build --platform linux/amd64 -t $IMAGE:$TAG .
 
 docker push $IMAGE:$TAG
