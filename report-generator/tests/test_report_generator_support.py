@@ -9,10 +9,16 @@ import pytest
 from mongo_data import fix_test_types
 from report_generator_support import get_data_frame, filter_data_frame
 from report_spec import DataFrameSpec, generate_extractors
+from pathlib import Path
+
+
+def _current_directory():
+    return Path(__file__).parent
 
 
 def load_docs():
-    with open("grouping-test-data.json") as f:
+    file_path = _current_directory().joinpath("grouping-test-data.json")
+    with open(file_path) as f:
         docs = json.load(f)
     fixed_docs = []
     for doc in docs:
