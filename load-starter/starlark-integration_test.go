@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func loadTestStarlarkConfig(content string) (*Config, error) {
@@ -61,6 +63,10 @@ add_vegeta_test(duration="2s", test_type="t2", freq=2, per="20s", config={"a":2}
 add_vegeta_test(duration="3s", test_type="t3", freq=3, per="30s", config={"a":3}, url="u3")
 add_vegeta_test(duration="4s", test_type="t4", freq=4, per="40s", config={"a":4}, produce_report=False)
 add_vegeta_test(duration="5s", test_type="t5", freq=5, per="50s", config={"a":5}, produce_report=True)
+add_vegeta_test(duration="6s", test_type="t6", freq=6, per="60s", config={"a":6}, labels=[('l1','v1'),['l2','v2']])
+add_vegeta_test(duration="7s", test_type="t7", freq=7, per="70s", config={"a":7}, labels=(('l1','v1'),['l2','v2']))
+add_vegeta_test(duration="8s", test_type="t8", freq=8, per="80s", config={"a":8}, labels={'l1':'v1','l2':'v2'})
+add_vegeta_test(duration="9s", test_type="t9", freq=9, per="90s", config={"a":9}, labels=[['l1','v1','v2']])
 `
 
 func TestAddVegetaTest(t *testing.T) {
@@ -70,9 +76,10 @@ func TestAddVegetaTest(t *testing.T) {
 		t.Fatalf("failed to load config.\n%s", err)
 	}
 
-	if config == nil || config.RunActionList == nil || len(config.RunActionList) != 5 {
+	if config == nil || config.RunActionList == nil || len(config.RunActionList) != 9 {
 		t.Fatalf("invalid config returned")
 	}
+
 	actions := config.RunActionList
 
 	for idx := 0; idx < len(actions); idx++ {
@@ -137,6 +144,37 @@ func TestAddVegetaTest(t *testing.T) {
 			// produce_report = true
 			if action.disableReport != false {
 				t.Errorf("bad flag produce_report expected true got %t", !action.disableReport)
+			}
+		case 5, 6, 7, 8:
+			// labels (l1,v1), (l2,v2)
+			params := action.Spec
+			labels, ok := (params["labels"]).([][]string)
+
+			if !ok {
+				t.Errorf("could not get labels")
+			}
+			switch idx {
+			case 5, 6:
+				expectedLabels := [][]string{{"l1", "v1"}, {"l2", "v2"}}
+				if diff := cmp.Diff(expectedLabels, labels); diff != "" {
+					t.Errorf("expected label error (-want +got):\n%s", diff)
+				}
+			case 7:
+				// labels come from a dict so they may be reversed:
+				expectedLabels1 := [][]string{{"l1", "v1"}, {"l2", "v2"}}
+				expectedLabels2 := [][]string{{"l2", "v2"}, {"l1", "v1"}}
+				diff1 := cmp.Diff(expectedLabels1, labels)
+				diff2 := cmp.Diff(expectedLabels2, labels)
+				if diff1 != "" && diff2 != "" {
+					// any of the two errors would do
+					t.Errorf("expected label error (-want +got):\n%s", diff1)
+				}
+			}
+			if idx == 8 {
+				expectedLabels := [][]string{{"l1", "v1", "v2"}}
+				if diff := cmp.Diff(expectedLabels, labels); diff != "" {
+					t.Errorf("expected label error (-want +got):\n%s", diff)
+				}
 			}
 		}
 	}

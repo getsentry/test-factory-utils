@@ -187,6 +187,54 @@ func toDuration(val starlark.Value) (time.Duration, error) {
 	return 0, fmt.Errorf("cannot convert %T to duration", val)
 }
 
+func toLabels(val starlark.Value) [][]string {
+
+	var retVal [][]string
+	if val == nil {
+		return nil
+	}
+
+	switch val.(type) {
+	case starlark.Tuple, *starlark.List:
+		firstLevel, err := toArray(val)
+		if err != nil {
+			log.Error().Err(err).Msg("Could not convert labels param to an array")
+			return nil
+		}
+		fmt.Printf("We have list %v", firstLevel)
+		for _, inner := range firstLevel {
+			innerArray, ok := inner.([]any)
+			if !ok {
+				log.Error().Msgf("error converting input into labels %v", inner)
+				return nil
+			}
+			var curLabel []string
+			for _, rawVal := range innerArray {
+				s, ok := rawVal.(string)
+				if ok {
+					curLabel = append(curLabel, s)
+				}
+			}
+			if len(curLabel) >= 2 {
+				retVal = append(retVal, curLabel)
+			}
+		}
+	case *starlark.Dict:
+		d, err := toDict(val)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not convert labels from dict")
+		}
+		for k, v := range d {
+			v2, err := tryToString(v)
+			if err != nil {
+				log.Error().Err(err).Msgf("failed to convert dictionary key to string while converting labels")
+			}
+			retVal = append(retVal, []string{k, v2})
+		}
+	}
+	return retVal
+}
+
 func toInt(val starlark.Value) (int64, error) {
 	intVal, ok := val.(starlark.Int)
 	if !ok {
@@ -205,6 +253,17 @@ func toFloat(val starlark.Value) (float64, error) {
 		return 0, fmt.Errorf("could not convert %v to float", val)
 	}
 	return float64(floatVal), nil
+}
+func tryToString(rawVal any) (string, error) {
+	s, ok := rawVal.(string)
+	if ok {
+		return s, nil
+	}
+	s2, ok := rawVal.(starlark.Value)
+	if ok {
+		return toString(s2), nil
+	}
+	return "", errors.New("can't convert value to string")
 }
 
 func toString(rawVal starlark.Value) string {
@@ -394,7 +453,7 @@ func (env *LoadTestEnv) setLoadTesterUrl(thread *starlark.Thread, b *starlark.Bu
 }
 
 // addLocustTestBuiltin implements the builtin add_locust_test(duration:str|duration, users:int,  spawn_rate:int|None=None,
-// name:str|None=None,description:str|None, url:str|None, id:str|None=None)
+// name:str|None=None,description:str|None, url:str|None, produce_report: bool=True)
 func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	var duration starlark.Value
 	var users starlark.Int
@@ -445,9 +504,9 @@ func (env *LoadTestEnv) addLocustTestBuiltin(thread *starlark.Thread, b *starlar
 	return
 }
 
-// addVegetaTestBuiltin implements the builtin add_vegeta_test(duration:str|duration, freq:int, per:str|duration,
-//
-//	config:dict, name:str|None=None, description:str|None=None)
+// addVegetaTestBuiltin implements the builtin add_vegeta_test(duration:str|duration, test_type:str, freq:int,
+// per:str|duration, config:dict, name:str|None=None, description:str|None=None, url:str|None=None,
+// produce_report:bool=True, labels:Dict[str,str]|[][]str=None)
 func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (retVal starlark.Value, err error) {
 	var duration starlark.Value
 	var freq starlark.Int
@@ -458,29 +517,34 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 	var url starlark.Value
 	var testType starlark.String
 	var produceReport starlark.Bool = starlark.True
+	var labels starlark.Value
 
 	retVal = starlark.None
 
 	if err = starlark.UnpackArgs(b.Name(), args, kwargs, "duration", &duration, "test_type", &testType, "freq", &freq,
-		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url, "produce_report?", &produceReport); err != nil {
+		"per", &per, "config", &config, "name?", &name, "description?", &description, "url?", &url, "produce_report?", &produceReport,
+		"labels?", &labels); err != nil {
 		return
 	}
 
 	var durationVal time.Duration
 	durationVal, err = toDuration(duration)
 	if err != nil {
+		log.Error().Err(err).Msgf("invalid duration in add_vegeta_test %v", duration)
 		return
 	}
 
 	var freqVal int64
 	freqVal, err = toInt(freq)
 	if err != nil {
+		log.Error().Err(err).Msgf("invalid frequency in add_vegeta_test %v", freq)
 		return
 	}
 
 	var perVal time.Duration
 	perVal, err = toDuration(per)
 	if err != nil {
+		log.Error().Err(err).Msgf("invalid 'per' argument in add_vegeta_test %v", per)
 		return
 	}
 
@@ -488,6 +552,7 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 
 	configVal, err = toDict(config)
 	if err != nil {
+		log.Error().Err(err).Msgf("invalid config in add_vegeta_test %v", config)
 		return
 	}
 
@@ -500,8 +565,10 @@ func (env *LoadTestEnv) addVegetaTestBuiltin(thread *starlark.Thread, b *starlar
 		urlVal = env.LoadTesterUrl
 	}
 
+	var labelsVal = toLabels(labels)
+
 	var vegetaAction VegetaTestAction
-	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal, bool(produceReport))
+	vegetaAction, err = CreateVegetaTestAction(durationVal, testTypeVal, freqVal, perVal.String(), configVal, nameVal, descriptionVal, urlVal, bool(produceReport), labelsVal)
 	if err != nil {
 		return
 	}
