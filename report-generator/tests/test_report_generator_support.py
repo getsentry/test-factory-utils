@@ -1,15 +1,15 @@
 from typing import Optional
-
-import pandas
-
 import json
+from io import StringIO
+from pathlib import Path
 
 import pytest
+import pandas as pd
+import numpy as np
 
-from mongo_data import fix_test_types
 from report_generator_support import get_data_frame, filter_data_frame
 from report_spec import DataFrameSpec, generate_extractors
-from pathlib import Path
+from mongo_data import fix_test_types
 
 
 def _current_directory():
@@ -52,7 +52,7 @@ def _get_data_frame_spec(name: str) -> DataFrameSpec:
     )
 
 
-def get_value(df: pandas.DataFrame, measurement: str, test_name: str) -> Optional[float]:
+def get_value(df: pd.DataFrame, measurement: str, test_name: str) -> Optional[float]:
     selection = filter_data_frame(df, {'measurement': measurement, "test_name": test_name})
     if len(selection) != 1:
         return None  # not unique or non existent
@@ -101,3 +101,34 @@ def test_get_data_frame():
     assert get_value(frame, "q0.5", "test-run-node-app-test.sh") == pytest.approx(1.525, 0.00001)
     assert get_value(frame, "q0.9", "test-run-node-app-test.sh") == pytest.approx(1.925, 0.00001)
     assert get_value(frame, "q1.0", "test-run-node-app-test.sh") == pytest.approx(2.025, 0.00001)
+
+
+def test_filter_data_frame():
+    raw = """
+    a,b,c,value
+    a1,b1,c1,1
+    a1,b1,c2,2
+    a1,b2,c3,3
+    a1,b2,c4,4
+    a2,b1,c1,5
+    a2,b1,c2,6
+    a2,b2,c3,7
+    a2,b2,c4,8
+"""
+
+    raw = raw.replace(" ", "")
+    df = pd.read_csv(StringIO(raw), dtype={"a": "string", "b": "string", "c": "string", "value": np.int64})
+
+    data = filter_data_frame(df, {"c": "c1", "a": "a2"})
+    assert len(data) == 1
+    assert data.iloc[0]["value"] == 5
+
+    data = filter_data_frame(df, {"a": "a1", "b": "b2"})
+    assert len(data) == 2
+    assert data.iloc[0]["value"] == 3
+    assert data.iloc[1]["value"] == 4
+    data = filter_data_frame(df, {"a": "a2", "b": "b2", "c":"c3"})
+    assert len(data) == 1
+    assert data.iloc[0]["value"] == 7
+    data = filter_data_frame(df, {"a": "a3"})
+    assert len(data) == 0

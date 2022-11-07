@@ -12,6 +12,18 @@ except ImportError:
 
 @dataclass
 class ValueExtractorSpec:
+    """
+    ValueExtractorSpec defines how a value (e.g. a cell in a DataFrame) is computed from a JSON (mongo) document.
+
+    A value extractor has:
+    - a name (typically representing the column name inside a DataFrame)
+    - a value or a path
+        - a ValueExtractorSpec with a value creates a constant (with the specified value) when extracting from any document
+        - a ValueExtractorSpec with a path extracts the contents of the path from a document
+    - a compile_path is the cached value of compiling a path, it is created for value extractors with a non None path
+    as an optimization after the first extraction from a document ( subsequent Value extractions from other documents will use
+    the compiled path)
+    """
     name: Optional[str] = None
     path: Optional[str] = None
     value: Optional[Any] = None
@@ -59,12 +71,21 @@ def make_measure(
 def extractor_from_path(
     path: str, name:str
 ) -> ValueExtractorSpec:
+    """returns an extractor that extracts from the specified path"""
     compile_path = jmespath.compile(path)
     return ValueExtractorSpec(path=path, compiled_path=compile_path, name=name)
 
 
 @dataclass
 class RowExtractorSpec:
+    """
+    Represents a list of ValueExtractors that create a row (e.g. a row in a DataFrame)
+    A DataFrameSpec will use one or more RowExtractorSpecs to transform documents into DataFrames.
+    For each RowExtractorSpec a new row may  be created (see below) from each document.
+
+    A RowExtractorSpec can be configured to either generate rows with missing values (when extractors return
+    None) or not to generate Rows if any of the extractors return None.
+    """
     accepts_null: bool = False
     columns: List[ValueExtractorSpec] = None
 
@@ -93,6 +114,9 @@ def generate_extractors(
     labels: List[str],
     measurement_name: str,
     aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
+    """
+    Creates a list of RowExtractors for a measurement and a list of aggregations.
+    """
     extractors = []
     for measurement in aggregations:
         if isinstance(measurement, str):
@@ -108,6 +132,10 @@ def generate_extractors(
 
 @dataclass
 class DataFrameSpec:
+    """
+    Contains the recipe of how to turn JSON documents into datasets.
+    Each document will generate up to len(extractors) rows.
+    """
     name: str
     columns: List[str]
     extractors: List[RowExtractorSpec]
