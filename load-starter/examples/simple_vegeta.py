@@ -23,6 +23,7 @@ def add_vegeta_tests():
             "abnormalWeight": 10
         },
         produce_report=False,
+        labels=(("l1", "v1"), ("l2", "v2"))
     )
     add_vegeta_test(
         duration=duration("30s"),
@@ -43,6 +44,7 @@ def add_vegeta_tests():
             "crashedWeight": 9,
             "abnormalWeight": 10
         },
+        labels={"ll1":"v1", "ll2":"v2"}
     )
     add_sleep(duration("20s"))
 

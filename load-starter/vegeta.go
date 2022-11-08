@@ -26,7 +26,7 @@ type VegetaTestAction struct {
 
 // CreateVegetaTestAction creates a TestConfig for a Vegeta attack
 func CreateVegetaTestAction(duration time.Duration, testType string, freq int64, per string, config map[string]interface{},
-	name string, description string, loadTesterUrl string, produceReport bool) (VegetaTestAction, error) {
+	name string, description string, loadTesterUrl string, produceReport bool, labels [][]string) (VegetaTestAction, error) {
 
 	loadTesterUrl = strings.TrimSuffix(loadTesterUrl, "/")
 
@@ -46,6 +46,10 @@ func CreateVegetaTestAction(duration time.Duration, testType string, freq int64,
 	}
 	if len(description) > 0 {
 		specParams["description"] = description
+	}
+
+	if labels != nil && len(labels) > 0 {
+		specParams["labels"] = labels
 	}
 
 	// Make sure that everything is serializable
