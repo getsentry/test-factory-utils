@@ -64,7 +64,8 @@ type CliParams struct {
 
 	// Grafana-specific params
 	grafanaServerName     *string
-	grafanaBoardId        *string
+	grafanaDashboardId    *string
+	grafanaDashboardVars  *map[string]string
 	grafanaOrganisationId *string
 
 	locustServerUrl      *string
@@ -106,9 +107,11 @@ ingest-load-tester (a Locust based tool) and go-load-tester (a Vegeta based tool
 
 	Params.grafanaServerName = rootCmd.Flags().String("grafana-base", "", "Grafana base URL")
 
-	Params.grafanaBoardId = rootCmd.Flags().String("grafana-board", "", "Grafana board id")
+	Params.grafanaDashboardId = rootCmd.Flags().String("grafana-board", "", "Grafana board id")
 
 	Params.grafanaOrganisationId = rootCmd.Flags().String("grafana-organisation", "", "Grafana board id")
+
+	Params.grafanaDashboardVars = rootCmd.Flags().StringToStringP("grafana-var", "v", map[string]string{}, "Grafana dashboard variables with their values")
 
 	rootCmd.Flags().BoolVarP(&Params.dryRun, "dry-run", "", false, "dry-run mode")
 
@@ -297,8 +300,13 @@ func buildDashboardLinks(startTime time.Time, endTime time.Time, buffer time.Dur
 		queryString.Add("from", strconv.FormatInt(startTimeStamp.UnixMilli(), 10))
 		queryString.Add("to", strconv.FormatInt(endTimeStamp.UnixMilli(), 10))
 
+		for varKey, varValue := range *Params.grafanaDashboardVars {
+			key := fmt.Sprintf("var-%s", varKey)
+			queryString.Add(key, varValue)
+		}
+
 		reportUrl := fmt.Sprintf("%s/d/%s/?%s",
-			*Params.grafanaServerName, *Params.grafanaBoardId, queryString.Encode(),
+			*Params.grafanaServerName, *Params.grafanaDashboardId, queryString.Encode(),
 		)
 
 		dashboardLinks = append(dashboardLinks, DashboardLink{url: reportUrl, name: "Grafana"})
