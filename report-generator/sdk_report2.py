@@ -42,7 +42,9 @@ def get_report_file_name(filters: Mapping[str, str]) -> str:
         if key == "platform":
             platform = value
 
-    date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
+    # %f has 6 digit take just 3
+    date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
+
     blob_file_name = f"{platform}/{environment}/sdk_report_{date_s}.html"
     return blob_file_name
 

@@ -13,8 +13,8 @@ lint:
 .venv:
 	$$PYTHON_VERSION -m venv --copies .venv
 	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -U -r requirements.txt
+	.venv/bin/pip install -r requirements.txt
 
 
 dev-env: .venv
-	.venv/bin/pip install -U -r requirements-dev.txt
+	.venv/bin/pip install -r requirements-dev.txt
