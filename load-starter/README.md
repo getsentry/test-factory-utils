@@ -21,6 +21,7 @@ Flags:
       --grafana-base string           Grafana base URL
       --grafana-board string          Grafana board id
       --grafana-organisation string   Grafana board id
+  -v, --grafana-var stringToString    Grafana dashboard variables with their values (default [])
       --influx-base string            InfluxDB dashboard base URL
       --influx-board string           InfluxDb board id
       --influx-organisation string    InfluxDb organisation id
