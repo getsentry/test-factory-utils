@@ -31,6 +31,7 @@ jobs:
         uses: actions/configure-pages@v2
       - name: Generate docs
         run: |
+          export GOROOT=$GOROOT_1_18_X64
           go version
           make generate-docs
       - name: Build with Jekyll
