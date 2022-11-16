@@ -32,15 +32,13 @@ jobs:
           go-version: "1.18"
       - name: Setup Pages
         uses: actions/configure-pages@v2
-      - name: Generate docs
+      - name: Generate and collect docs
         run: |
-          # export GOROOT=$GOROOT_1_18_X64
-          go version
           make generate-docs
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
-          source: ./
+          source: ./docs
           destination: ./_site
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
