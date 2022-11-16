@@ -37,7 +37,7 @@ generate-docs:
 	cd load-starter && $(MAKE) update-docs
 	cd influxdb-monitor && $(MAKE) update-docs
 	cd vegeta2influx && $(MAKE) update-docs
-	-rm -r docs/*.md
+	-rm -rf docs/
 	-mkdir docs
 	-cp README.md docs/index.md
 	-cp fakerelay/README.md docs/fakerelay.md
