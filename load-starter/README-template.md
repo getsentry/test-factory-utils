@@ -82,6 +82,7 @@ add_vegeta_test(
     description: Optional[str],
     url: Optional[str],
     produce_report: Optional[bool]=True,
+    labels:Union[[][]str, Mapping[str,str]]= None
     )
 ```
 
@@ -100,6 +101,9 @@ The `produce_report` parameter controls the report generation.By default, each t
 Sometime stages are used to warm up caches or to wait for various queues to empty before a new test is run. Creating report
 results for these stages is not useful, they only add noise, and it is better if these stages are ignored and not further
 processed by downstream programs. For these cases specify `produce_report=False` for the tests.
+
+The `labels` parameter can be either a dictionary str->str containing label name and value or a two level combination of
+arrays or tuples containing the label, in the first position, and one or more values e.g. `[["l1,"v1"]["l2","v2-1","v2-2"]("l3","v3)]`
 
 ```
 add_run_external( cmd: List[str])
