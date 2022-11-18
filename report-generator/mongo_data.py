@@ -69,26 +69,11 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
 
     for doc in docs:
         for extractor in spec.extractors:
-            bad_sample = False
-            temp_row = []
-            for value_extractor in extractor.columns:
-                if value_extractor.path is not None:
-                    if value_extractor.compiled_path is None:
-                        value_extractor.compiled_path = jmespath.compile(
-                            value_extractor.path
-                        )
-                    value = value_extractor.compiled_path.search(doc)
-                else:
-                    value = value_extractor.value
-                if not extractor.accepts_null and value is None:
-                    bad_sample = True
-                    break
-                temp_row.append(value)
-            if bad_sample:
-                continue
-            # if we are here we have successfully extracted meaningful values for all columns, add the row
-            for idx, value in enumerate(temp_row):
-                column_values[idx].append(value)
+            temp_row = extractor.extract_row(doc)
+            if temp_row is not None:
+                # if we are here we have successfully extracted meaningful values for all columns, add the row
+                for idx, value in enumerate(temp_row):
+                    column_values[idx].append(value)
     vals = {}
     for idx in range(len(spec.columns)):
         vals[spec.columns[idx]] = column_values[idx]
