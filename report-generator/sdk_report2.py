@@ -18,7 +18,7 @@ import jmespath
 import pandas as pd
 from mongo_data import MeasurementInfo, get_docs, get_measurements
 from report_generator_support import big_number, get_data_frame, trend_plot, filter_data_frame
-from report_spec import DataFrameSpec, generate_extractors
+from report_spec import DataFrameSpec, generate_extractors, make_label, OrValueExtractor, BooleanExtractor
 
 
 @dataclass
@@ -84,11 +84,16 @@ def generate_report(db,
 
     for measurement in measurements:
         aggregations_ids = [agg.id for agg in measurement.aggregations]
+        # fallback on test_name for display Name
+        display_name_extractor = OrValueExtractor(extractors=[make_label("displayName"), make_label("test_name")], name="displayName")
+        base_test_extractor = BooleanExtractor(extractor=make_label("baseTest"), none_value=False)
         extractors = generate_extractors(
             labels=["commit_date", "commit_count", "test_name"],
             measurement_name=measurement.id,
             aggregations=aggregations_ids,
+            extra=[display_name_extractor,base_test_extractor]
         )
+
         data_frame_spec = DataFrameSpec(
             name=measurement.id,
             columns=[
@@ -97,6 +102,8 @@ def generate_report(db,
                 "test_name",
                 "measurement",
                 "value",
+                "displayName",
+                "baseTest",
             ],
             unique_columns=[
                 "commit_date",

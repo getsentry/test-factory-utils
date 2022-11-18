@@ -18,6 +18,12 @@ class ValueExtractorSpec(ABC):
         """
         pass
 
+    @abstractmethod
+    def getName(self) -> str:
+        """
+        Returns the name for the colum
+        """
+
 
 @dataclass
 class ConstValueExtractor(ValueExtractorSpec):
@@ -31,6 +37,9 @@ class ConstValueExtractor(ValueExtractorSpec):
 
     def extract_value(self, document):
         return self.value
+
+    def getName(self):
+        return self.name
 
 
 @dataclass
@@ -56,6 +65,9 @@ class PathValueExtractor(ValueExtractorSpec):
             )
         return self.compiled_path.search(document)
 
+    def getName(self):
+        return self.name
+
 
 @dataclass
 class OrValueExtractor(ValueExtractorSpec):
@@ -76,6 +88,40 @@ class OrValueExtractor(ValueExtractorSpec):
                 return value
         return None
 
+    def getName(self) -> str:
+        return self.name
+
+
+@dataclass
+class BooleanExtractor(ValueExtractorSpec):
+    """
+    Converts the value from an extractor to boolean
+    """
+
+    # the root extractor whose value is going to be converted to bool
+    extractor: ValueExtractorSpec
+    # what should it return when the root extractor returns None
+    none_value: Optional[bool] = None
+
+    def getName(self) -> str:
+        return self.extractor.getName()
+
+    def extract_value(self, document):
+        value = self.extractor.extract_value(document)
+        if value is None:
+            return self.none_value
+
+        if type(value) == bool:
+            return value
+        elif type(value) == str:
+            value = value.lower()
+            if value == "false" or value == "no" or value == "0" or value == "":
+                return False
+            return True
+        elif type(value) == int:
+            return value != 0
+        return True
+
 
 def make_value(value: Any, name: Optional[str] = None) -> ValueExtractorSpec:
     """returns a value extractor spec with a fixed value"""
@@ -86,6 +132,8 @@ def make_label(label: str, name: Optional[str] = None) -> ValueExtractorSpec:
     """returns a value extractor that extracts a label value"""
     path = f"metadata.labels[?name=='{label}'].value|[0]"
     compile_path = jmespath.compile(path)
+    if name is None:
+        name = label
     return PathValueExtractor(path=path, compiled_path=compile_path, name=name)
 
 
@@ -104,6 +152,11 @@ def extractor_from_path(
     """returns an extractor that extracts from the specified path"""
     compile_path = jmespath.compile(path)
     return PathValueExtractor(path=path, compiled_path=compile_path, name=name)
+
+
+def boolean_extractor(extractor: ValueExtractorSpec, none_value=None):
+    """returns a ll"""
+    return BooleanExtractor(extractor=extractor, none_value=none_value)
 
 
 def or_extractor(extractors: List[ValueExtractorSpec], name=None):
@@ -151,7 +204,9 @@ class RowExtractorSpec:
 def generate_extractors(
     labels: List[str],
     measurement_name: str,
-    aggregations: List[Union[str, Tuple[str, str]]]) -> List[RowExtractorSpec]:
+    aggregations: List[Union[str, Tuple[str, str]]],
+    extra=Optional[List[ValueExtractorSpec]],
+) -> List[RowExtractorSpec]:
     """
     Creates a list of RowExtractors for a measurement and a list of aggregations.
     """
@@ -164,6 +219,8 @@ def generate_extractors(
             columns.append(make_label(label, name=label))
         columns.append(make_value(measurement[1], name="measurement"))
         columns.append(make_measure(measurement_name, measurement[0], name="value"))
+        if extra is not None and len(extra) > 0:
+            columns.extend(extra)
         extractors.append(RowExtractorSpec(accepts_null=False, columns=columns))
     return extractors
 
