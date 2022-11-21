@@ -58,11 +58,26 @@ def get_data_frame(docs, spec: DataFrameSpec, grouping: Optional[str] = None) ->
     return ret_val
 
 
+def _format_change_value(change: float) -> str:
+    sign = ""
+    if change < 0:
+        sign = "-"
+        change *= -1
+    if change > 1 :
+        # we need only 1 floating point precision if we are over 1%
+        return f"{sign}{change:.1f}%"
+    if change > 0.001:
+        return f"{sign}{change:.3}%"
+    else:
+        # give up and use scientific notation
+        return f"{sign}{change:.{2}}%"
+
+
 def big_number(heading, current, previous, bigger_is_better):
     if previous is not None and current is not None:
         if previous != 0:
             change = (current - previous) / previous * 100
-            change_str = f"{change:.{2}}%"
+            change_str = _format_change_value(change)
         else:
             change = current
             change_str = f"{change:.{2}}"
