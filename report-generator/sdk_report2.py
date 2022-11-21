@@ -1,17 +1,26 @@
+"""
+SDK report
+
+This started as a copy of sdk_report it changes in generating reports in which we compare
+different tests rather than the same test across time.
+
+
+"""
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Mapping
-
+from typing import List, Mapping, Optional, Tuple
 
 import altair as alt
-import click
 import datapane as dp
 import jmespath
 import pandas as pd
 from mongo_data import MeasurementInfo, get_docs, get_measurements
-from report_generator_support import big_number, get_data_frame, trend_plot
-from report_spec import DataFrameSpec, generate_extractors
+from report_generator_support import big_number, get_data_frame, trend_plot, filter_data_frame
+from report_spec import DataFrameSpec, generate_extractors, make_label, OrValueExtractor, BooleanExtractor
 
+_BASE_TEST_COLUMN_NAME = "baseTest"
+_DISPLAY_NAME_COLUMN_NAME = "displayName"
 
 @dataclass
 class MeasurementSeries:
@@ -36,6 +45,7 @@ def get_report_file_name(filters: Mapping[str, str]) -> str:
 
     # %f has 6 digit take just 3
     date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
+
     blob_file_name = f"{platform}/{environment}/sdk_report_{date_s}.html"
     return blob_file_name
 
@@ -59,23 +69,22 @@ def generate_report(db,
     trend_docs = get_docs(db, trend_filters)
     current_docs = get_docs(db, current_filters)
 
-    # we only need the last doc
-    if len(current_docs) == 0:
-        current_doc = None
-    else:
-        current_doc = current_docs[-1]
-
     measurements = get_measurements(current_docs)
 
     measurement_series = []
 
     for measurement in measurements:
         aggregations_ids = [agg.id for agg in measurement.aggregations]
+        # fallback on test_name for display Name
+        display_name_extractor = OrValueExtractor(extractors=[make_label(_DISPLAY_NAME_COLUMN_NAME), make_label("test_name")], name=_DISPLAY_NAME_COLUMN_NAME)
+        base_test_extractor = BooleanExtractor(extractor=make_label(_BASE_TEST_COLUMN_NAME), none_value=False)
         extractors = generate_extractors(
             labels=["commit_date", "commit_count", "test_name"],
             measurement_name=measurement.id,
             aggregations=aggregations_ids,
+            extra=[display_name_extractor, base_test_extractor]
         )
+
         data_frame_spec = DataFrameSpec(
             name=measurement.id,
             columns=[
@@ -84,18 +93,22 @@ def generate_report(db,
                 "test_name",
                 "measurement",
                 "value",
+                _DISPLAY_NAME_COLUMN_NAME,
+                _BASE_TEST_COLUMN_NAME,
             ],
             unique_columns=[
                 "commit_date",
                 "commit_count",
                 "test_name",
                 "measurement",
+                _DISPLAY_NAME_COLUMN_NAME,
+                _BASE_TEST_COLUMN_NAME
             ],
             extractors=extractors,
         )
 
-        current_test_frame = get_data_frame([current_doc], data_frame_spec)
-        trend_frame = get_data_frame(trend_docs, data_frame_spec)
+        current_test_frame = get_data_frame(current_docs, data_frame_spec, grouping)
+        trend_frame = get_data_frame(trend_docs, data_frame_spec, grouping)
 
         measurement_series.append(
             MeasurementSeries(
@@ -103,7 +116,7 @@ def generate_report(db,
             )
         )
 
-    introduction = intro(filters, commit_sha, [current_doc], trend_docs)
+    introduction = intro(filters, commit_sha, current_docs)
 
     report = dp.Report(
         last_release_page(introduction, measurement_series),
@@ -119,13 +132,11 @@ def generate_report(db,
 #     return f"SDK report for commit: **{git_sha}** with filters: {filter_description}"
 
 
-def get_last(dataframe, measurements) -> Mapping[str, float]:
-    ret_val = {}
-    for measurement in measurements:
-        vals = dataframe[dataframe["measurement"].isin([measurement])]
-        if len(vals) > 0:
-            ret_val[measurement] = vals.iloc[-1].value
-    return ret_val
+def get_value(df: pd.DataFrame, measurement: str, display_name: str) -> Optional[float]:
+    selection = filter_data_frame(df, {'measurement': measurement, "displayName": display_name})
+    if len(selection) != 1:
+        return None  # not unique or non existent
+    return selection["value"].iloc[0]
 
 
 def get_commit_info(docs):
@@ -141,13 +152,12 @@ def get_commit_info(docs):
 
 
 def intro(
-    filters: Mapping[str, str], git_sha: str, current_docs, trend_docs
+    filters: Mapping[str, str], git_sha: str, current_docs
 ) -> str:
     if len(current_docs) == 0:
         current_doc_info = f"Test for commit:'{git_sha}' not found"
     else:
         commit_date, sha, run_date = get_commit_info(current_docs)
-        t_commit_date, t_sha, t_run_date = get_commit_info(trend_docs)
 
         current_doc = current_docs[-1]
         commit_date = jmespath.search(
@@ -164,13 +174,6 @@ def intro(
 
 **ran at:** '{run_date}'
 
-## Trend info:
-
-**commit:** '{t_sha}'
-
-**commit date:** '{t_commit_date}'
-
-**ran at:** '{t_run_date}'
 
 ## Grafana [dashboard]({dashboard_link})
 
@@ -202,8 +205,11 @@ def last_release_page(description: str, measurement_series: List[MeasurementSeri
 Last release stats
 
 """
+
     blocks = [intro]
     for series in measurement_series:
+        # NOTE: this is not ideal, the test names should not depend on the measurement series, but I can't find
+        # a cleaner way to do it
         info = series.info
         if info.description is not None:
             description = info.description
@@ -212,20 +218,27 @@ Last release stats
                 description = f"{info.name} in ({info.unit})"
         series_intro = f"## {description}"
         blocks.append(series_intro)
-        aggregations_id = [agg.id for agg in info.aggregations]
-        trend = get_last(series.trend, aggregations_id)
-        current = get_last(series.current, aggregations_id)
-        widgets = []
-        for aggregation in info.aggregations:
-            widgets.append(
-                big_number(
-                    heading=aggregation.name,
-                    current=current.get(aggregation.id),
-                    previous=trend.get(aggregation.id),
-                    bigger_is_better=info.bigger_is_better,
-                )
-            )
-        blocks.append(dp.Group(columns=2, blocks=widgets))
+        base_test_name, test_names = _get_test_names(series.current)
+        if base_test_name is not None and len(test_names) > 0:
+            for other_test_name in test_names:
+                test_info = f"### {other_test_name} vs {base_test_name}"
+                blocks.append(test_info)
+                widgets = []
+                for aggregation in info.aggregations:
+                    base = get_value(series.current, measurement=aggregation.id, display_name=base_test_name)
+                    instrumented = get_value(series.current, measurement=aggregation.id, display_name=other_test_name)
+                    widgets.append(
+                        big_number(
+                            heading=aggregation.name,
+                            current=instrumented,
+                            previous=base,
+                            bigger_is_better=info.bigger_is_better,
+                        )
+                    )
+                blocks.append(dp.Group(columns=2, blocks=widgets))
+        else:
+            # We couldn't figure out which test is the base and which tests are to be compared with base
+            blocks.append("**No test information found**")
 
     return dp.Page(
         title="Last Release",
@@ -253,8 +266,8 @@ SDK evolution.
             series.trend,
             x=alt.X("commit_date:T", axis=alt.Axis(title="Commit Date")),
             y=alt.Y("value:Q", axis=alt.Axis(title=unit)),
-            time_series="measurement:N",
-            split_by="test_name",
+            time_series="displayName:N",
+            split_by="measurement",
             title=info.name,
         )
         blocks.append(plot)
@@ -263,3 +276,26 @@ SDK evolution.
         title="Trends",
         blocks=blocks,
     )
+
+
+def _get_test_names(data_frame: pd.DataFrame) -> Tuple[str, List[str]]:
+    """
+    Extracts the test names from a data_frame.
+    The base test name (the test that has the base_name column set to True) is returned separately,
+    as the first tuple element, the rest are returned in a list.
+    """
+    df = data_frame[[_DISPLAY_NAME_COLUMN_NAME,_BASE_TEST_COLUMN_NAME]]
+    df = df.drop_duplicates([_DISPLAY_NAME_COLUMN_NAME,_BASE_TEST_COLUMN_NAME],keep="last").reset_index()
+
+    base = df[df[_BASE_TEST_COLUMN_NAME]==True]
+    other = df[df[_BASE_TEST_COLUMN_NAME]==False]
+
+    if len(base) > 0:
+        base_name = base[_DISPLAY_NAME_COLUMN_NAME].iloc[0]
+    else:
+        base_name = None
+
+    other_columns = other["displayName"].to_list()
+
+    return base_name, other_columns
+

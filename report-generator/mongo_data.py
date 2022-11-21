@@ -69,26 +69,11 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
 
     for doc in docs:
         for extractor in spec.extractors:
-            bad_sample = False
-            temp_row = []
-            for value_extractor in extractor.columns:
-                if value_extractor.path is not None:
-                    if value_extractor.compiled_path is None:
-                        value_extractor.compiled_path = jmespath.compile(
-                            value_extractor.path
-                        )
-                    value = value_extractor.compiled_path.search(doc)
-                else:
-                    value = value_extractor.value
-                if not extractor.accepts_null and value is None:
-                    bad_sample = True
-                    break
-                temp_row.append(value)
-            if bad_sample:
-                continue
-            # if we are here we have successfully extracted meaningful values for all columns, add the row
-            for idx, value in enumerate(temp_row):
-                column_values[idx].append(value)
+            temp_row = extractor.extract_row(doc)
+            if temp_row is not None:
+                # if we are here we have successfully extracted meaningful values for all columns, add the row
+                for idx, value in enumerate(temp_row):
+                    column_values[idx].append(value)
     vals = {}
     for idx in range(len(spec.columns)):
         vals[spec.columns[idx]] = column_values[idx]
@@ -114,41 +99,35 @@ def to_data_frame(docs, spec: DataFrameSpec) -> Optional[pd.DataFrame]:
     return df
 
 
-def labels_to_filter(labels):
+def labels_to_filter(labels: Mapping[str, str]):
     if len(labels) > 0:
         return {
             "$and": [
                 {"metadata.labels": {"$elemMatch": {"name": name, "value": value}}}
-                for name, value in labels
+                for name, value in labels.items()
             ]
         }
     else:
         return {}
 
 
-def get_docs(db, labels) -> List[Any]:
+def get_docs(db, labels: Mapping[str, str]) -> List[Any]:
     """
     Returns the mongo documents extracted for the particular label
     """
     mongo_filter = labels_to_filter(labels)
     # get the tests in the reverse order of their run so that we can get to the last run tests first
     # we will discard the test results for old runs of the same test
-    mongo_sort = [("metadata.timeUpdated", pymongo.DESCENDING)]
+    mongo_sort = [("metadata.timeUpdated", pymongo.ASCENDING)]
     collection = db["sdk_report"]
 
     # materialize the cursor so that we can reuse the collection in multiple extractions
-    coll = []
-    doc_identity = {}
+    docs = []
     for doc in collection.find(mongo_filter, sort=mongo_sort):
-        ident = get_test_id(doc)
-        if ident not in doc_identity:
-            doc_identity[ident] = True
-            doc = fix_test_types(doc)
-            coll.append(doc)
+        doc = fix_test_types(doc)
+        docs.append(doc)
 
-    # put them back in the order of their run
-    coll.reverse()
-    return coll
+    return docs
 
 
 def fix_test_types(doc):
@@ -159,6 +138,8 @@ def fix_test_types(doc):
     metadata = doc.get("metadata")
     if metadata is not None:
         labels = metadata.get("labels")
+        metadata["timeUpdated"] = datetime_converter(metadata.get("timeUpdated"))
+        metadata["timeCreated"] = datetime_converter(metadata.get("timeCreated"))
         if labels is not None:
             for label in labels:
                 name = label.get("name")
@@ -291,7 +272,6 @@ def get_measurements(docs) -> List[MeasurementInfo]:
                     description = aggregation_meta.get("description")
                     if description is not None:
                         current_aggregation["description"] = description
-
 
     # now we have the raw measurements and potentially meta-data for them, augment measurements with the metadata
     ret_val = _join_measurements_info(measurements_raw, measurements_meta_raw)

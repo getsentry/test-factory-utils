@@ -1,8 +1,6 @@
 import importlib
-from datetime import datetime
 
 import click
-import datapane as dp
 from google.cloud import storage
 from mongo_data import get_db, get_docs, get_measurements
 
@@ -31,7 +29,12 @@ from mongo_data import get_db, get_docs, get_measurements
     default="report.html",
     help="path to the name of the report file",
 )
-@click.option("--filters", "-f", multiple=True, type=(str, str))
+@click.option(
+    "--filters",
+    "-f", multiple=True,
+    type=(str, str),
+    help="(labelName,labelValue) pairs to use as filter, will the labels present in `metadata.labels` "
+)
 @click.option(
     "--git-sha",
     "-s",
@@ -49,53 +52,39 @@ from mongo_data import get_db, get_docs, get_measurements
     required=True,
     help="report generator python file",
 )
-def main(
-    mongo_url, bucket_name, report_name, filters, git_sha, no_upload, report_file_name
-):
-
+@click.option(
+    "--custom",
+    "-c",
+    multiple=True,
+    type=(str, str),
+    help="report specific (name,value) parameters. The specific report deals with them appropriately"
+)
+@click.option(
+    "--grouping",
+    "-g",
+    type=click.Choice(["latest", "min", "max", "mean"], case_sensitive=False),
+    default="latest",
+    help="Specifies how to aggregate when multiple values exist for the same measurement",
+)
+def main(mongo_url, bucket_name, report_name, filters, git_sha, grouping, no_upload, report_file_name, custom):
     db = get_db(mongo_url)
 
-    trend_filters = [*filters, ("is_default_branch", "1")]
-    current_filters = [*filters, ("commit_sha", git_sha)]
+    filters_dict = {k: v for (k, v) in filters}
 
-    trend_docs = get_docs(db, trend_filters)
-    current_docs = get_docs(db, current_filters)
-
-    # we only need the last doc
-    if len(current_docs) == 0:
-        current_doc = None
-    else:
-        current_doc = current_docs[-1]
-
-    measurements = get_measurements(current_docs)
+    custom_options_dict = {k: v for (k, v) in custom}
 
     module = importlib.import_module(report_file_name)
-    report = module.generate_report(
-        trend_docs, current_doc, measurements, filters, git_sha
-    )
+    module.generate_report(db, report_name, filters_dict, git_sha, grouping, custom_options_dict)
 
-    environment = "unknown-environment"
-    platform = "unknown-platform"
-
-    for key, value in filters:
-        if key == "environment":
-            environment = value
-        if key == "platform":
-            platform = value
-
-    report.save(
-        report_name, formatting=dp.ReportFormatting(width=dp.ReportWidth.MEDIUM)
-    )
     if not no_upload:
-        upload_to_gcs(report_name, environment, platform, bucket_name)
+        upload_to_gcs(report_name, filters, bucket_name, module.get_report_file_name)
 
 
-def upload_to_gcs(file_name, environment, platform, bucket_name):
-    date_s = datetime.utcnow().strftime("%Y-%m-%d_%H-%M")
-    blob_file_name = f"{platform}/{environment}/sdk_report_{date_s}.html"
+def upload_to_gcs(file_name, filters, bucket_name, get_report_file_name):
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
+    blob_file_name = get_report_file_name(filters)
     blob = bucket.blob(blob_file_name)
 
     with open(file_name, "rb") as my_file:
