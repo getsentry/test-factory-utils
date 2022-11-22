@@ -1,4 +1,4 @@
-FROM moby/buildkit:v0.10.3
+FROM moby/buildkit:v0.10.6
 
 # Wrappers, troubleshotting
 RUN apk add --no-cache podman podman-docker docker-compose curl bash jq gettext
