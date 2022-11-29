@@ -36,15 +36,15 @@ def configure_logging():
 @click.option("--end", "-e", default=None, help="The stop date time of the test")
 @click.option("--duration", "-d", default=None, help="The test duration e.g. 2d4h3m2s")
 @click.option(
-    "--url", "-u", default=None, help="Url InfluxDb, if None $INFLUX_URL will be used"
+    "--url", "-u", default=None, help="Url InfluxDB, if None $INFLUX_URL will be used"
 )
 @click.option(
     "--token",
     "-t",
     default=None,
-    help="Access token for InfluxDb, if None $INFLUX_TOKEN will be used",
+    help="Access token for InfluxDB, if None $INFLUX_TOKEN will be used",
 )
-@click.option("--org", "-o", default="sentry", help="Organization used in InfluxDb")
+@click.option("--org", "-o", default="sentry", help="Organization used in InfluxDB")
 @click.option(
     "--report-file-input",
     "-r",

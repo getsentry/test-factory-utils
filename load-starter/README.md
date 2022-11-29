@@ -23,8 +23,8 @@ Flags:
       --grafana-organisation string   Grafana board id
   -v, --grafana-var stringToString    Grafana dashboard variables with their values (default [])
       --influx-base string            InfluxDB dashboard base URL
-      --influx-board string           InfluxDb board id
-      --influx-organisation string    InfluxDb organisation id
+      --influx-board string           InfluxDB board id
+      --influx-organisation string    InfluxDB organisation id
       --load-server string            Load server endpoint (default "http://go-load-tester.default.svc.cluster.local")
       --log string                    Log level: trace, debug, (info), warn, error, fatal, panic (default "info")
   -r, --report string                 If provided: report will be written here

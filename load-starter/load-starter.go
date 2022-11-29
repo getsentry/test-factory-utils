@@ -101,9 +101,9 @@ ingest-load-tester (a Locust based tool) and go-load-tester (a Vegeta based tool
 
 	Params.influxServerName = rootCmd.Flags().String("influx-base", "", "InfluxDB dashboard base URL")
 
-	Params.influxOrganisationId = rootCmd.Flags().String("influx-organisation", "", "InfluxDb organisation id")
+	Params.influxOrganisationId = rootCmd.Flags().String("influx-organisation", "", "InfluxDB organisation id")
 
-	Params.influxBoardId = rootCmd.Flags().String("influx-board", "", "InfluxDb board id")
+	Params.influxBoardId = rootCmd.Flags().String("influx-board", "", "InfluxDB board id")
 
 	Params.grafanaServerName = rootCmd.Flags().String("grafana-base", "", "Grafana base URL")
 

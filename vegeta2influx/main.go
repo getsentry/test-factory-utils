@@ -1,7 +1,7 @@
 /*
 Copyright © 2022 Sentry
 
-This utility gets as input Vegeta response logs (in json format) and converts them into calls to InfluxDb.
+This utility gets as input Vegeta response logs (in json format) and converts them into calls to InfluxDB.
 
 It is meant to be used directly with the `vegeta` executable in this manner:
 
@@ -25,8 +25,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"text/template"
@@ -184,7 +184,7 @@ func cliSetup() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "vegeta2influx",
 		Short: "Converts vegeta json report outputs to influxdb metric insert requests",
-		Long: `Converts the output from a vegeta report into calls to insert metrics in InfluxDb
+		Long: `Converts the output from a vegeta report into calls to insert metrics in InfluxDB
 
 The input should be a sequence of Json documents, one per line.
 This is what you get after a call to:  "vegeta attack --duration=1m | vegeta report".
@@ -235,10 +235,10 @@ The date specified by the timestamp, the value will be latency field and attack 
 	_ = viper.BindPFlag("measurement", rootCmd.PersistentFlags().Lookup("measurement"))
 
 	update_doc_cmd := &cobra.Command{
-		Use: "update-docs",
-        Short: "Update the documentation",
-        Long: "generates README.md file from README-template.md and progam usage.",
-		Run: func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
+		Use:   "update-docs",
+		Short: "Update the documentation",
+		Long:  "generates README.md file from README-template.md and progam usage.",
+		Run:   func(cmd *cobra.Command, args []string) { updateDocs(rootCmd) },
 	}
 	rootCmd.AddCommand(update_doc_cmd)
 
@@ -311,10 +311,9 @@ func updateDocs(cmd *cobra.Command) {
 
 	readmeFile, err := os.Create("README.md")
 
-
-	params := struct{
-	    Usage string
-	    }{
+	params := struct {
+		Usage string
+	}{
 		Usage: usage,
 	}
 
