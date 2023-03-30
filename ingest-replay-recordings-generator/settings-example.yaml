@@ -1,0 +1,6 @@
+kafka:
+  bootstrap.servers: "127.0.0.1:9092"
+org_id: 1
+project_id: 10
+message: '[{"hello":"world"}]'
+compressed: false
