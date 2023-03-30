@@ -3,16 +3,6 @@ import random
 import zlib
 import time
 
-# def generate_payload(size=None):
-#     """Generates a bytes JSON string with entries equal to size"""
-#     if not size:
-#         # this will always give a message between 53 bytes and 1MB
-#         size = random.randint(1,49900) 
-#     message_dict = []
-#     for _ in range(size):
-#         message_dict.append({"hello": "world"})
-#     message = str(message_dict)
-#     return bytes(message, 'utf-8')
 
 def generate_chunked_message(
     replay_id: int,
@@ -69,8 +59,8 @@ def generate_nonchunked_message(
 def generate_message(
     send_chunked_recording: bool,
     replay_id: int,
-    segment_id: int,
     settings: Mapping[str, Any],
+    segment_id=1,
     chunk_index=0,
     num_chunks=1
 ) -> List:

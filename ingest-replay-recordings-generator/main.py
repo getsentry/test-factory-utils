@@ -81,7 +81,6 @@ def send_replay_recordings(producer, settings):
 def generate_replay_recordings(settings):
     num_messages = settings["num_messages"]
     idx = num_messages
-    recordings = []
     while idx > 0:
         # send chunked segments 20% of the time
         send_chunked_recording = _probability(20)
@@ -89,15 +88,12 @@ def generate_replay_recordings(settings):
         idx -= 1
 
         # since every message is 1 segment, use replay_id as segment_id for now
-        recordings.append(
-            generate_message(
-                send_chunked_recording=send_chunked_recording, 
-                replay_id=replay_id,
-                segment_id=replay_id,
-                settings=settings
-            )
+        yield generate_message(
+            send_chunked_recording=send_chunked_recording, 
+            replay_id=replay_id,
+            segment_id=1,
+            settings=settings
         )
-    return recordings
 
 
 def get_settings(
