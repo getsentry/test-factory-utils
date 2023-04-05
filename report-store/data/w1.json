@@ -1596,6 +1596,11 @@
               "path": "/tmp/ingest-metrics-generator-settings.yaml"
             },
             {
+              "globalName": "ingest_replay_recordings_generator_settings",
+              "name": "ingest-replay-recordings-generator-settings",
+              "path": "/tmp/ingest-replay-recordings-generator-settings.yaml"
+            },
+            {
               "globalName": "test-factory-src",
               "name": "test-factory-src",
               "path": "/root/test-factory"
