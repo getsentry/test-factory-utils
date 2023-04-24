@@ -188,7 +188,7 @@ def default_metric_generator(
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
-        "name": "default",
+        "name": "c:sessions/default@none",
         "unit": "",
         "type": "c",
         "value": idx,
@@ -205,7 +205,7 @@ def session_metric_generator(
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
-        "name": "sentry.sessions.session",
+        "name": "c:sessions/session@none",
         "unit": "",
         "type": "c",
         "value": float(idx),
@@ -221,7 +221,7 @@ def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str,
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
-        "name": "sentry.sessions.user",
+        "name": "s:sessions/user@none",
         "unit": "",
         "type": "s",
         "value": _get_set(idx, settings),
@@ -239,7 +239,7 @@ def session_error_metric_generator(
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": _get_project_id(idx, settings),
-        "name": "sentry.sessions.session.error",
+        "name": "s:sessions/error@none",
         "unit": "",
         "type": "s",
         "value": _get_set(idx, settings),
@@ -257,7 +257,7 @@ def session_duration_metric_generator(
     return {
         "org_id": _get_org_id(idx, settings),
         "project_id": 1,
-        "name": "sentry.sessions.session.duration",
+        "name": "d:sessions/duration@second",
         "unit": "s",
         "type": "d",
         "value": _get_distribution(idx, settings),
