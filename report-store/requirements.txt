@@ -13,4 +13,4 @@ mongoengine==0.24.0 # Requires pymongo==4.0.0, should be fixed in the next versi
 sentry-sdk[flask]==1.5.7
 flask-mongoengine==1.0.0
 waitress==2.1.2
-requests==2.27.1
+requests==2.31.0
