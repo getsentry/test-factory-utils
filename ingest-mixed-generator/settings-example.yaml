@@ -1,0 +1,20 @@
+kafka:
+  bootstrap.servers: "127.0.0.1:9092"
+org: 1
+projects: [5, 6, 7, 8, 9, 10]
+# time spread of timestamp from now. will generate messages with timestamp
+# anywhere between `now` and `now - spread`
+spread: 2h
+# the basic messages that will be generated on the topic. possible values:
+# event, attachment_chunk, attachment, user_report. attachment_chunk requires
+# either event or attachment to be enabled.
+message_types:
+  - event
+  - attachment
+  - attachment_chunk
+  - user_report
+# if `event` is selected as message type, this controls the event types.
+event_types:
+  - transaction
+  - error
+  - default
