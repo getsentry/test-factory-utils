@@ -47,8 +47,8 @@ EVENT_TYPES = ["transaction", "error", "default"]
 )
 @click.option("--org", "-o", type=int, help="organization id")
 @click.option("--project", "-p", type=int, help="project id")
-@click.option("--message-type", "-m", type=click.Choice(MESSAGE_TYPES), multiple=True, help="message types to generate")
-@click.option("--event-type", "-e", type=click.Choice(EVENT_TYPES), multiple=True, help="event types to generate")
+@click.option("--message-type", "-m", "message_types", type=click.Choice(MESSAGE_TYPES), multiple=True, help="message types to generate")
+@click.option("--event-type", "-e", "event_types", type=click.Choice(EVENT_TYPES), multiple=True, help="event types to generate")
 @click.option("--dry-run", is_flag=True, help="if set only prints the settings")
 @click.option("--update-docs", is_flag=True,  help="creates a README.md  documentation file")
 def main(**kwargs):

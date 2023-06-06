@@ -1,6 +1,9 @@
-from typing import Callable, Mapping, Any, List, Optional
+import json
 import random
+from typing import Callable, Mapping, Any, List, Optional
 import uuid
+
+import msgpack
 
 def generate_message(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
     message_type = _get_message_type(idx, settings) or ""
@@ -58,21 +61,23 @@ def _get_event_id(idx: int, settings: Mapping[str, Any]) -> str:
 
 
 def _get_timestamp(idx: int, settings: Mapping[str, Any]) -> int:
-    spread = settings["spread"]
-    now = int(time.time())
-    return random.randint(now - spread, now)
+    base_seconds = int(settings["time_delta"].total_seconds())
+    offset = random.randint(0, base_seconds)
+    timestamp = settings["timestamp"] - offset
+    return timestamp
 
 
 def _get_start_time(idx: int, settings: Mapping[str, Any]) -> int:
-    return int(time.time())
+    return settings["timestamp"]
 
 
 def _get_default_event(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
     return {
         "type": "default",
         "event_id": _get_event_id(idx, settings),
-        "project_id": _get_project_id(idx, settings),
+        "project": _get_project_id(idx, settings),
         "timestamp": _get_timestamp(idx, settings),
+        "platform": "other",
     }
 
 
@@ -80,8 +85,9 @@ def _get_error_event(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]
     return {
         "type": "error",
         "event_id": _get_event_id(idx, settings),
-        "project_id": _get_project_id(idx, settings),
+        "project": _get_project_id(idx, settings),
         "timestamp": _get_timestamp(idx, settings),
+        "platform": "other",
     }
 
 
@@ -89,8 +95,9 @@ def _get_transaction_event(idx: int, settings: Mapping[str, Any]) -> Mapping[str
     return {
         "type": "transaction",
         "event_id": _get_event_id(idx, settings),
-        "project_id": _get_project_id(idx, settings),
+        "project": _get_project_id(idx, settings),
         "timestamp": _get_timestamp(idx, settings),
+        "platform": "other",
     }
 
 
@@ -106,7 +113,7 @@ def event_message_generator(idx: int, settings: Mapping[str, Any], event_type: O
     headers = {
         "start_time": _get_start_time(idx, settings),
         "event_id": event["event_id"],
-        "project_id": event["project_id"],
+        "project_id": event["project"],
         "remote_addr": None,
         "attachments": [],  # TODO: use attachment chunks here
     }
