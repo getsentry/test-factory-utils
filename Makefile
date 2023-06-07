@@ -34,6 +34,7 @@ push-all: push-influxdb-monitor push-ingest-metrics-generator push-load-starter 
 
 generate-docs:
 	cd ingest-metrics-generator && $(MAKE) update-docs
+	cd ingest-mixed-generator && $(MAKE) update-docs
 	cd load-starter && $(MAKE) update-docs
 	cd influxdb-monitor && $(MAKE) update-docs
 	cd vegeta2influx && $(MAKE) update-docs
@@ -45,6 +46,7 @@ generate-docs:
 	-cp helper-images/topicctl/README.md docs/topicctl.md
 	-cp influxdb-monitor/README.md docs/influxdb-monitor.md
 	-cp ingest-metrics-generator/README.md docs/ingest-metrics-generator.md
+	-cp ingest-mixed-generator/README.md docs/ingest-mixed-generator.md
 	-cp load-starter/README.md docs/load-starter.md
 	-cp report-generator/README.md docs/report-generator.md
 	-cp report-store/README.md docs/report-store.md
