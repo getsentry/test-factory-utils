@@ -16,7 +16,7 @@ def generate_message(
         "org_id": settings["org_id"],
         "key_id": 123,
         "project_id": settings["project_id"],
-        "received": time.time(),
+        "received": int(time.time()),
         "retention_days": 30,
         "payload": f'{{"segment_id":{segment_id}}}\n' + message,
     }
