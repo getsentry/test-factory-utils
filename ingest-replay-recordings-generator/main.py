@@ -59,7 +59,7 @@ def main(**kwargs):
 def send_replay_recordings(producer, settings):
     topic_name = settings["topic_name"]
     for recording in generate_replay_recordings(settings):
-        producer.produce(topic_name, json.dumps(recording))
+        producer.produce(topic_name, str(recording))
         producer.poll(0)
     producer.flush()
 
