@@ -8,7 +8,8 @@ def generate_message(
     segment_id: int,
     settings: Mapping[str, Any]
 ):
-    message = zlib.compress(settings["message"]) if settings["compressed"] else settings["message"]
+    bytes_msg = bytes(settings["message"], "utf-8")
+    message = zlib.compress(bytes_msg) if settings["compressed"] else bytes_msg
     return {
         "type": "replay_recording_not_chunked",
         "replay_id": replay_id,
@@ -17,5 +18,5 @@ def generate_message(
         "project_id": settings["project_id"],
         "received": int(time.time()),
         "retention_days": 30,
-        "payload": f'{{"segment_id":{segment_id}}}\n' + message,
+        "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
     }
