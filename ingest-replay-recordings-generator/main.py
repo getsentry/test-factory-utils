@@ -1,12 +1,9 @@
-import datetime
 import json
-from typing import Mapping, Any, Optional
-import time
-import random
+from typing import Optional
 
 import click
 from confluent_kafka import Producer
-from yaml import load, dump, Dumper, Loader
+from yaml import load, Loader
 
 from recordings import generate_message
 from readme_generator import generate_readme
@@ -30,12 +27,6 @@ from readme_generator import generate_readme
     "-b",
     default=None,
     help="Kafka broker address and port (e.g. localhost:9092)",
-)
-@click.option(
-    "--repeatable",
-    "-r",
-    is_flag=True,
-    help="Should it generate a repeatable load or use a random generator (default: random)",
 )
 @click.option("--org", "-o", type=int, help="organisation id")
 @click.option("--project", "-p", type=int, help="project id")
@@ -65,11 +56,6 @@ def main(**kwargs):
     print("Done!")
 
 
-def _probability(percentage: int):
-    chance = random.randint(0,99)
-    return (chance < percentage)
-
-
 def send_replay_recordings(producer, settings):
     topic_name = settings["topic_name"]
     for recording in generate_replay_recordings(settings):
@@ -80,17 +66,9 @@ def send_replay_recordings(producer, settings):
 
 def generate_replay_recordings(settings):
     num_messages = settings["num_messages"]
-    idx = num_messages
-    while idx > 0:
-        # send chunked segments 20% of the time
-        send_chunked_recording = _probability(20)
-        replay_id = num_messages-idx
-        idx -= 1
-
-        # since every message is 1 segment, use replay_id as segment_id for now
+    for i in range(num_messages):
         yield generate_message(
-            send_chunked_recording=send_chunked_recording, 
-            replay_id=replay_id,
+            replay_id=i,
             segment_id=1,
             settings=settings
         )
@@ -101,7 +79,6 @@ def get_settings(
     settings_file: Optional[str],
     topic_name: Optional[str],
     broker: Optional[str],
-    repeatable: bool,
     org: Optional[int],
     project: Optional[int],
     dry_run: bool,
@@ -111,7 +88,6 @@ def get_settings(
     settings = {
         "num_messages": 100,
         "topic_name": "ingest-replay-recordings",
-        "repeatable": False,
         "kafka": {},
         "metric_types": {},
     }
@@ -125,9 +101,6 @@ def get_settings(
 
     if topic_name is not None:
         settings["topic_name"] = topic_name
-
-    if repeatable:
-        settings["repeatable"] = True
 
     if broker is not None:
         settings["kafka"]["bootstrap.servers"] = broker
