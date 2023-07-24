@@ -69,7 +69,7 @@ def generate_replay_recordings(settings):
     num_messages = settings["num_messages"]
     for i in range(num_messages):
         yield generate_message(
-            replay_id=i,
+            replay_id=str(i),
             segment_id=1,
             settings=settings
         )

@@ -4,7 +4,7 @@ import time
 
 
 def generate_message(
-    replay_id: int,
+    replay_id: str,
     segment_id: int,
     settings: Mapping[str, Any]
 ):
