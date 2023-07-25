@@ -70,9 +70,7 @@ from readme_generator import generate_readme
     help="Ratio of unique environments to generate",
 )
 @click.option(
-    "--num-extra-tags",
-    type=int,
-    help="Number of additional tags to generate."
+    "--num-extra-tags", type=int, help="Number of additional tags to generate."
 )
 @click.option(
     "--extra-tags-values",
@@ -96,7 +94,9 @@ from readme_generator import generate_readme
     help="max number of items in collections (sets & distributions)",
 )
 @click.option("--dry-run", is_flag=True, help="if set only prints the settings")
-@click.option("--update-docs", is_flag=True,  help="creates a README.md  documentation file")
+@click.option(
+    "--update-docs", is_flag=True, help="creates a README.md  documentation file"
+)
 def main(**kwargs):
     """
     Populates the ingest-metrics kafka topic with messages
@@ -124,7 +124,9 @@ def main(**kwargs):
 def send_metrics(producer, settings):
     topic_name = settings["topic_name"]
     for metric in generate_metrics(settings):
-        producer.produce(topic_name, json.dumps(metric))
+        producer.produce(
+            topic_name, json.dumps(metric), headers=[("namespace", "sessions")]
+        )
         producer.poll(0)
 
     producer.flush()
