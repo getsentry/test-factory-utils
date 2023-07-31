@@ -1,4 +1,5 @@
 import json
+import msgpack
 from typing import Optional
 
 import click
@@ -59,7 +60,7 @@ def main(**kwargs):
 def send_replay_recordings(producer, settings):
     topic_name = settings["topic_name"]
     for recording in generate_replay_recordings(settings):
-        producer.produce(topic_name, json.dumps(recording))
+        producer.produce(topic_name, msgpack.packb(recording))
         producer.poll(0)
     producer.flush()
 
@@ -68,7 +69,7 @@ def generate_replay_recordings(settings):
     num_messages = settings["num_messages"]
     for i in range(num_messages):
         yield generate_message(
-            replay_id=i,
+            replay_id=str(i),
             segment_id=1,
             settings=settings
         )

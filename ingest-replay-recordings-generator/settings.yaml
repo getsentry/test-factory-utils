@@ -3,4 +3,4 @@ kafka:
 org_id: 1
 project_id: 10
 message: '[{"hello":"world"}]'
-compressed: false
+compressed: true
