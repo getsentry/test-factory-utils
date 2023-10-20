@@ -4,7 +4,7 @@ import click
 from confluent_kafka import Producer
 from yaml import load, Loader
 
-from messages import generate_event_messages, generate_attachment_payload
+from messages import generate_event_messages, generate_attachment_payloads
 from readme_generator import generate_readme
 
 
@@ -14,6 +14,12 @@ from readme_generator import generate_readme
     "-n",
     default="",
     help="The number of events to send to the kafka queue",
+)
+@click.option(
+    "--num-payloads",
+    "-p",
+    default="",
+    help="The number of different attachment payloads to send to the kafka queue",
 )
 @click.option(
     "--settings-file", "-f", default=None, help="The settings file name (json or yaml)"
@@ -61,20 +67,20 @@ def main(**kwargs):
 
     print("Generating attachment data...", flush=True)
 
-    payload = generate_attachment_payload(settings)
+    payloads = generate_attachment_payloads(settings)
 
     print("Sending data...", flush=True)
-    send_messages(producer, settings, payload)
+    send_messages(producer, settings, payloads)
 
     print("Done!")
 
 
-def send_messages(producer, settings, payload):
+def send_messages(producer, settings, payloads):
     topic_name = settings["topic_name"]
     num_events = settings["num_events"]
 
     for idx in range(num_events):
-        for message in generate_event_messages(idx, settings, payload):
+        for message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
             producer.produce(topic_name, message)
             producer.poll(0)
 
@@ -83,6 +89,7 @@ def send_messages(producer, settings, payload):
 
 def get_settings(
     num_events: Optional[str],
+    num_payloads: Optional[str],
     settings_file: Optional[str],
     topic_name: Optional[str],
     broker: Optional[str],
@@ -94,6 +101,7 @@ def get_settings(
     # default settings
     settings = {
         "num_events": 100,
+        "num_payloads": 1,
         # attachments is the most defensive default, since this topic allows all
         # message types.
         "topic_name": "ingest-attachments",

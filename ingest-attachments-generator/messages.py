@@ -1,15 +1,16 @@
-import json
 import random
-from typing import Mapping, Any, Optional
+from typing import Mapping, Any, Optional, List
 import uuid
 
 import msgpack
 
 
-def generate_attachment_payload(settings: Mapping[str, Any]) -> bytes:
+def generate_attachment_payloads(settings: Mapping[str, Any]) -> List[bytes]:
+    payloads = []
     # TODO: Make min/max size configurable?
-    payload = "".join([chr(random.randint(0, 255)) for _ in range(1000)]).encode("utf-8")
-    return payload
+    for i in range(settings["num_payloads"]):
+        payloads.append("".join([chr(random.randint(0, 255)) for _ in range(100)]).encode("utf-8"))
+    return payloads
 
 
 def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: bytes):
