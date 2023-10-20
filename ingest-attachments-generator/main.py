@@ -10,10 +10,10 @@ from readme_generator import generate_readme
 
 @click.command()
 @click.option(
-    "--num-events",
+    "--num-attachments",
     "-n",
     default="",
-    help="The number of events to send to the kafka queue",
+    help="The number of attachments to send to the kafka queue",
 )
 @click.option(
     "--num-payloads",
@@ -77,9 +77,9 @@ def main(**kwargs):
 
 def send_messages(producer, settings, payloads):
     topic_name = settings["topic_name"]
-    num_events = settings["num_events"]
+    num_attachments = settings["num_attachments"]
 
-    for idx in range(num_events):
+    for idx in range(num_attachments):
         for message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
             producer.produce(topic_name, message)
             producer.poll(0)
@@ -88,7 +88,7 @@ def send_messages(producer, settings, payloads):
 
 
 def get_settings(
-    num_events: Optional[str],
+    num_attachments: Optional[str],
     num_payloads: Optional[str],
     settings_file: Optional[str],
     topic_name: Optional[str],
@@ -100,7 +100,7 @@ def get_settings(
 ):
     # default settings
     settings = {
-        "num_events": 100,
+        "num_attachments": 100,
         "num_payloads": 1,
         # attachments is the most defensive default, since this topic allows all
         # message types.
@@ -143,10 +143,10 @@ def get_settings(
             f"projects not specified, to specify either use --project argument or set [project] array in the settings file"
         )
 
-    # num_events may be set to a string value (when started from kubernetes) like 'default'
+    # num_attachments may be set to a string value (when started from kubernetes) like 'default'
     # if set in the command line to anything that can't be converted to an integer just ignore it
     for name, value in (
-        ("num_events", num_events),
+        ("num_attachments", num_attachments),
         # NB: Add other numeric settings here
     ):
         if value is not None:
