@@ -1,13 +1,10 @@
-import datetime
 from typing import Optional
-import time
 
 import click
 from confluent_kafka import Producer
 from yaml import load, Loader
 
 from messages import generate_event_messages, generate_attachment_payload
-from util import parse_timedelta
 from readme_generator import generate_readme
 
 
@@ -149,12 +146,6 @@ def get_settings(
                 settings[name] = int(value)
             except ValueError:
                 pass  # ignore non integer command line args
-
-    time_delta = parse_timedelta(settings["spread"])
-    if time_delta is None:
-        time_delta = datetime.timedelta(minutes=1)
-
-    settings["time_delta"] = time_delta
 
     settings["dry_run"] = dry_run
 
