@@ -91,8 +91,6 @@ def get_settings(
     broker: Optional[str],
     org: Optional[int],
     project: Optional[int],
-    timestamp: Optional[int],
-    spread: Optional[str],
     dry_run: bool,
     **kwargs,
 ):
@@ -102,7 +100,6 @@ def get_settings(
         # attachments is the most defensive default, since this topic allows all
         # message types.
         "topic_name": "ingest-attachments",
-        "spread": "2m",
         "kafka": {},
         "metric_types": {},
     }
@@ -140,14 +137,6 @@ def get_settings(
         raise click.UsageError(
             f"projects not specified, to specify either use --project argument or set [project] array in the settings file"
         )
-
-    if timestamp is not None:
-        settings["timestamp"] = timestamp
-    else:
-        settings["timestamp"] = int(time.time()) - 1  # now(ish)
-
-    if spread is not None:
-        settings["spread"] = spread
 
     # num_events may be set to a string value (when started from kubernetes) like 'default'
     # if set in the command line to anything that can't be converted to an integer just ignore it

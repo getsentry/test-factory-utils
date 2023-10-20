@@ -26,20 +26,10 @@ def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: byte
 
     yield _create_msgpack_wrapper("attachment_chunk", chunk_headers, payload)
 
-    event = {
-        "type": "default",
-        "event_id": event_id,
-        "project": project_id,
-        "timestamp": _get_timestamp(idx, settings),
-        "platform": "other",
-    }
-
-    event_headers = {
-        "start_time": _get_start_time(idx, settings),
+    attachment_headers = {
         "event_id": event_id,
         "project_id": project_id,
-        "remote_addr": None,
-        "attachments": [{
+        "attachment": {
             "id": attachment_id,
             "name": "test.txt",
             "content_type": "text/plain",
@@ -47,11 +37,10 @@ def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: byte
             "chunks": 1,
             "size": 1000,
             "rate_limited": False,
-        }],
+        }
     }
 
-    event_payload = json.dumps(event).encode("utf-8")
-    yield _create_msgpack_wrapper("event", event_headers, event_payload)
+    yield _create_msgpack_wrapper("attachment", attachment_headers, None)
 
 
 def _create_msgpack_wrapper(ty: str, headers: Mapping[str, Any], payload: Optional[bytes]) -> bytes:
@@ -77,13 +66,3 @@ def _get_event_id(idx: int, settings: Mapping[str, Any]) -> str:
 def _get_attachment_id(idx: int, settings: Mapping[str, Any]) -> str:
     return uuid.uuid4().hex
 
-
-def _get_timestamp(idx: int, settings: Mapping[str, Any]) -> int:
-    base_seconds = int(settings["time_delta"].total_seconds())
-    offset = random.randint(0, base_seconds)
-    timestamp = settings["timestamp"] - offset
-    return timestamp
-
-
-def _get_start_time(idx: int, settings: Mapping[str, Any]) -> int:
-    return settings["timestamp"]

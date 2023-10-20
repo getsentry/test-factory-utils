@@ -2,6 +2,3 @@ kafka:
   bootstrap.servers: "127.0.0.1:9092"
 org: 1
 projects: [5, 6, 7, 8, 9, 10]
-# time spread of timestamp from now. will generate messages with timestamp
-# anywhere between `now` and `now - spread`
-spread: 2h
