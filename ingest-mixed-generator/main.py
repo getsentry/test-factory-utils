@@ -7,7 +7,7 @@ import click
 from confluent_kafka import Producer
 from yaml import load, dump, Dumper, Loader
 
-from messages import generate_message
+from messages import generate_attachment_payloads, generate_event_messages, generate_message
 from util import parse_timedelta
 from readme_generator import generate_readme
 
@@ -22,6 +22,18 @@ EVENT_TYPES = ["transaction", "error", "default"]
     "-n",
     default="",
     help="The number of messages to send to the kafka queue",
+)
+@click.option(
+    "--num-attachments",
+    "-n",
+    default="",
+    help="The number of attachments to send to the kafka queue",
+)
+@click.option(
+    "--num-payloads",
+    "-p",
+    default="",
+    help="The number of different attachment payloads to send to the kafka queue",
 )
 @click.option(
     "--settings-file", "-f", default=None, help="The settings file name (json or yaml)"
@@ -69,17 +81,28 @@ def main(**kwargs):
 
     producer = get_kafka_producer(settings)
 
+    print("Generating attachment data...", flush=True)
+
+    payloads = generate_attachment_payloads(settings)
+
     print("Sending data...", flush=True)
-    send_messages(producer, settings)
+    send_messages(producer, settings, payloads)
 
     print("Done!")
 
 
-def send_messages(producer, settings):
+def send_messages(producer, settings, payloads):
     topic_name = settings["topic_name"]
+    num_attachments = settings["num_attachments"]
+
     for message in generate_messages(settings):
         producer.produce(topic_name, message)
         producer.poll(0)
+
+    for idx in range(num_attachments):
+        for message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
+            producer.produce(topic_name, message)
+            producer.poll(0)
 
     producer.flush()
 
@@ -93,6 +116,8 @@ def generate_messages(settings):
 
 def get_settings(
     num_messages: Optional[str],
+    num_attachments: Optional[str],
+    num_payloads: Optional[str],
     settings_file: Optional[str],
     topic_name: Optional[str],
     broker: Optional[str],
@@ -108,6 +133,8 @@ def get_settings(
     # default settings
     settings = {
         "num_messages": 100,
+        "num_attachments": 0,
+        "num_payloads": 1,
         # attachments is the most defensive default, since this topic allows all
         # message types.
         "topic_name": "ingest-attachments",
@@ -164,6 +191,8 @@ def get_settings(
     # if set in the command line to anything that can't be converted to an integer just ignore it
     for name, value in (
         ("num_messages", num_messages),
+        ("num_attachments", num_attachments),
+        ("num_payloads", num_payloads),
         # NB: Add other numeric settings here
     ):
         if value is not None:

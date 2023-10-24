@@ -12,6 +12,14 @@ def generate_message(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]
     return generator(idx, settings)
 
 
+def generate_attachment_payloads(settings: Mapping[str, Any]) -> List[bytes]:
+    payloads = []
+    # TODO: Make min/max size configurable?
+    for _i in range(settings["num_payloads"]):
+        payloads.append("".join([chr(random.randint(0, 255)) for _ in range(100)]).encode("utf-8"))
+    return payloads
+
+
 def _get_message_type(idx: int, settings: Mapping[str, Any]) -> Optional[str]:
     types = settings["message_types"]
 
@@ -57,6 +65,10 @@ def _get_project_id(idx: int, settings: Mapping[str, Any]) -> int:
 
 
 def _get_event_id(idx: int, settings: Mapping[str, Any]) -> str:
+    return uuid.uuid4().hex
+
+
+def _get_attachment_id(idx: int, settings: Mapping[str, Any]) -> str:
     return uuid.uuid4().hex
 
 
@@ -174,3 +186,35 @@ def user_report_message_generator(idx: int, settings: Mapping[str, Any]) -> byte
 
 def default_message_generator(idx: int, settings: Mapping[str, Any]) -> bytes:
     return event_message_generator(idx, settings, event_type="default")
+
+
+def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: bytes):
+    event_id = _get_event_id(idx, settings)
+    attachment_id = _get_attachment_id(idx, settings)
+    project_id = _get_project_id(idx, settings)
+
+    chunk_headers = {
+        "event_id": event_id,
+        "project_id": project_id,
+        "id": attachment_id,
+        "chunk_index": 0,  # TODO: Split file into multiple chunks?
+    }
+
+    yield _create_msgpack_wrapper("attachment_chunk", chunk_headers, payload)
+
+    attachment_headers = {
+        "event_id": event_id,
+        "project_id": project_id,
+        "attachment": {
+            "id": attachment_id,
+            "name": "test.txt",
+            "content_type": "text/plain",
+            "attachment_type": "event.attachment",
+            "chunks": 1,
+            "size": 100,
+            "rate_limited": False,
+        }
+    }
+
+    yield _create_msgpack_wrapper("attachment", attachment_headers, None)
+
