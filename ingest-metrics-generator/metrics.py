@@ -176,7 +176,9 @@ def _get_tags(idx: int, settings: Mapping[str, Any]) -> Mapping[str, str]:
     rate = settings["extra_tags_unique_rate"]
 
     for i in range(num):
-        value = _get_tag_num_with_unique_rate(idx * num + i, settings, predefined_values, rate)
+        value = _get_tag_num_with_unique_rate(
+            idx * num + i, settings, predefined_values, rate
+        )
         tags[f"extra-tag-{i}"] = f"extra-value-{value}"
 
     return tags
@@ -196,6 +198,7 @@ def default_metric_generator(
         "tags": {
             **_get_tags(idx, settings),
         },
+        "retention_days": 90,
     }
 
 
@@ -214,6 +217,7 @@ def session_metric_generator(
             **_get_tags(idx, settings),
             "session.status": "init",  # maybe cycle through all available statuses
         },
+        "retention_days": 90,
     }
 
 
@@ -230,6 +234,7 @@ def user_metric_generator(idx: int, settings: Mapping[str, Any]) -> Mapping[str,
             **_get_tags(idx, settings),
             "session.status": "init",  # maybe cycle through all available statuses
         },
+        "retention_days": 90,
     }
 
 
@@ -248,6 +253,7 @@ def session_error_metric_generator(
             **_get_tags(idx, settings),
             "session.status": "errored_preaggr",  # maybe cycle through all available statuses
         },
+        "retention_days": 90,
     }
 
 
@@ -266,4 +272,5 @@ def session_duration_metric_generator(
             **_get_tags(idx, settings),
             "session.status": "exited",  # maybe cycle through all available statuses
         },
+        "retention_days": 90,
     }
