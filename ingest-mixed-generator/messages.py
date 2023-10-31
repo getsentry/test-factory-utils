@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Callable, Mapping, Any, List, Optional
+from typing import Callable, Mapping, Any, Optional
 import uuid
 
 import msgpack
@@ -10,7 +10,6 @@ def generate_message(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]
     generator = _get_message_generator(message_type)
 
     return generator(idx, settings)
-
 
 def _get_message_type(idx: int, settings: Mapping[str, Any]) -> Optional[str]:
     types = settings["message_types"]
@@ -57,6 +56,10 @@ def _get_project_id(idx: int, settings: Mapping[str, Any]) -> int:
 
 
 def _get_event_id(idx: int, settings: Mapping[str, Any]) -> str:
+    return uuid.uuid4().hex
+
+
+def _get_attachment_id(idx: int, settings: Mapping[str, Any]) -> str:
     return uuid.uuid4().hex
 
 
@@ -174,3 +177,35 @@ def user_report_message_generator(idx: int, settings: Mapping[str, Any]) -> byte
 
 def default_message_generator(idx: int, settings: Mapping[str, Any]) -> bytes:
     return event_message_generator(idx, settings, event_type="default")
+
+
+def generate_real_attachment_with_chunk(idx: int, settings: Mapping[str, Any], payload: bytes):
+    event_id = _get_event_id(idx, settings)
+    attachment_id = _get_attachment_id(idx, settings)
+    project_id = _get_project_id(idx, settings)
+
+    chunk_headers = {
+        "event_id": event_id,
+        "project_id": project_id,
+        "id": attachment_id,
+        "chunk_index": 0,  # TODO: Split file into multiple chunks?
+    }
+
+    yield event_id, _create_msgpack_wrapper("attachment_chunk", chunk_headers, payload)
+
+    attachment_headers = {
+        "event_id": event_id,
+        "project_id": project_id,
+        "attachment": {
+            "id": attachment_id,
+            "name": "test.txt",
+            "content_type": "text/plain",
+            "attachment_type": "event.attachment",
+            "chunks": 1,
+            "size": 100,
+            "rate_limited": False,
+        }
+    }
+
+    yield event_id, _create_msgpack_wrapper("attachment", attachment_headers, None)
+
