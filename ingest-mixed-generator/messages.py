@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Callable, Mapping, Any, List, Optional
+from typing import Callable, Mapping, Any, Optional
 import uuid
 
 import msgpack
@@ -10,15 +10,6 @@ def generate_message(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]
     generator = _get_message_generator(message_type)
 
     return generator(idx, settings)
-
-
-def generate_attachment_payloads(settings: Mapping[str, Any]) -> List[bytes]:
-    payloads = []
-    # TODO: Make min/max size configurable?
-    for _i in range(settings["num_payloads"]):
-        payloads.append("".join([chr(random.randint(0, 255)) for _ in range(100)]).encode("utf-8"))
-    return payloads
-
 
 def _get_message_type(idx: int, settings: Mapping[str, Any]) -> Optional[str]:
     types = settings["message_types"]
@@ -188,7 +179,7 @@ def default_message_generator(idx: int, settings: Mapping[str, Any]) -> bytes:
     return event_message_generator(idx, settings, event_type="default")
 
 
-def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: bytes):
+def generate_real_attachment_with_chunk(idx: int, settings: Mapping[str, Any], payload: bytes):
     event_id = _get_event_id(idx, settings)
     attachment_id = _get_attachment_id(idx, settings)
     project_id = _get_project_id(idx, settings)

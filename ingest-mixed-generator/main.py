@@ -1,5 +1,6 @@
 import datetime
 import json
+import random
 from typing import Mapping, Any, Optional, List
 import time
 
@@ -7,7 +8,7 @@ import click
 from confluent_kafka import Producer
 from yaml import load, dump, Dumper, Loader
 
-from messages import generate_attachment_payloads, generate_event_messages, generate_message
+from messages import generate_real_attachment_with_chunk, generate_message
 from util import parse_timedelta
 from readme_generator import generate_readme
 
@@ -25,13 +26,11 @@ EVENT_TYPES = ["transaction", "error", "default"]
 )
 @click.option(
     "--num-attachments",
-    "-n",
     default="",
     help="The number of attachments to send to the kafka queue",
 )
 @click.option(
     "--num-payloads",
-    "-p",
     default="",
     help="The number of different attachment payloads to send to the kafka queue",
 )
@@ -81,26 +80,36 @@ def main(**kwargs):
 
     producer = get_kafka_producer(settings)
 
-    print("Generating attachment data...", flush=True)
+    if settings["num_attachments"] > 0:
+        print("Generating attachment data...", flush=True)
+        payloads = generate_attachment_payloads(settings)
 
-    payloads = generate_attachment_payloads(settings)
-
-    print("Sending data...", flush=True)
-    send_messages(producer, settings, payloads)
+        print("Sending data...", flush=True)
+        send_attachments(producer, settings, payloads)
+    else:
+        print("Sending data...", flush=True)
+        send_messages(producer, settings)
 
     print("Done!")
 
 
-def send_messages(producer, settings, payloads):
+def send_messages(producer, settings):
     topic_name = settings["topic_name"]
-    num_attachments = settings["num_attachments"]
 
     for message in generate_messages(settings):
         producer.produce(topic_name, message)
         producer.poll(0)
 
+    producer.flush()
+
+
+def send_attachments(producer, settings, payloads):
+    topic_name = settings["topic_name"]
+    num_attachments = settings["num_attachments"]
+
     for idx in range(num_attachments):
-        for event_id, message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
+        payload = payloads[idx % len(payloads)]
+        for event_id, message in generate_real_attachment_with_chunk(idx, settings, payload):
             producer.produce(topic_name, key=event_id, value=message)
             producer.poll(0)
 
@@ -112,6 +121,14 @@ def generate_messages(settings):
 
     for idx in range(num_messages):
         yield generate_message(idx, settings)
+
+
+def generate_attachment_payloads(settings: Mapping[str, Any]) -> List[bytes]:
+    payloads = []
+    # TODO: Make min/max size configurable?
+    for _i in range(settings["num_payloads"]):
+        payloads.append("".join([chr(random.randint(0, 255)) for _ in range(100)]).encode("utf-8"))
+    return payloads
 
 
 def get_settings(
@@ -238,6 +255,9 @@ def get_fake_kafka_producer(settings):
 
         def produce(self, topic_name, key, value):
             print(value)
+
+        def poll(self, value):
+            pass
 
         def flush(self):
             print("Flushing !!! ")
