@@ -200,7 +200,7 @@ def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: byte
         "chunk_index": 0,  # TODO: Split file into multiple chunks?
     }
 
-    yield _create_msgpack_wrapper("attachment_chunk", chunk_headers, payload)
+    yield event_id, _create_msgpack_wrapper("attachment_chunk", chunk_headers, payload)
 
     attachment_headers = {
         "event_id": event_id,
@@ -216,5 +216,5 @@ def generate_event_messages(idx: int, settings: Mapping[str, Any], payload: byte
         }
     }
 
-    yield _create_msgpack_wrapper("attachment", attachment_headers, None)
+    yield event_id, _create_msgpack_wrapper("attachment", attachment_headers, None)
 

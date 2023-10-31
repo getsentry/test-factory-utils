@@ -100,8 +100,8 @@ def send_messages(producer, settings, payloads):
         producer.poll(0)
 
     for idx in range(num_attachments):
-        for message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
-            producer.produce(topic_name, message)
+        for event_id, message in generate_event_messages(idx, settings, payloads[idx % len(payloads)]):
+            producer.produce(topic_name, key=event_id, value=message)
             producer.poll(0)
 
     producer.flush()
@@ -236,8 +236,8 @@ def get_fake_kafka_producer(settings):
         def __init__(self, settings):
             pass
 
-        def produce(self, topic_name, message):
-            print(message)
+        def produce(self, topic_name, key, value):
+            print(value)
 
         def flush(self):
             print("Flushing !!! ")
