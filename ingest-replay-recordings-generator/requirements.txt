@@ -1,5 +1,5 @@
 click==8.0.3
-confluent-kafka==1.8.2
+confluent-kafka==2.1.1
 msgpack==1.0.5
 PyYAML==6.0
 u-msgpack-python==2.8.0
