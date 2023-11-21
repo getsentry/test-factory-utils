@@ -75,7 +75,6 @@ from readme_generator import generate_readme
 @click.option(
     "--extra-tags-values",
     type=int,
-    default=10,
     help="Number of additional tag values to generate. If --extra-tags-unique-rate is provided, this parameter defines the number of fallback (non-unique) tag values.",
 )
 @click.option(
