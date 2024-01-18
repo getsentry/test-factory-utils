@@ -1,5 +1,6 @@
 from typing import Callable, Mapping, Any, List, Optional
 import random
+import string
 
 
 def generate_metric(idx: int, settings: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -42,6 +43,10 @@ def _get_metric_generator(
 
 def is_repeatable(settings) -> bool:
     return settings["repeatable"]
+
+
+def get_bin_encoding_len(settings) -> Optional[int]:
+    return settings.get("bin_encoding_len")
 
 
 def _get_org_id(idx: int, settings: Mapping[str, Any]) -> int:
@@ -97,10 +102,17 @@ def _get_set(idx: int, settings: Mapping[str, Any]) -> List[int]:
 def _get_distribution(idx: int, settings: Mapping[str, Any]) -> List[float]:
     num_elms = _get_num_elements_in_collection(idx, settings)
 
+    if bin_encoding_len := get_bin_encoding_len(settings):
+        return "".join(
+            [
+                random.choice(string.ascii_letters)
+                for _ in range(num_elms * bin_encoding_len)
+            ]
+        )
+
     if is_repeatable(settings):
         return [(idx + i) * 5 + 0.1 for i in range(num_elms)]
-    else:
-        return [random.random() * 999 for i in range(num_elms)]
+    return [random.random() * 999 for i in range(num_elms)]
 
 
 def _get_tag_num_with_unique_rate(
