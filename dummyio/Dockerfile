@@ -15,4 +15,4 @@ COPY app.py .
 EXPOSE 3000
 
 ENTRYPOINT [ "granian" ]
-CMD [ "--host", "0.0.0.0", "--port", "3000", "app:app" ]
+CMD [ "--host", "0.0.0.0", "--port", "3000", "--no-ws", "--http", "1", "app:app" ]
