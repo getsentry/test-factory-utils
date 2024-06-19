@@ -12,6 +12,7 @@ class TestingProfile(Enum):
     RELAY = "relay"
     METRICS_INDEXER = "metrics-indexer"
     SNUBA_METRICS_CONSUMER = "snuba-metrics-consumer"
+    ANTI_ABUSE = "anti-abuse"
 
     @staticmethod
     def values():
@@ -227,6 +228,14 @@ STATIC_TEST_PROFILES = {
                 "memory_usage (Mb)",
                 partial(memory_usage, container_name="ingest-metrics-consumer"),
             ),
+        ]
+    },
+    TestingProfile.ANTI_ABUSE.value: {
+        "stats_functions": [
+            ("cpu usage (cores)", partial(cpu_usage, container_name="nginx")),
+            ("memory_usage (Mb)", partial(memory_usage, container_name="nginx")),
+            ("envoy cpu usage (cores)", partial(cpu_usage, container_name="envoy")),
+            ("envoy memory_usage (Mb)", partial(memory_usage, container_name="envoy")),
         ]
     },
 }
