@@ -6,7 +6,7 @@ Jinja2==3.0.3
 MarkupSafe==2.1.0
 minio==7.1.4
 urllib3==1.26.8
-Werkzeug==2.0.3
+Werkzeug==3.0.1
 PyYAML==6.0
 pymongo==4.0.0
 mongoengine==0.24.0 # Requires pymongo==4.0.0, should be fixed in the next version
