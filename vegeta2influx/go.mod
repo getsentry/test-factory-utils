@@ -2,6 +2,8 @@ module github.com/getsentry/test-factory/vegeta2influx
 
 go 1.18
 
+toolchain go1.26.10
+
 require (
 	github.com/google/go-cmp v0.5.8
 	github.com/influxdata/influxdb-client-go/v2 v2.9.1

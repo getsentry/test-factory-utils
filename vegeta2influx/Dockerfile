@@ -1,7 +1,7 @@
 #
 # BUILD stage
 #
-FROM golang:1.18-alpine as build
+FROM golang:1.26-alpine as build
 
 # Download and build vegeta.
 # "go install" doesn't work for commit SHAs, it seems.
