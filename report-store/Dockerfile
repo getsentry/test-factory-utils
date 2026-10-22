@@ -1,7 +1,7 @@
 #
 # Build stage (frontend)
 #
-FROM node:14-bullseye-slim AS node_stage
+FROM node:24-bookworm-slim AS node_stage
 
 # Disable sourcemaps to avoid memory issues when making a production build
 ENV GENERATE_SOURCEMAP=false
