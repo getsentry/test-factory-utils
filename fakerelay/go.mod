@@ -1,3 +1,5 @@
 module github.com/getsentry/sentry-sdk-benchmark/tool/fakerelay
 
 go 1.18
+
+toolchain go1.26.10

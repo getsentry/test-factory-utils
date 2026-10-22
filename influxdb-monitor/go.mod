@@ -2,6 +2,8 @@ module github.com/getsentry/test-factory/influxdb-monitor
 
 go 1.18
 
+toolchain go1.26.10
+
 require (
 	github.com/influxdata/influxdb-client-go/v2 v2.7.0
 	github.com/spf13/cobra v1.3.0
